@@ -2,7 +2,7 @@
 
 **Phase**: 1 - Core Setup
 **Priority**: High
-**Status**: Draft
+**Status**: Done
 
 ## Context
 Users need to log in to access their private data (stores, lists, history). The system must support common, low-friction sign-in methods.
