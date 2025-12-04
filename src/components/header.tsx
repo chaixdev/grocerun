@@ -9,10 +9,20 @@ export async function Header() {
     return (
         <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
             <div className="container flex h-14 items-center justify-between">
-                <div className="flex items-center gap-2 font-bold text-xl">
+                <div className="flex items-center gap-6 font-bold text-xl">
                     <Link href="/" className="flex items-center gap-2">
                         <span className="text-primary">Grocerun</span>
                     </Link>
+                    {session?.user && (
+                        <nav className="flex items-center gap-4 text-sm font-medium">
+                            <Link href="/dashboard/households" className="transition-colors hover:text-primary">
+                                Households
+                            </Link>
+                            <Link href="/dashboard/stores" className="transition-colors hover:text-primary">
+                                Stores
+                            </Link>
+                        </nav>
+                    )}
                 </div>
 
                 <div className="flex items-center gap-4">
