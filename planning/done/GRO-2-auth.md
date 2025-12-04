@@ -10,12 +10,10 @@ Users need to log in to access their private data (stores, lists, history). The 
 ## Requirements
 - Implement a secure authentication system.
 - Support Google Sign-In (OAuth) for one-click access.
-- Support Email-based login (Magic Links) for passwordless access.
 - Secure all private routes; unauthenticated users should be redirected to login.
 
 ## Acceptance Criteria
 - [ ] User can sign up/login using a Google account.
-- [ ] User can sign up/login using an Email Magic Link.
 - [ ] User session persists across page reloads.
 - [ ] User can log out.
 - [ ] Accessing a protected page (e.g., `/dashboard`) without a session redirects to `/login`.

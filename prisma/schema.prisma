@@ -38,6 +38,17 @@ model Store {
   household   Household @relation(fields: [householdId], references: [id], onDelete: Cascade)
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
+  sections    Section[]
+}
+
+model Section {
+  id        String   @id @default(cuid())
+  name      String
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  storeId   String
+  store     Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
 }
 
 model Account {

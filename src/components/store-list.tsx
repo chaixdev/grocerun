@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/card"
 import { deleteStore } from "@/actions/store"
 import { Trash2 } from "lucide-react"
+import Link from "next/link"
 
 interface Store {
     id: string
@@ -31,7 +32,9 @@ export function StoreList({ stores }: { stores: Store[] }) {
             {stores.map((store) => (
                 <Card key={store.id}>
                     <CardHeader>
-                        <CardTitle>{store.name}</CardTitle>
+                        <Link href={`/dashboard/stores/${store.id}`} className="hover:underline">
+                            <CardTitle>{store.name}</CardTitle>
+                        </Link>
                         <CardDescription>{store.location || "No location"}</CardDescription>
                     </CardHeader>
                     <CardFooter className="justify-end">

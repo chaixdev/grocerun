@@ -24,4 +24,5 @@
 
 ## Documentation
 - [ ] Code is self-documenting or commented where complex.
+- overarching processes *can* be documented in the `docs` folder. this can include sequence diagrams, C4 models, etc. only add these if the complexity warrants it.
 - [ ] `task.md` updated.
