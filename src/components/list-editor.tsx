@@ -34,6 +34,7 @@ interface Section {
 interface Item {
     id: string
     name: string
+    sectionId: string | null
 }
 
 interface ListItem {
@@ -47,9 +48,12 @@ interface ListItem {
 interface ListData {
     id: string
     store: {
+        id: string
         sections: Section[]
     }
     items: ListItem[]
+    status: string
+    updatedAt: Date
 }
 
 interface ListEditorProps {
@@ -266,46 +270,56 @@ export function ListEditor({ list }: ListEditorProps) {
             unit: i.unit
         }))
 
+    const isReadOnly = list.status === "COMPLETED"
+
     return (
         <div className="space-y-8 pb-32">
-            <form onSubmit={handleAddItem} className="flex gap-2 sticky top-4 z-10 bg-background/95 backdrop-blur p-2 -mx-2 rounded-lg border shadow-sm items-end">
-                <div className="flex-1 space-y-1">
-                    <Label htmlFor="item-name" className="sr-only">Item Name</Label>
-                    <Input
-                        id="item-name"
-                        value={inputValue}
-                        onChange={(e) => setInputValue(e.target.value)}
-                        placeholder="Item name..."
-                        className="w-full"
-                    />
+            {isReadOnly && (
+                <div className="bg-muted/50 border rounded-lg p-4 text-center text-muted-foreground">
+                    This trip was completed on {new Date(list.updatedAt).toLocaleDateString()}.
                 </div>
-                <div className="w-20 space-y-1">
-                    <Label htmlFor="item-qty" className="sr-only">Qty</Label>
-                    <Input
-                        id="item-qty"
-                        type="number"
-                        min="0.1"
-                        step="0.1"
-                        value={inputQty}
-                        onChange={(e) => setInputQty(parseFloat(e.target.value))}
-                        placeholder="1"
-                        className="w-full text-center"
-                    />
-                </div>
-                <div className="w-24 space-y-1">
-                    <Label htmlFor="item-unit" className="sr-only">Unit</Label>
-                    <Input
-                        id="item-unit"
-                        value={inputUnit}
-                        onChange={(e) => setInputUnit(e.target.value)}
-                        placeholder="Unit"
-                        className="w-full"
-                    />
-                </div>
-                <Button type="submit" disabled={isSubmitting}>
-                    Add
-                </Button>
-            </form>
+            )}
+
+            {!isReadOnly && (
+                <form onSubmit={handleAddItem} className="flex gap-2 sticky top-4 z-10 bg-background/95 backdrop-blur p-2 -mx-2 rounded-lg border shadow-sm items-end">
+                    <div className="flex-1 space-y-1">
+                        <Label htmlFor="item-name" className="sr-only">Item Name</Label>
+                        <Input
+                            id="item-name"
+                            value={inputValue}
+                            onChange={(e) => setInputValue(e.target.value)}
+                            placeholder="Item name..."
+                            className="w-full"
+                        />
+                    </div>
+                    <div className="w-20 space-y-1">
+                        <Label htmlFor="item-qty" className="sr-only">Qty</Label>
+                        <Input
+                            id="item-qty"
+                            type="number"
+                            min="0.1"
+                            step="0.1"
+                            value={inputQty}
+                            onChange={(e) => setInputQty(parseFloat(e.target.value))}
+                            placeholder="1"
+                            className="w-full text-center"
+                        />
+                    </div>
+                    <div className="w-24 space-y-1">
+                        <Label htmlFor="item-unit" className="sr-only">Unit</Label>
+                        <Input
+                            id="item-unit"
+                            value={inputUnit}
+                            onChange={(e) => setInputUnit(e.target.value)}
+                            placeholder="Unit"
+                            className="w-full"
+                        />
+                    </div>
+                    <Button type="submit" disabled={isSubmitting}>
+                        Add
+                    </Button>
+                </form>
+            )}
 
             <div className="space-y-6">
                 {list.store.sections.map((section) => {
@@ -325,11 +339,12 @@ export function ListEditor({ list }: ListEditorProps) {
                                         className={`flex items-center gap-3 p-4 border rounded-xl transition-all duration-300 ${listItem.isChecked ? "bg-muted/30 border-transparent" : "bg-card border-border shadow-sm"
                                             } ${highlightedItemId === listItem.id ? "ring-2 ring-primary ring-offset-2 scale-[1.02]" : ""
                                             }`}
-                                        onClick={() => handleToggle(listItem.id, !listItem.isChecked)}
+                                        onClick={() => !isReadOnly && handleToggle(listItem.id, !listItem.isChecked)}
                                     >
                                         <Checkbox
                                             checked={listItem.isChecked}
                                             onCheckedChange={() => { }} // Handled by div click for larger target
+                                            disabled={isReadOnly}
                                             className="h-6 w-6 rounded-full data-[state=checked]:bg-muted-foreground data-[state=checked]:border-muted-foreground"
                                         />
                                         <div className="flex-1 flex items-baseline gap-2">
@@ -365,11 +380,12 @@ export function ListEditor({ list }: ListEditorProps) {
                                     className={`flex items-center gap-3 p-4 border rounded-xl transition-all duration-300 ${listItem.isChecked ? "bg-muted/30 border-transparent" : "bg-card border-border shadow-sm"
                                         } ${highlightedItemId === listItem.id ? "ring-2 ring-primary ring-offset-2 scale-[1.02]" : ""
                                         }`}
-                                    onClick={() => handleToggle(listItem.id, !listItem.isChecked)}
+                                    onClick={() => !isReadOnly && handleToggle(listItem.id, !listItem.isChecked)}
                                 >
                                     <Checkbox
                                         checked={listItem.isChecked}
                                         onCheckedChange={() => { }}
+                                        disabled={isReadOnly}
                                         className="h-6 w-6 rounded-full data-[state=checked]:bg-muted-foreground data-[state=checked]:border-muted-foreground"
                                     />
                                     <div className="flex-1 flex items-baseline gap-2">
@@ -392,15 +408,17 @@ export function ListEditor({ list }: ListEditorProps) {
             </div>
 
             {/* Sticky Footer */}
-            <div className="fixed bottom-0 left-0 right-0 p-4 bg-background/80 backdrop-blur border-t flex justify-center z-50">
-                <Button
-                    size="lg"
-                    className="w-full max-w-md shadow-lg"
-                    onClick={handleFinishShopping}
-                >
-                    Finish Shopping ({optimisticItems.filter(i => i.isChecked).length}/{optimisticItems.length})
-                </Button>
-            </div>
+            {!isReadOnly && (
+                <div className="fixed bottom-0 left-0 right-0 p-4 bg-background/80 backdrop-blur border-t flex justify-center z-50">
+                    <Button
+                        size="lg"
+                        className="w-full max-w-md shadow-lg"
+                        onClick={handleFinishShopping}
+                    >
+                        Finish Shopping ({optimisticItems.filter(i => i.isChecked).length}/{optimisticItems.length})
+                    </Button>
+                </div>
+            )}
 
             <TripSummary
                 open={isSummaryOpen}

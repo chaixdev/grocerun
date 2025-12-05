@@ -99,6 +99,8 @@ export async function addItemToList(data: z.infer<typeof AddItemSchema>) {
     const list = await prisma.list.findUnique({ where: { id: listId } })
     if (!list) throw new Error("List not found")
 
+    if (list.status === "COMPLETED") throw new Error("List is completed")
+
     const hasAccess = await verifyStoreAccess(session.user.id, list.storeId)
     if (!hasAccess) throw new Error("Unauthorized")
 
@@ -191,6 +193,8 @@ export async function toggleListItem(itemId: string, isChecked: boolean, purchas
 
     if (!listItem) throw new Error("Item not found")
 
+    if (listItem.list.status === "COMPLETED") throw new Error("List is completed")
+
     const hasAccess = await verifyStoreAccess(session.user.id, listItem.list.storeId)
     if (!hasAccess) throw new Error("Unauthorized")
 
@@ -223,8 +227,11 @@ export async function completeList(listId: string) {
 
     if (!list) throw new Error("List not found")
 
+    if (list.status === "COMPLETED") throw new Error("List is already completed")
+
     const hasAccess = await verifyStoreAccess(session.user.id, list.storeId)
     if (!hasAccess) throw new Error("Unauthorized")
+
 
     // Update list status and item stats in a transaction
     await prisma.$transaction(async (tx) => {
