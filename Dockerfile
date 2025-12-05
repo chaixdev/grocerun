@@ -19,6 +19,9 @@ COPY . .
 
 # Dummy DB URL for build time (Prisma Client generation)
 ENV DATABASE_URL="file:./db.sqlite"
+ENV AUTH_SECRET="dummy_secret"
+ENV AUTH_GOOGLE_ID="dummy_id"
+ENV AUTH_GOOGLE_SECRET="dummy_secret"
 
 # Generate Prisma Client
 RUN npx prisma generate
