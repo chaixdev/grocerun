@@ -9,12 +9,13 @@ import Link from "next/link"
 export default async function ListDetailsPage({
     params,
 }: {
-    params: { listId: string }
+    params: Promise<{ listId: string }>
 }) {
     const session = await auth()
     if (!session?.user?.id) redirect("/login")
 
-    const list = await getList(params.listId)
+    const { listId } = await params
+    const list = await getList(listId)
     if (!list) notFound()
 
     return (
