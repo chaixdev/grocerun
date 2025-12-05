@@ -1,22 +1,29 @@
-# GRO-5: Item Catalog Foundation
+# GRO-5: List Creation & Organic Catalog
 
-**Phase**: 1 - Core Setup
-**Priority**: Medium
-**Status**: Draft
+**Phase**: 1 - Rope Bridge
+**Priority**: High
+**Status**: Done
 
 ## Context
-The application needs a central catalog of items to support "Quick Add" and history features. Items need to be associated with stores and specific sections within those stores.
+Instead of a dedicated "Item Manager", we will build the **List Creation** flow. Users will add items to a list directly. If an item is new, they assign a section on the fly. This builds the catalog organically.
 
 ## Requirements
-- The system must be able to store unique Items (products).
-- The system must track which Store an Item is available at.
-- The system must track which Section an Item belongs to within a specific Store.
+1.  **Create List**: User can create a new shopping list for a specific Store.
+2.  **Add Items**:
+    -   User types an item name (e.g., "Milk").
+    -   System checks if "Milk" exists in the global/store catalog.
+    -   **If New**: User selects a Section (from GRO-4 sections) for this item. System saves "Milk" + Section to the Catalog.
+    -   **If Known**: System automatically assigns the known Section.
+3.  **View List**: Items are displayed grouped by their assigned Section.
 
 ## Acceptance Criteria
-- [ ] System supports creating an Item.
-- [ ] System supports associating an Item with a Store.
-- [ ] System supports assigning a Store-specific Section to an Item.
-- [ ] If an Item exists in multiple stores, it can have a different Section in each store.
+- [ ] User can create a list named "Weekly Run" for "Store A".
+- [ ] User can type "Apples". System asks for Section. User selects "Produce".
+- [ ] "Apples" is added to the list under "Produce".
+- [ ] "Apples" is saved to the backend Catalog as belonging to "Produce" in "Store A".
+- [ ] User types "Apples" again (in a future list). System auto-assigns "Produce".
 
-## Definition of Done
-- **See `planning/DOD.md`**
+## Technical Notes
+-   Need `List`, `ListItem`, and `Item` (Catalog) models.
+-   `Item` model: `name`, `storeId`, `sectionId`.
+-   `ListItem` model: `listId`, `itemId`, `isChecked`.

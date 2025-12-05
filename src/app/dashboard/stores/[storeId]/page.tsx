@@ -4,6 +4,8 @@ import { verifyStoreAccess } from "@/lib/auth-helpers"
 import { getSections } from "@/actions/section"
 import { SectionList } from "@/components/section-list"
 import { SectionForm } from "@/components/section-form"
+import { StoreLists } from "@/components/store-lists"
+import { getLists } from "@/actions/list"
 import { notFound, redirect } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { ArrowLeft } from "lucide-react"
@@ -27,6 +29,7 @@ export default async function StoreDetailsPage({
     if (!store) notFound()
 
     const sections = await getSections(params.storeId)
+    const lists = await getLists(params.storeId)
 
     return (
         <div className="container py-10 space-y-8">
@@ -58,13 +61,7 @@ export default async function StoreDetailsPage({
                 </div>
 
                 <div className="space-y-4">
-                    {/* Future: Store-specific settings or stats */}
-                    <div className="p-4 border rounded-lg bg-muted/50">
-                        <h3 className="font-medium mb-2">Tip</h3>
-                        <p className="text-sm text-muted-foreground">
-                            Ordering sections correctly helps Grocerun sort your shopping list automatically, saving you time in the store.
-                        </p>
-                    </div>
+                    <StoreLists lists={lists} storeId={store.id} />
                 </div>
             </div>
         </div>

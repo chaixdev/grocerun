@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma"
 import { revalidatePath } from "next/cache"
 import { z } from "zod"
 
-import { verifyHouseholdAccess } from "@/lib/auth-helpers"
+import { verifyHouseholdAccess, verifyStoreAccess } from "@/lib/auth-helpers"
 
 const StoreSchema = z.object({
     name: z.string().min(1, "Name is required"),
@@ -77,12 +77,7 @@ export async function deleteStore(id: string) {
     if (!session?.user?.id) throw new Error("Unauthorized")
 
     // Verify ownership via household
-    const user = await prisma.user.findUnique({
-        where: { id: session.user.id },
-        include: { households: { include: { stores: true } } },
-    })
-
-    const hasAccess = user?.households.some(h => h.stores.some(s => s.id === id))
+    const hasAccess = await verifyStoreAccess(session.user.id, id)
     if (!hasAccess) throw new Error("Unauthorized")
 
     await prisma.store.delete({ where: { id } })
