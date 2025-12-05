@@ -152,34 +152,28 @@ export async function addItemToList(data: z.infer<typeof AddItemSchema>) {
         return { status: "ADDED", listItem }
     }
 
-    // 3. If item is new...
-    if (sectionId) {
-        // ...and we have a section, create it!
-        item = await prisma.item.create({
-            data: {
-                name,
-                storeId: list.storeId,
-                sectionId,
-                defaultUnit: unit,
-            }
-        })
+    // 3. If item is new, create it (with or without section)
+    item = await prisma.item.create({
+        data: {
+            name,
+            storeId: list.storeId,
+            sectionId: sectionId || null, // null = uncategorized
+            defaultUnit: unit,
+        }
+    })
 
-        const listItem = await prisma.listItem.create({
-            data: {
-                listId,
-                itemId: item.id,
-                quantity,
-                unit,
-            },
-            include: { item: true }
-        })
+    const listItem = await prisma.listItem.create({
+        data: {
+            listId,
+            itemId: item.id,
+            quantity,
+            unit,
+        },
+        include: { item: true }
+    })
 
-        revalidatePath(`/dashboard/lists/${listId}`)
-        return { status: "ADDED", listItem }
-    }
-
-    // ...and we don't have a section, ask for one
-    return { status: "NEEDS_SECTION" }
+    revalidatePath(`/dashboard/lists/${listId}`)
+    return { status: "ADDED", listItem }
 }
 
 export async function toggleListItem(itemId: string, isChecked: boolean, purchasedQuantity?: number) {
@@ -211,6 +205,29 @@ export async function toggleListItem(itemId: string, isChecked: boolean, purchas
             isChecked,
             purchasedQuantity: finalPurchasedQuantity
         }
+    })
+
+    revalidatePath(`/dashboard/lists/${listItem.listId}`)
+}
+
+export async function removeItemFromList(listItemId: string) {
+    const session = await auth()
+    if (!session?.user?.id) throw new Error("Unauthorized")
+
+    const listItem = await prisma.listItem.findUnique({
+        where: { id: listItemId },
+        include: { list: true }
+    })
+
+    if (!listItem) throw new Error("Item not found")
+
+    if (listItem.list.status === "COMPLETED") throw new Error("List is completed")
+
+    const hasAccess = await verifyStoreAccess(session.user.id, listItem.list.storeId)
+    if (!hasAccess) throw new Error("Unauthorized")
+
+    await prisma.listItem.delete({
+        where: { id: listItemId }
     })
 
     revalidatePath(`/dashboard/lists/${listItem.listId}`)

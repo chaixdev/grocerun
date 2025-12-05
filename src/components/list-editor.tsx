@@ -1,9 +1,10 @@
 "use client"
 
 import { useState, useOptimistic, useRef, startTransition } from "react"
-import { addItemToList, toggleListItem } from "@/actions/list"
+import { addItemToList, toggleListItem, removeItemFromList } from "@/actions/list"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { ItemAutocomplete } from "./item-autocomplete"
 import { Checkbox } from "@/components/ui/checkbox"
 import { toast } from "sonner"
 import {
@@ -25,7 +26,7 @@ import { Label } from "@/components/ui/label"
 import { TripSummary } from "./trip-summary"
 import { completeList } from "@/actions/list"
 import { useRouter } from "next/navigation"
-import { MoreHorizontal, Pencil } from "lucide-react"
+import { MoreHorizontal, Pencil, Trash2 } from "lucide-react"
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -44,6 +45,7 @@ interface Item {
     name: string
     sectionId: string | null
     defaultUnit: string | null
+    purchaseCount?: number
 }
 
 interface ListItem {
@@ -115,20 +117,69 @@ export function ListEditor({ list }: ListEditorProps) {
                 unit: inputUnit.trim() || undefined,
             })
 
-            if (result.status === "ADDED") {
+            if (result.status === "ADDED" && result.listItem) {
                 setInputValue("")
                 setInputQty(1)
                 setInputUnit("")
                 toast.success("Item added")
+                // Highlight the newly added item after re-render
+                setTimeout(() => {
+                    const el = itemRefs.current[result.listItem.id]
+                    if (el) {
+                        el.scrollIntoView({ behavior: "smooth", block: "center" })
+                        setHighlightedItemId(result.listItem.id)
+                        setTimeout(() => setHighlightedItemId(null), 2000)
+                    }
+                }, 100)
             } else if (result.status === "ALREADY_EXISTS") {
                 setInputValue("")
                 toast.info("Item already in list")
             } else if (result.status === "NEEDS_SECTION") {
                 setNewItemName(inputValue.trim())
-                if (list.store.sections.length > 0) {
-                    setSelectedSection(list.store.sections[0].id)
-                }
+                setSelectedSection("") // Default to uncategorized
                 setIsDialogOpen(true)
+            }
+        } catch {
+            toast.error("Failed to add item")
+        } finally {
+            setIsSubmitting(false)
+        }
+    }
+
+    // Handle selection from autocomplete - directly add the item
+    const handleSelectFromAutocomplete = async (item: {
+        id: string
+        name: string
+        sectionId: string | null
+        defaultUnit: string | null
+    }) => {
+        setIsSubmitting(true)
+        try {
+            const result = await addItemToList({
+                listId: list.id,
+                name: item.name,
+                sectionId: item.sectionId || undefined,
+                quantity: inputQty,
+                unit: item.defaultUnit || inputUnit.trim() || undefined,
+            })
+
+            if (result.status === "ADDED" && result.listItem) {
+                setInputValue("")
+                setInputQty(1)
+                setInputUnit("")
+                toast.success(`Added ${item.name}`)
+                // Highlight the newly added item after re-render
+                setTimeout(() => {
+                    const el = itemRefs.current[result.listItem.id]
+                    if (el) {
+                        el.scrollIntoView({ behavior: "smooth", block: "center" })
+                        setHighlightedItemId(result.listItem.id)
+                        setTimeout(() => setHighlightedItemId(null), 2000)
+                    }
+                }, 100)
+            } else if (result.status === "ALREADY_EXISTS") {
+                setInputValue("")
+                toast.info(`${item.name} is already in list`)
             }
         } catch {
             toast.error("Failed to add item")
@@ -145,7 +196,7 @@ export function ListEditor({ list }: ListEditorProps) {
             await addItemToList({
                 listId: list.id,
                 name: newItemName,
-                sectionId: selectedSection || undefined,
+                sectionId: selectedSection && selectedSection !== "uncategorized" ? selectedSection : undefined,
                 quantity: inputQty,
                 unit: inputUnit.trim() || undefined,
             })
@@ -298,12 +349,14 @@ export function ListEditor({ list }: ListEditorProps) {
                     <form onSubmit={handleAddItem} className="flex gap-2 items-center">
                         <div className="flex-1">
                             <Label htmlFor="item-name" className="sr-only">Item Name</Label>
-                            <Input
-                                id="item-name"
+                            <ItemAutocomplete
+                                storeId={list.store.id}
                                 value={inputValue}
-                                onChange={(e) => setInputValue(e.target.value)}
+                                onChange={setInputValue}
+                                onSelect={handleSelectFromAutocomplete}
+                                onSubmit={handleAddItem}
                                 placeholder="Add item..."
-                                className="w-full h-11 text-base border-transparent bg-muted/50 focus:bg-background transition-colors"
+                                disabled={isSubmitting}
                             />
                         </div>
                         <div className="w-20">
@@ -368,11 +421,9 @@ export function ListEditor({ list }: ListEditorProps) {
                                                 }`}>
                                                 {listItem.item.name}
                                             </span>
-                                            {(listItem.quantity !== 1 || listItem.unit) && (
-                                                <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-muted text-muted-foreground whitespace-nowrap">
-                                                    {listItem.quantity} {listItem.unit}
-                                                </span>
-                                            )}
+                                            <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-muted text-muted-foreground whitespace-nowrap">
+                                                {listItem.quantity}{listItem.unit ? ` ${listItem.unit}` : "×"}
+                                            </span>
                                         </div>
                                         {!isReadOnly && (
                                             <DropdownMenu>
@@ -390,6 +441,21 @@ export function ListEditor({ list }: ListEditorProps) {
                                                     }}>
                                                         <Pencil className="mr-2 h-4 w-4" />
                                                         Edit Item
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuItem
+                                                        className="text-destructive focus:text-destructive"
+                                                        onClick={async (e) => {
+                                                            e.stopPropagation()
+                                                            try {
+                                                                await removeItemFromList(listItem.id)
+                                                                toast.success("Item removed")
+                                                            } catch {
+                                                                toast.error("Failed to remove item")
+                                                            }
+                                                        }}
+                                                    >
+                                                        <Trash2 className="mr-2 h-4 w-4" />
+                                                        Remove
                                                     </DropdownMenuItem>
                                                 </DropdownMenuContent>
                                             </DropdownMenu>
@@ -428,12 +494,45 @@ export function ListEditor({ list }: ListEditorProps) {
                                             }`}>
                                             {listItem.item.name}
                                         </span>
-                                        {(listItem.quantity !== 1 || listItem.unit) && (
-                                            <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-muted text-muted-foreground whitespace-nowrap">
-                                                {listItem.quantity} {listItem.unit}
-                                            </span>
-                                        )}
+                                        <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-muted text-muted-foreground whitespace-nowrap">
+                                            {listItem.quantity}{listItem.unit ? ` ${listItem.unit}` : "×"}
+                                        </span>
                                     </div>
+                                    {!isReadOnly && (
+                                        <DropdownMenu>
+                                            <DropdownMenuTrigger asChild>
+                                                <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
+                                                    <MoreHorizontal className="h-4 w-4" />
+                                                    <span className="sr-only">More</span>
+                                                </Button>
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent align="end">
+                                                <DropdownMenuItem onClick={(e) => {
+                                                    e.stopPropagation()
+                                                    setEditingItem(listItem.item)
+                                                    setIsEditOpen(true)
+                                                }}>
+                                                    <Pencil className="mr-2 h-4 w-4" />
+                                                    Edit Item
+                                                </DropdownMenuItem>
+                                                <DropdownMenuItem
+                                                    className="text-destructive focus:text-destructive"
+                                                    onClick={async (e) => {
+                                                        e.stopPropagation()
+                                                        try {
+                                                            await removeItemFromList(listItem.id)
+                                                            toast.success("Item removed")
+                                                        } catch {
+                                                            toast.error("Failed to remove item")
+                                                        }
+                                                    }}
+                                                >
+                                                    <Trash2 className="mr-2 h-4 w-4" />
+                                                    Remove
+                                                </DropdownMenuItem>
+                                            </DropdownMenuContent>
+                                        </DropdownMenu>
+                                    )}
                                 </div>
                             ))}
                         </div>
@@ -478,6 +577,9 @@ export function ListEditor({ list }: ListEditorProps) {
                                     <SelectValue placeholder="Select a section" />
                                 </SelectTrigger>
                                 <SelectContent>
+                                    <SelectItem value="uncategorized">
+                                        Uncategorized
+                                    </SelectItem>
                                     {list.store.sections.map((s) => (
                                         <SelectItem key={s.id} value={s.id}>
                                             {s.name}
