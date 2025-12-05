@@ -183,7 +183,7 @@ export function ListEditor({ list }: ListEditorProps) {
                 const items = optimisticItems.filter(i => (i.item.sectionId || "uncategorized") === s.id)
                 flatItems.push(...items)
             })
-            const uncategorized = optimisticItems.filter(i => !i.item.sectionId || i.item.sectionId === "uncategorized")
+
             // Note: logic above for uncategorized might duplicate if sectionId is null vs "uncategorized" string. 
             // Let's stick to the render logic below for consistency.
 
