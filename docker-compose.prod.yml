@@ -1,0 +1,35 @@
+services:
+  app:
+    image: ghcr.io/chaixdev/grocerun:latest
+    container_name: grocerun
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      - DATABASE_URL=postgresql://grocerun:grocerun@db:5432/grocerun
+      - AUTH_SECRET=${AUTH_SECRET}
+      - AUTH_GOOGLE_ID=${AUTH_GOOGLE_ID}
+      - AUTH_GOOGLE_SECRET=${AUTH_GOOGLE_SECRET}
+      - HOSTNAME=0.0.0.0
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    image: postgres:15-alpine
+    container_name: grocerun-db
+    restart: always
+    environment:
+      - POSTGRES_USER=grocerun
+      - POSTGRES_PASSWORD=grocerun
+      - POSTGRES_DB=grocerun
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U grocerun"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  db_data:
