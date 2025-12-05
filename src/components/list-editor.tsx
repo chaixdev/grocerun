@@ -34,12 +34,13 @@ interface Section {
 interface Item {
     id: string
     name: string
-    sectionId: string | null
 }
 
 interface ListItem {
     id: string
     isChecked: boolean
+    quantity: number
+    unit: string | null
     item: Item
 }
 
@@ -58,6 +59,8 @@ interface ListEditorProps {
 export function ListEditor({ list }: ListEditorProps) {
     const router = useRouter()
     const [inputValue, setInputValue] = useState("")
+    const [inputQty, setInputQty] = useState(1)
+    const [inputUnit, setInputUnit] = useState("")
     const [isSubmitting, setIsSubmitting] = useState(false)
 
     // Optimistic UI
@@ -91,10 +94,14 @@ export function ListEditor({ list }: ListEditorProps) {
             const result = await addItemToList({
                 listId: list.id,
                 name: inputValue.trim(),
+                quantity: inputQty,
+                unit: inputUnit.trim() || undefined,
             })
 
             if (result.status === "ADDED") {
                 setInputValue("")
+                setInputQty(1)
+                setInputUnit("")
                 toast.success("Item added")
             } else if (result.status === "ALREADY_EXISTS") {
                 setInputValue("")
@@ -122,9 +129,13 @@ export function ListEditor({ list }: ListEditorProps) {
                 listId: list.id,
                 name: newItemName,
                 sectionId: selectedSection || undefined,
+                quantity: inputQty,
+                unit: inputUnit.trim() || undefined,
             })
             setInputValue("")
             setNewItemName(null)
+            setInputQty(1)
+            setInputUnit("")
             setIsDialogOpen(false)
             toast.success("Item created and added")
         } catch {
@@ -248,17 +259,49 @@ export function ListEditor({ list }: ListEditorProps) {
     // Calculate missing items from optimistic state
     const missingItems = optimisticItems
         .filter(i => !i.isChecked)
-        .map(i => ({ id: i.item.id, name: i.item.name }))
+        .map(i => ({
+            id: i.item.id,
+            name: i.item.name,
+            quantity: i.quantity,
+            unit: i.unit
+        }))
 
     return (
         <div className="space-y-8 pb-32">
-            <form onSubmit={handleAddItem} className="flex gap-2 sticky top-4 z-10 bg-background/95 backdrop-blur p-2 -mx-2 rounded-lg border shadow-sm">
-                <Input
-                    value={inputValue}
-                    onChange={(e) => setInputValue(e.target.value)}
-                    placeholder="Add item..."
-                    className="flex-1"
-                />
+            <form onSubmit={handleAddItem} className="flex gap-2 sticky top-4 z-10 bg-background/95 backdrop-blur p-2 -mx-2 rounded-lg border shadow-sm items-end">
+                <div className="flex-1 space-y-1">
+                    <Label htmlFor="item-name" className="sr-only">Item Name</Label>
+                    <Input
+                        id="item-name"
+                        value={inputValue}
+                        onChange={(e) => setInputValue(e.target.value)}
+                        placeholder="Item name..."
+                        className="w-full"
+                    />
+                </div>
+                <div className="w-20 space-y-1">
+                    <Label htmlFor="item-qty" className="sr-only">Qty</Label>
+                    <Input
+                        id="item-qty"
+                        type="number"
+                        min="0.1"
+                        step="0.1"
+                        value={inputQty}
+                        onChange={(e) => setInputQty(parseFloat(e.target.value))}
+                        placeholder="1"
+                        className="w-full text-center"
+                    />
+                </div>
+                <div className="w-24 space-y-1">
+                    <Label htmlFor="item-unit" className="sr-only">Unit</Label>
+                    <Input
+                        id="item-unit"
+                        value={inputUnit}
+                        onChange={(e) => setInputUnit(e.target.value)}
+                        placeholder="Unit"
+                        className="w-full"
+                    />
+                </div>
                 <Button type="submit" disabled={isSubmitting}>
                     Add
                 </Button>
@@ -289,10 +332,18 @@ export function ListEditor({ list }: ListEditorProps) {
                                             onCheckedChange={() => { }} // Handled by div click for larger target
                                             className="h-6 w-6 rounded-full data-[state=checked]:bg-muted-foreground data-[state=checked]:border-muted-foreground"
                                         />
-                                        <span className={`flex-1 text-lg font-medium transition-colors ${listItem.isChecked ? "line-through text-muted-foreground/50" : "text-foreground"
-                                            }`}>
-                                            {listItem.item.name}
-                                        </span>
+                                        <div className="flex-1 flex items-baseline gap-2">
+                                            <span className={`text-lg font-medium transition-colors ${listItem.isChecked ? "line-through text-muted-foreground/50" : "text-foreground"
+                                                }`}>
+                                                {listItem.item.name}
+                                            </span>
+                                            {(listItem.quantity !== 1 || listItem.unit) && (
+                                                <span className={`text-sm ${listItem.isChecked ? "text-muted-foreground/50" : "text-muted-foreground"
+                                                    }`}>
+                                                    {listItem.quantity} {listItem.unit}
+                                                </span>
+                                            )}
+                                        </div>
                                     </div>
                                 ))}
                             </div>
@@ -321,10 +372,18 @@ export function ListEditor({ list }: ListEditorProps) {
                                         onCheckedChange={() => { }}
                                         className="h-6 w-6 rounded-full data-[state=checked]:bg-muted-foreground data-[state=checked]:border-muted-foreground"
                                     />
-                                    <span className={`flex-1 text-lg font-medium transition-colors ${listItem.isChecked ? "line-through text-muted-foreground/50" : "text-foreground"
-                                        }`}>
-                                        {listItem.item.name}
-                                    </span>
+                                    <div className="flex-1 flex items-baseline gap-2">
+                                        <span className={`text-lg font-medium transition-colors ${listItem.isChecked ? "line-through text-muted-foreground/50" : "text-foreground"
+                                            }`}>
+                                            {listItem.item.name}
+                                        </span>
+                                        {(listItem.quantity !== 1 || listItem.unit) && (
+                                            <span className={`text-sm ${listItem.isChecked ? "text-muted-foreground/50" : "text-muted-foreground"
+                                                }`}>
+                                                {listItem.quantity} {listItem.unit}
+                                            </span>
+                                        )}
+                                    </div>
                                 </div>
                             ))}
                         </div>

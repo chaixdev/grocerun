@@ -82,7 +82,9 @@ export async function getList(listId: string) {
 const AddItemSchema = z.object({
     listId: z.string(),
     name: z.string().min(1),
-    sectionId: z.string().optional(), // Optional if item exists
+    sectionId: z.string().optional(),
+    quantity: z.number().min(0.1).default(1),
+    unit: z.string().optional(),
 })
 
 // Returns:
@@ -92,7 +94,7 @@ export async function addItemToList(data: z.infer<typeof AddItemSchema>) {
     const session = await auth()
     if (!session?.user?.id) throw new Error("Unauthorized")
 
-    const { listId, name, sectionId } = AddItemSchema.parse(data)
+    const { listId, name, sectionId, quantity, unit } = AddItemSchema.parse(data)
 
     const list = await prisma.list.findUnique({ where: { id: listId } })
     if (!list) throw new Error("List not found")
@@ -112,6 +114,14 @@ export async function addItemToList(data: z.infer<typeof AddItemSchema>) {
 
     // 2. If item exists, add to list
     if (item) {
+        // Update default unit if provided
+        if (unit && unit !== item.defaultUnit) {
+            await prisma.item.update({
+                where: { id: item.id },
+                data: { defaultUnit: unit }
+            })
+        }
+
         // Check if already in list
         const existingListItem = await prisma.listItem.findUnique({
             where: {
@@ -130,6 +140,8 @@ export async function addItemToList(data: z.infer<typeof AddItemSchema>) {
             data: {
                 listId,
                 itemId: item.id,
+                quantity,
+                unit: unit || item.defaultUnit, // Use provided unit or fallback to default
             },
             include: { item: true }
         })
@@ -146,6 +158,7 @@ export async function addItemToList(data: z.infer<typeof AddItemSchema>) {
                 name,
                 storeId: list.storeId,
                 sectionId,
+                defaultUnit: unit,
             }
         })
 
@@ -153,6 +166,8 @@ export async function addItemToList(data: z.infer<typeof AddItemSchema>) {
             data: {
                 listId,
                 itemId: item.id,
+                quantity,
+                unit,
             },
             include: { item: true }
         })
@@ -165,7 +180,7 @@ export async function addItemToList(data: z.infer<typeof AddItemSchema>) {
     return { status: "NEEDS_SECTION" }
 }
 
-export async function toggleListItem(itemId: string, isChecked: boolean) {
+export async function toggleListItem(itemId: string, isChecked: boolean, purchasedQuantity?: number) {
     const session = await auth()
     if (!session?.user?.id) throw new Error("Unauthorized")
 
@@ -179,9 +194,19 @@ export async function toggleListItem(itemId: string, isChecked: boolean) {
     const hasAccess = await verifyStoreAccess(session.user.id, listItem.list.storeId)
     if (!hasAccess) throw new Error("Unauthorized")
 
+    // Logic:
+    // If checking (true): use provided purchasedQuantity OR default to requested quantity
+    // If unchecking (false): reset purchasedQuantity to null
+    const finalPurchasedQuantity = isChecked
+        ? (purchasedQuantity ?? listItem.quantity)
+        : null
+
     await prisma.listItem.update({
         where: { id: itemId },
-        data: { isChecked }
+        data: {
+            isChecked,
+            purchasedQuantity: finalPurchasedQuantity
+        }
     })
 
     revalidatePath(`/dashboard/lists/${listItem.listId}`)

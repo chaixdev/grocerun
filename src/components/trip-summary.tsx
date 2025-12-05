@@ -16,7 +16,12 @@ interface TripSummaryProps {
     open: boolean
     onOpenChange: (open: boolean) => void
     onConfirm: () => void
-    missingItems: { id: string; name: string }[]
+    missingItems: {
+        id: string
+        name: string
+        quantity: number
+        unit: string | null
+    }[]
     isSubmitting: boolean
 }
 
@@ -34,7 +39,7 @@ export function TripSummary({
                     <DialogTitle>Trip Summary</DialogTitle>
                     <DialogDescription>
                         {missingItems.length > 0
-                            ? `You have ${missingItems.length} unchecked items.`
+                            ? `You have ${missingItems.length} missing or incomplete items.`
                             : "All items checked! Ready to wrap up?"}
                     </DialogDescription>
                 </DialogHeader>
@@ -45,7 +50,12 @@ export function TripSummary({
                             {missingItems.map((item) => (
                                 <li key={item.id} className="text-sm text-muted-foreground flex items-center gap-2">
                                     <span className="h-1.5 w-1.5 rounded-full bg-destructive" />
-                                    {item.name}
+                                    <span>{item.name}</span>
+                                    {(item.quantity !== 1 || item.unit) && (
+                                        <span className="text-muted-foreground/70">
+                                            ({item.quantity} {item.unit})
+                                        </span>
+                                    )}
                                 </li>
                             ))}
                         </ul>

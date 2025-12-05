@@ -65,6 +65,7 @@ model Item {
   updatedAt DateTime @updatedAt
   purchaseCount Int @default(0)
   lastPurchased DateTime?
+  defaultUnit   String?
   listItems ListItem[]
 
   @@unique([storeId, name])
@@ -82,15 +83,17 @@ model List {
 }
 
 model ListItem {
-  id        String   @id @default(cuid())
-  listId    String
-  list      List     @relation(fields: [listId], references: [id], onDelete: Cascade)
-  itemId    String
-  item      Item     @relation(fields: [itemId], references: [id], onDelete: Cascade)
-  isChecked Boolean  @default(false)
-  quantity  String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                String   @id @default(cuid())
+  listId            String
+  list              List     @relation(fields: [listId], references: [id], onDelete: Cascade)
+  itemId            String
+  item              Item     @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  isChecked         Boolean  @default(false)
+  quantity          Float    @default(1)
+  unit              String?
+  purchasedQuantity Float?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 
   @@unique([listId, itemId])
 }
