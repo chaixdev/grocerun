@@ -186,3 +186,42 @@ export async function toggleListItem(itemId: string, isChecked: boolean) {
 
     revalidatePath(`/dashboard/lists/${listItem.listId}`)
 }
+
+export async function completeList(listId: string) {
+    const session = await auth()
+    if (!session?.user?.id) throw new Error("Unauthorized")
+
+    const list = await prisma.list.findUnique({
+        where: { id: listId },
+        include: { items: true }
+    })
+
+    if (!list) throw new Error("List not found")
+
+    const hasAccess = await verifyStoreAccess(session.user.id, list.storeId)
+    if (!hasAccess) throw new Error("Unauthorized")
+
+    // Update list status and item stats in a transaction
+    await prisma.$transaction(async (tx) => {
+        // 1. Mark list as completed
+        await tx.list.update({
+            where: { id: listId },
+            data: { status: "COMPLETED" }
+        })
+
+        // 2. Update catalog stats for checked items
+        const checkedItems = list.items.filter(i => i.isChecked)
+        for (const listItem of checkedItems) {
+            await tx.item.update({
+                where: { id: listItem.itemId },
+                data: {
+                    purchaseCount: { increment: 1 },
+                    lastPurchased: new Date()
+                }
+            })
+        }
+    })
+
+    revalidatePath(`/dashboard/stores/${list.storeId}`)
+    revalidatePath(`/dashboard/lists/${listId}`)
+}

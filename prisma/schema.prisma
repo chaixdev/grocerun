@@ -63,6 +63,8 @@ model Item {
   section   Section? @relation(fields: [sectionId], references: [id])
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  purchaseCount Int @default(0)
+  lastPurchased DateTime?
   listItems ListItem[]
 
   @@unique([storeId, name])

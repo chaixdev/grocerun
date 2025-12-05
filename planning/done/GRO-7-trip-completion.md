@@ -2,19 +2,23 @@
 
 **Phase**: 1 - Rope Bridge
 **Priority**: High
-**Status**: Backlog
+**Status**: Done
 
 ## Context
 The user has finished shopping. They need to "Complete" the run to archive the list and keep the dashboard clean.
 
 ## Requirements
 1.  **Complete List Action**:
-    -   A "Finish Shopping" or "Complete List" button.
-    -   **Catalog Confirmation**:
+    -   **Trigger**: A prominent "Finish Shopping" button (sticky bottom).
+    -   **Validation**:
+        -   If **Unchecked Items** exist: Show a **Confirmation Dialog/Summary**.
+        -   **Summary View**: Display a list of "Missing Items" vs "Purchased Items".
+        -   **Actions**: "Resume Shopping" (dismiss) or "Complete Trip" (confirm).
+    -   **Catalog Confirmation (Backend)**:
         -   For every `ListItem` where `isChecked == true`:
             -   Increment `Item.purchaseCount`.
             -   Update `Item.lastPurchased = now()`.
-    -   Updates `List.status` from `PLANNING` to `COMPLETED`.
+    -   **State Update**: Updates `List.status` from `PLANNING` to `COMPLETED`.
 2.  **Dashboard Cleanup**:
     -   Completed lists should move to a "History" tab or be hidden from the main "Active Lists" view.
 3.  **Post-Trip Summary (Optional for MVP)**:

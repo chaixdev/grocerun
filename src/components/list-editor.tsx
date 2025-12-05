@@ -22,6 +22,9 @@ import {
     SelectValue,
 } from "@/components/ui/select"
 import { Label } from "@/components/ui/label"
+import { TripSummary } from "./trip-summary"
+import { completeList } from "@/actions/list"
+import { useRouter } from "next/navigation"
 
 interface Section {
     id: string
@@ -53,6 +56,7 @@ interface ListEditorProps {
 }
 
 export function ListEditor({ list }: ListEditorProps) {
+    const router = useRouter()
     const [inputValue, setInputValue] = useState("")
     const [isSubmitting, setIsSubmitting] = useState(false)
 
@@ -73,6 +77,10 @@ export function ListEditor({ list }: ListEditorProps) {
     const [newItemName, setNewItemName] = useState<string | null>(null)
     const [selectedSection, setSelectedSection] = useState<string>("")
     const [isDialogOpen, setIsDialogOpen] = useState(false)
+
+    // Trip Completion State
+    const [isSummaryOpen, setIsSummaryOpen] = useState(false)
+    const [isCompleting, setIsCompleting] = useState(false)
 
     const handleAddItem = async (e?: React.FormEvent) => {
         e?.preventDefault()
@@ -206,6 +214,22 @@ export function ListEditor({ list }: ListEditorProps) {
         }
     }
 
+    const handleFinishShopping = () => {
+        setIsSummaryOpen(true)
+    }
+
+    const handleCompleteTrip = async () => {
+        setIsCompleting(true)
+        try {
+            await completeList(list.id)
+            toast.success("Trip completed!")
+            router.push(`/dashboard/stores/${list.store.id}`)
+        } catch {
+            toast.error("Failed to complete trip")
+            setIsCompleting(false)
+        }
+    }
+
     // Group items by section (using optimisticItems)
     const itemsBySection: Record<string, ListItem[]> = {}
     list.store.sections.forEach((s) => {
@@ -221,8 +245,13 @@ export function ListEditor({ list }: ListEditorProps) {
         itemsBySection[sectionId].push(listItem)
     })
 
+    // Calculate missing items from optimistic state
+    const missingItems = optimisticItems
+        .filter(i => !i.isChecked)
+        .map(i => ({ id: i.item.id, name: i.item.name }))
+
     return (
-        <div className="space-y-8 pb-20">
+        <div className="space-y-8 pb-32">
             <form onSubmit={handleAddItem} className="flex gap-2 sticky top-4 z-10 bg-background/95 backdrop-blur p-2 -mx-2 rounded-lg border shadow-sm">
                 <Input
                     value={inputValue}
@@ -302,6 +331,25 @@ export function ListEditor({ list }: ListEditorProps) {
                     </div>
                 )}
             </div>
+
+            {/* Sticky Footer */}
+            <div className="fixed bottom-0 left-0 right-0 p-4 bg-background/80 backdrop-blur border-t flex justify-center z-50">
+                <Button
+                    size="lg"
+                    className="w-full max-w-md shadow-lg"
+                    onClick={handleFinishShopping}
+                >
+                    Finish Shopping ({optimisticItems.filter(i => i.isChecked).length}/{optimisticItems.length})
+                </Button>
+            </div>
+
+            <TripSummary
+                open={isSummaryOpen}
+                onOpenChange={setIsSummaryOpen}
+                onConfirm={handleCompleteTrip}
+                missingItems={missingItems}
+                isSubmitting={isCompleting}
+            />
 
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                 <DialogContent>
