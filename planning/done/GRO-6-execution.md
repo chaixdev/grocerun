@@ -2,7 +2,7 @@
 
 **Phase**: 1 - Rope Bridge
 **Priority**: Critical
-**Status**: Backlog
+**Status**: Done
 
 ## Context
 The user has created a list (GRO-5). Now they are at the store. They need to check off items as they pick them up.

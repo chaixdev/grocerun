@@ -169,14 +169,20 @@ export async function toggleListItem(itemId: string, isChecked: boolean) {
     const session = await auth()
     if (!session?.user?.id) throw new Error("Unauthorized")
 
-    // We'd need to verify access here too, technically. 
-    // For speed, assuming if you have the ID you have access, 
-    // but in prod we should do a join check.
+    const listItem = await prisma.listItem.findUnique({
+        where: { id: itemId },
+        include: { list: true }
+    })
+
+    if (!listItem) throw new Error("Item not found")
+
+    const hasAccess = await verifyStoreAccess(session.user.id, listItem.list.storeId)
+    if (!hasAccess) throw new Error("Unauthorized")
 
     await prisma.listItem.update({
         where: { id: itemId },
         data: { isChecked }
     })
 
-    // No revalidate needed for optimistic UI usually, but good for sync
+    revalidatePath(`/dashboard/lists/${listItem.listId}`)
 }

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useOptimistic, useRef, startTransition } from "react"
 import { addItemToList, toggleListItem } from "@/actions/list"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -56,6 +56,19 @@ export function ListEditor({ list }: ListEditorProps) {
     const [inputValue, setInputValue] = useState("")
     const [isSubmitting, setIsSubmitting] = useState(false)
 
+    // Optimistic UI
+    const [optimisticItems, setOptimisticItems] = useOptimistic(
+        list.items,
+        (state, { itemId, isChecked }: { itemId: string; isChecked: boolean }) =>
+            state.map((item) =>
+                item.id === itemId ? { ...item, isChecked } : item
+            )
+    )
+
+    // Refs for auto-scroll
+    const itemRefs = useRef<Record<string, HTMLDivElement | null>>({})
+    const [highlightedItemId, setHighlightedItemId] = useState<string | null>(null)
+
     // State for "New Item" dialog
     const [newItemName, setNewItemName] = useState<string | null>(null)
     const [selectedSection, setSelectedSection] = useState<string>("")
@@ -79,9 +92,7 @@ export function ListEditor({ list }: ListEditorProps) {
                 setInputValue("")
                 toast.info("Item already in list")
             } else if (result.status === "NEEDS_SECTION") {
-                // Trigger Dialog
                 setNewItemName(inputValue.trim())
-                // Default to first section if available, or empty
                 if (list.store.sections.length > 0) {
                     setSelectedSection(list.store.sections[0].id)
                 }
@@ -102,7 +113,7 @@ export function ListEditor({ list }: ListEditorProps) {
             await addItemToList({
                 listId: list.id,
                 name: newItemName,
-                sectionId: selectedSection || undefined, // If empty, backend handles it (though schema might want it, we'll see)
+                sectionId: selectedSection || undefined,
             })
             setInputValue("")
             setNewItemName(null)
@@ -116,6 +127,78 @@ export function ListEditor({ list }: ListEditorProps) {
     }
 
     const handleToggle = async (itemId: string, checked: boolean) => {
+        // 1. Optimistic Update
+        startTransition(() => {
+            setOptimisticItems({ itemId, isChecked: checked })
+        })
+
+        // 2. Auto-scroll Logic (only when checking off)
+        if (checked) {
+            // Calculate flat list based on CURRENT optimistic state (before this toggle applied? No, inside transition it's tricky)
+            // We use the derived 'itemsBySection' from the NEXT render usually, but here we need to calculate it manually or wait.
+            // Simpler: Calculate from 'optimisticItems' but manually applying the change for the logic check
+
+            // Actually, let's just find the next item in the current 'optimisticItems' list 
+            // assuming the toggle has "happened" for the logic search.
+
+            // We need the visual order.
+            const flatItems: ListItem[] = []
+            list.store.sections.forEach((s) => {
+                const items = optimisticItems.filter(i => (i.item.sectionId || "uncategorized") === s.id)
+                flatItems.push(...items)
+            })
+            const uncategorized = optimisticItems.filter(i => !i.item.sectionId || i.item.sectionId === "uncategorized")
+            // Note: logic above for uncategorized might duplicate if sectionId is null vs "uncategorized" string. 
+            // Let's stick to the render logic below for consistency.
+
+            // Re-deriving render logic for safety:
+            const itemsBySection: Record<string, ListItem[]> = {}
+            list.store.sections.forEach(s => itemsBySection[s.id] = [])
+            itemsBySection["uncategorized"] = []
+
+            optimisticItems.forEach(item => {
+                // Apply the toggle strictly for this calculation if it wasn't already (optimistic state updates are batched/async in React logic sometimes)
+                // But 'optimisticItems' here is the OLD state until next render.
+                // So we must manually map it.
+                const isItemChecked = item.id === itemId ? checked : item.isChecked
+
+                const sectionId = item.item.sectionId || "uncategorized"
+                if (!itemsBySection[sectionId]) itemsBySection[sectionId] = []
+                itemsBySection[sectionId].push({ ...item, isChecked: isItemChecked })
+            })
+
+            const visualOrder: ListItem[] = []
+            list.store.sections.forEach(s => visualOrder.push(...(itemsBySection[s.id] || [])))
+            visualOrder.push(...(itemsBySection["uncategorized"] || []))
+
+            // Find index of current item
+            const currentIndex = visualOrder.findIndex(i => i.id === itemId)
+
+            // Find next UNCHECKED item after this one
+            let nextItem: ListItem | undefined
+            for (let i = currentIndex + 1; i < visualOrder.length; i++) {
+                if (!visualOrder[i].isChecked) {
+                    nextItem = visualOrder[i]
+                    break
+                }
+            }
+
+            // If no unchecked item found after, wrap around or stop? 
+            // Let's stop. Or maybe look from beginning?
+            // User said "next item in the list".
+
+            if (nextItem) {
+                const el = itemRefs.current[nextItem.id]
+                if (el) {
+                    el.scrollIntoView({ behavior: "smooth", block: "center" })
+                    setHighlightedItemId(nextItem.id)
+                    // Remove highlight after animation
+                    setTimeout(() => setHighlightedItemId(null), 2000)
+                }
+            }
+        }
+
+        // 3. Server Action
         try {
             await toggleListItem(itemId, checked)
         } catch {
@@ -123,16 +206,14 @@ export function ListEditor({ list }: ListEditorProps) {
         }
     }
 
-    // Group items by section
+    // Group items by section (using optimisticItems)
     const itemsBySection: Record<string, ListItem[]> = {}
-
-    // Initialize with all sections to preserve order
     list.store.sections.forEach((s) => {
         itemsBySection[s.id] = []
     })
     itemsBySection["uncategorized"] = []
 
-    list.items.forEach((listItem) => {
+    optimisticItems.forEach((listItem) => {
         const sectionId = listItem.item.sectionId || "uncategorized"
         if (!itemsBySection[sectionId]) {
             itemsBySection[sectionId] = []
@@ -141,14 +222,13 @@ export function ListEditor({ list }: ListEditorProps) {
     })
 
     return (
-        <div className="space-y-8">
-            <form onSubmit={handleAddItem} className="flex gap-2">
+        <div className="space-y-8 pb-20">
+            <form onSubmit={handleAddItem} className="flex gap-2 sticky top-4 z-10 bg-background/95 backdrop-blur p-2 -mx-2 rounded-lg border shadow-sm">
                 <Input
                     value={inputValue}
                     onChange={(e) => setInputValue(e.target.value)}
-                    placeholder="Add item (e.g. Milk)..."
+                    placeholder="Add item..."
                     className="flex-1"
-                    autoFocus
                 />
                 <Button type="submit" disabled={isSubmitting}>
                     Add
@@ -162,17 +242,26 @@ export function ListEditor({ list }: ListEditorProps) {
 
                     return (
                         <div key={section.id} className="space-y-2">
-                            <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wider">
+                            <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wider sticky top-20 bg-background/90 backdrop-blur py-2 z-0">
                                 {section.name}
                             </h3>
                             <div className="space-y-2">
                                 {items.map((listItem) => (
-                                    <div key={listItem.id} className="flex items-center gap-2 p-2 border rounded-lg bg-card">
+                                    <div
+                                        key={listItem.id}
+                                        ref={(el) => { itemRefs.current[listItem.id] = el }}
+                                        className={`flex items-center gap-3 p-4 border rounded-xl transition-all duration-300 ${listItem.isChecked ? "bg-muted/30 border-transparent" : "bg-card border-border shadow-sm"
+                                            } ${highlightedItemId === listItem.id ? "ring-2 ring-primary ring-offset-2 scale-[1.02]" : ""
+                                            }`}
+                                        onClick={() => handleToggle(listItem.id, !listItem.isChecked)}
+                                    >
                                         <Checkbox
                                             checked={listItem.isChecked}
-                                            onCheckedChange={(checked) => handleToggle(listItem.id, checked as boolean)}
+                                            onCheckedChange={() => { }} // Handled by div click for larger target
+                                            className="h-6 w-6 rounded-full data-[state=checked]:bg-muted-foreground data-[state=checked]:border-muted-foreground"
                                         />
-                                        <span className={listItem.isChecked ? "line-through text-muted-foreground" : ""}>
+                                        <span className={`flex-1 text-lg font-medium transition-colors ${listItem.isChecked ? "line-through text-muted-foreground/50" : "text-foreground"
+                                            }`}>
                                             {listItem.item.name}
                                         </span>
                                     </div>
@@ -185,17 +274,26 @@ export function ListEditor({ list }: ListEditorProps) {
                 {/* Uncategorized Items */}
                 {(itemsBySection["uncategorized"]?.length ?? 0) > 0 && (
                     <div className="space-y-2">
-                        <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wider">
+                        <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wider sticky top-20 bg-background/90 backdrop-blur py-2 z-0">
                             Uncategorized
                         </h3>
                         <div className="space-y-2">
                             {itemsBySection["uncategorized"].map((listItem) => (
-                                <div key={listItem.id} className="flex items-center gap-2 p-2 border rounded-lg bg-card">
+                                <div
+                                    key={listItem.id}
+                                    ref={(el) => { itemRefs.current[listItem.id] = el }}
+                                    className={`flex items-center gap-3 p-4 border rounded-xl transition-all duration-300 ${listItem.isChecked ? "bg-muted/30 border-transparent" : "bg-card border-border shadow-sm"
+                                        } ${highlightedItemId === listItem.id ? "ring-2 ring-primary ring-offset-2 scale-[1.02]" : ""
+                                        }`}
+                                    onClick={() => handleToggle(listItem.id, !listItem.isChecked)}
+                                >
                                     <Checkbox
                                         checked={listItem.isChecked}
-                                        onCheckedChange={(checked) => handleToggle(listItem.id, checked as boolean)}
+                                        onCheckedChange={() => { }}
+                                        className="h-6 w-6 rounded-full data-[state=checked]:bg-muted-foreground data-[state=checked]:border-muted-foreground"
                                     />
-                                    <span className={listItem.isChecked ? "line-through text-muted-foreground" : ""}>
+                                    <span className={`flex-1 text-lg font-medium transition-colors ${listItem.isChecked ? "line-through text-muted-foreground/50" : "text-foreground"
+                                        }`}>
                                         {listItem.item.name}
                                     </span>
                                 </div>
