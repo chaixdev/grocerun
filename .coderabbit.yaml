@@ -1,0 +1,21 @@
+language: "en-US"
+early_access: false
+reviews:
+  profile: "chill"
+  request_changes_workflow: false
+  high_level_summary: true
+  auto_review:
+    enabled: true
+    ignore_title_keywords:
+      - "WIP"
+      - "wip"
+    drafts: false
+  tools:
+    ast-grep:
+      enabled: true
+    biome:
+      enabled: false 
+    ruff:
+      enabled: false
+chat:
+  auto_reply: true
