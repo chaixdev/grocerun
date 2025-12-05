@@ -17,6 +17,9 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
+# Dummy DB URL for build time (Prisma Client generation)
+ENV DATABASE_URL="file:./db.sqlite"
+
 # Generate Prisma Client
 RUN npx prisma generate
 

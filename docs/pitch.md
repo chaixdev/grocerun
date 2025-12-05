@@ -57,3 +57,38 @@
     - On final confirmation by the shopper, the system executes the backend logic:
         - **Increments the purchase count** for every item on the list at that specific store.
         - If an item was _new/ad-hoc_, it is officially added to the Item Catalog/History for that store.
+
+# tech stack
+
+## 🎯 Project Goals and Core Learning Objectives
+
+This exercise focuses on mastering the most common enterprise TypeScript architecture: **Monorepo, Structured Backend (NestJS), and Server-Side Rendering (Next.js)**.
+
+### 1. Architectural & Tooling Mastery
+1.  **Turborepo Monorepo:** Establish and manage the project using **Turborepo** to enforce separation between Core Domain, the BFF, and shared types.
+2.  **End-to-End Type Safety:** Implement type validation from the database (Prisma) through the NestJS services and into the Next.js UI via the shared library.
+3.  **Persistence Layer:** Master **Prisma** (ORM and integrated migration tool), implementing complex queries for history aggregation.
+
+### 2. NestJS (Core Domain API) Focus
+1.  **Advanced Data Modeling:** Translate the complex **Store, Section, Item, and Collaboration** relationships into a production-ready schema.
+2.  **Complex Business Logic:** Implement business logic for **custom sorting** and **data aggregation** ("My Usuals").
+3.  **Authentication as Resource Server:** Implement a secure, token-aware Core API that provisions users based on their Google ID.
+
+### 3. Next.js (BFF & Presentation) Focus
+1.  **BFF Pattern:** Use **Next.js Server Actions** as a **Backend For Frontend facade** to aggregate data and handle mutations, followed by cache invalidation.
+2.  **Authentication Integration:** Implement **Google SSO** using Auth.js and securely pass the resulting session token to the protected NestJS Core API.
+3.  **Optimistic UX (Simplified):** Implement logic to show immediate visual feedback on item check-off, followed by a **simple page or data refetch** to load the confirmed state from the backend.
+
+---
+
+## 🛠️ Technical Stack and Responsibilities
+
+| Component | Framework/Tool | Role and Key Responsibilities |
+| :--- | :--- | :--- |
+| **Monorepo Manager** | **Turborepo** | Manages the workspaces and handles build caching across `server`, `client`, and `shared`. |
+| **Core Domain API** | **NestJS** | **The Source of Truth.** Handles all persistent business logic, transactions, entity management, and custom sorting algorithms. |
+| **Frontend/BFF** | **Next.js (App Router)** | **Presentation Layer & Facade.** Handles SSR, UI display, and uses Server Actions as the primary mutation mechanism. |
+| **Authentication** | **Auth.js** (NextAuth) | Handles the secure Google SSO handshake and session management. |
+| **Persistence** | **Prisma** (Mandatory) | ORM layer, schema definition, and integrated database migrations. |
+| **Testing** | **Jest** | Unit testing for all NestJS Services and Repositories. |
+
