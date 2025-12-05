@@ -25,6 +25,14 @@ import { Label } from "@/components/ui/label"
 import { TripSummary } from "./trip-summary"
 import { completeList } from "@/actions/list"
 import { useRouter } from "next/navigation"
+import { MoreHorizontal, Pencil } from "lucide-react"
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { EditItemDialog } from "./edit-item-dialog"
 
 interface Section {
     id: string
@@ -35,6 +43,7 @@ interface Item {
     id: string
     name: string
     sectionId: string | null
+    defaultUnit: string | null
 }
 
 interface ListItem {
@@ -88,6 +97,10 @@ export function ListEditor({ list }: ListEditorProps) {
     // Trip Completion State
     const [isSummaryOpen, setIsSummaryOpen] = useState(false)
     const [isCompleting, setIsCompleting] = useState(false)
+
+    // Edit Item State
+    const [editingItem, setEditingItem] = useState<Item | null>(null)
+    const [isEditOpen, setIsEditOpen] = useState(false)
 
     const handleAddItem = async (e?: React.FormEvent) => {
         e?.preventDefault()
@@ -281,44 +294,47 @@ export function ListEditor({ list }: ListEditorProps) {
             )}
 
             {!isReadOnly && (
-                <form onSubmit={handleAddItem} className="flex gap-2 sticky top-4 z-10 bg-background/95 backdrop-blur p-2 -mx-2 rounded-lg border shadow-sm items-end">
-                    <div className="flex-1 space-y-1">
-                        <Label htmlFor="item-name" className="sr-only">Item Name</Label>
-                        <Input
-                            id="item-name"
-                            value={inputValue}
-                            onChange={(e) => setInputValue(e.target.value)}
-                            placeholder="Item name..."
-                            className="w-full"
-                        />
-                    </div>
-                    <div className="w-20 space-y-1">
-                        <Label htmlFor="item-qty" className="sr-only">Qty</Label>
-                        <Input
-                            id="item-qty"
-                            type="number"
-                            min="0.1"
-                            step="0.1"
-                            value={inputQty}
-                            onChange={(e) => setInputQty(parseFloat(e.target.value))}
-                            placeholder="1"
-                            className="w-full text-center"
-                        />
-                    </div>
-                    <div className="w-24 space-y-1">
-                        <Label htmlFor="item-unit" className="sr-only">Unit</Label>
-                        <Input
-                            id="item-unit"
-                            value={inputUnit}
-                            onChange={(e) => setInputUnit(e.target.value)}
-                            placeholder="Unit"
-                            className="w-full"
-                        />
-                    </div>
-                    <Button type="submit" disabled={isSubmitting}>
-                        Add
-                    </Button>
-                </form>
+                <div className="sticky top-0 z-20 bg-background/95 backdrop-blur border-b -mx-4 px-4 py-3 mb-4">
+                    <form onSubmit={handleAddItem} className="flex gap-2 items-center">
+                        <div className="flex-1">
+                            <Label htmlFor="item-name" className="sr-only">Item Name</Label>
+                            <Input
+                                id="item-name"
+                                value={inputValue}
+                                onChange={(e) => setInputValue(e.target.value)}
+                                placeholder="Add item..."
+                                className="w-full h-11 text-base border-transparent bg-muted/50 focus:bg-background transition-colors"
+                            />
+                        </div>
+                        <div className="w-20">
+                            <Label htmlFor="item-qty" className="sr-only">Qty</Label>
+                            <Input
+                                id="item-qty"
+                                type="number"
+                                min="0.1"
+                                step="0.1"
+                                value={inputQty}
+                                onChange={(e) => setInputQty(parseFloat(e.target.value))}
+                                placeholder="1"
+                                className="w-full h-11 text-center text-base border-transparent bg-muted/50 focus:bg-background transition-colors"
+                            />
+                        </div>
+                        <div className="w-24">
+                            <Label htmlFor="item-unit" className="sr-only">Unit</Label>
+                            <Input
+                                id="item-unit"
+                                value={inputUnit}
+                                onChange={(e) => setInputUnit(e.target.value)}
+                                placeholder="Unit"
+                                className="w-full h-11 text-base border-transparent bg-muted/50 focus:bg-background transition-colors"
+                            />
+                        </div>
+                        <Button type="submit" disabled={isSubmitting} size="icon" className="h-11 w-11 shrink-0 rounded-lg">
+                            <span className="sr-only">Add</span>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14" /><path d="M12 5v14" /></svg>
+                        </Button>
+                    </form>
+                </div>
             )}
 
             <div className="space-y-6">
@@ -336,29 +352,48 @@ export function ListEditor({ list }: ListEditorProps) {
                                     <div
                                         key={listItem.id}
                                         ref={(el) => { itemRefs.current[listItem.id] = el }}
-                                        className={`flex items-center gap-3 p-4 border rounded-xl transition-all duration-300 ${listItem.isChecked ? "bg-muted/30 border-transparent" : "bg-card border-border shadow-sm"
-                                            } ${highlightedItemId === listItem.id ? "ring-2 ring-primary ring-offset-2 scale-[1.02]" : ""
+                                        className={`group flex items-center gap-3 p-3 border-b last:border-0 hover:bg-muted/30 transition-all duration-200 ${listItem.isChecked ? "opacity-50" : ""
+                                            } ${highlightedItemId === listItem.id ? "bg-primary/10" : ""
                                             }`}
                                         onClick={() => !isReadOnly && handleToggle(listItem.id, !listItem.isChecked)}
                                     >
                                         <Checkbox
                                             checked={listItem.isChecked}
-                                            onCheckedChange={() => { }} // Handled by div click for larger target
+                                            onCheckedChange={() => { }} // Handled by div click
                                             disabled={isReadOnly}
-                                            className="h-6 w-6 rounded-full data-[state=checked]:bg-muted-foreground data-[state=checked]:border-muted-foreground"
+                                            className="h-5 w-5 rounded-[4px] border-muted-foreground/30 data-[state=checked]:bg-primary data-[state=checked]:border-primary transition-all"
                                         />
-                                        <div className="flex-1 flex items-baseline gap-2">
-                                            <span className={`text-lg font-medium transition-colors ${listItem.isChecked ? "line-through text-muted-foreground/50" : "text-foreground"
+                                        <div className="flex-1 flex items-center justify-between gap-2 min-w-0">
+                                            <span className={`text-base font-medium truncate transition-colors ${listItem.isChecked ? "line-through text-muted-foreground" : "text-foreground"
                                                 }`}>
                                                 {listItem.item.name}
                                             </span>
                                             {(listItem.quantity !== 1 || listItem.unit) && (
-                                                <span className={`text-sm ${listItem.isChecked ? "text-muted-foreground/50" : "text-muted-foreground"
-                                                    }`}>
+                                                <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-muted text-muted-foreground whitespace-nowrap">
                                                     {listItem.quantity} {listItem.unit}
                                                 </span>
                                             )}
                                         </div>
+                                        {!isReadOnly && (
+                                            <DropdownMenu>
+                                                <DropdownMenuTrigger asChild>
+                                                    <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
+                                                        <MoreHorizontal className="h-4 w-4" />
+                                                        <span className="sr-only">More</span>
+                                                    </Button>
+                                                </DropdownMenuTrigger>
+                                                <DropdownMenuContent align="end">
+                                                    <DropdownMenuItem onClick={(e) => {
+                                                        e.stopPropagation()
+                                                        setEditingItem(listItem.item)
+                                                        setIsEditOpen(true)
+                                                    }}>
+                                                        <Pencil className="mr-2 h-4 w-4" />
+                                                        Edit Item
+                                                    </DropdownMenuItem>
+                                                </DropdownMenuContent>
+                                            </DropdownMenu>
+                                        )}
                                     </div>
                                 ))}
                             </div>
@@ -377,8 +412,8 @@ export function ListEditor({ list }: ListEditorProps) {
                                 <div
                                     key={listItem.id}
                                     ref={(el) => { itemRefs.current[listItem.id] = el }}
-                                    className={`flex items-center gap-3 p-4 border rounded-xl transition-all duration-300 ${listItem.isChecked ? "bg-muted/30 border-transparent" : "bg-card border-border shadow-sm"
-                                        } ${highlightedItemId === listItem.id ? "ring-2 ring-primary ring-offset-2 scale-[1.02]" : ""
+                                    className={`group flex items-center gap-3 p-3 border-b last:border-0 hover:bg-muted/30 transition-all duration-200 ${listItem.isChecked ? "opacity-50" : ""
+                                        } ${highlightedItemId === listItem.id ? "bg-primary/10" : ""
                                         }`}
                                     onClick={() => !isReadOnly && handleToggle(listItem.id, !listItem.isChecked)}
                                 >
@@ -386,16 +421,15 @@ export function ListEditor({ list }: ListEditorProps) {
                                         checked={listItem.isChecked}
                                         onCheckedChange={() => { }}
                                         disabled={isReadOnly}
-                                        className="h-6 w-6 rounded-full data-[state=checked]:bg-muted-foreground data-[state=checked]:border-muted-foreground"
+                                        className="h-5 w-5 rounded-[4px] border-muted-foreground/30 data-[state=checked]:bg-primary data-[state=checked]:border-primary transition-all"
                                     />
-                                    <div className="flex-1 flex items-baseline gap-2">
-                                        <span className={`text-lg font-medium transition-colors ${listItem.isChecked ? "line-through text-muted-foreground/50" : "text-foreground"
+                                    <div className="flex-1 flex items-center justify-between gap-2 min-w-0">
+                                        <span className={`text-base font-medium truncate transition-colors ${listItem.isChecked ? "line-through text-muted-foreground" : "text-foreground"
                                             }`}>
                                             {listItem.item.name}
                                         </span>
                                         {(listItem.quantity !== 1 || listItem.unit) && (
-                                            <span className={`text-sm ${listItem.isChecked ? "text-muted-foreground/50" : "text-muted-foreground"
-                                                }`}>
+                                            <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-muted text-muted-foreground whitespace-nowrap">
                                                 {listItem.quantity} {listItem.unit}
                                             </span>
                                         )}
@@ -463,6 +497,27 @@ export function ListEditor({ list }: ListEditorProps) {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+
+
+            {
+                editingItem && (
+                    <EditItemDialog
+                        item={{
+                            id: editingItem.id,
+                            name: editingItem.name,
+                            sectionId: editingItem.sectionId,
+                            defaultUnit: editingItem.defaultUnit
+                        }}
+                        sections={list.store.sections}
+                        open={isEditOpen}
+                        onOpenChange={setIsEditOpen}
+                        onSuccess={() => {
+                            setEditingItem(null)
+                            router.refresh()
+                        }}
+                    />
+                )
+            }
         </div>
     )
 }

@@ -1,9 +1,10 @@
 "use client"
 
 import { signOut } from "next-auth/react"
+import Link from "next/link"
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu"
 import * as Avatar from "@radix-ui/react-avatar"
-import { LogOut } from "lucide-react"
+import { LogOut, Users } from "lucide-react"
 
 interface UserNavProps {
     user: {
@@ -47,6 +48,16 @@ export function UserNav({ user }: UserNavProps) {
                             )}
                         </div>
                     </div>
+                    <DropdownMenu.Separator className="-mx-1 my-1 h-px bg-muted" />
+                    <DropdownMenu.Item asChild>
+                        <Link
+                            href="/dashboard/households"
+                            className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50"
+                        >
+                            <Users className="mr-2 h-4 w-4" />
+                            <span>Households</span>
+                        </Link>
+                    </DropdownMenu.Item>
                     <DropdownMenu.Separator className="-mx-1 my-1 h-px bg-muted" />
                     <DropdownMenu.Item
                         className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50"

@@ -45,15 +45,15 @@ export function TripSummary({
                 </DialogHeader>
 
                 {missingItems.length > 0 && (
-                    <ScrollArea className="h-[200px] w-full rounded-md border p-4">
-                        <ul className="space-y-2">
+                    <ScrollArea className="h-[200px] w-full rounded-lg bg-muted/30 p-4">
+                        <ul className="space-y-3">
                             {missingItems.map((item) => (
-                                <li key={item.id} className="text-sm text-muted-foreground flex items-center gap-2">
-                                    <span className="h-1.5 w-1.5 rounded-full bg-destructive" />
-                                    <span>{item.name}</span>
+                                <li key={item.id} className="text-sm font-medium text-foreground flex items-center gap-3">
+                                    <span className="h-2 w-2 rounded-full bg-orange-500 shrink-0" />
+                                    <span className="flex-1">{item.name}</span>
                                     {(item.quantity !== 1 || item.unit) && (
-                                        <span className="text-muted-foreground/70">
-                                            ({item.quantity} {item.unit})
+                                        <span className="text-xs text-muted-foreground bg-background px-2 py-0.5 rounded-full border shadow-sm">
+                                            {item.quantity} {item.unit}
                                         </span>
                                     )}
                                 </li>

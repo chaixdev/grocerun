@@ -15,9 +15,6 @@ export async function Header() {
                     </Link>
                     {session?.user && (
                         <nav className="flex items-center gap-4 text-sm font-medium">
-                            <Link href="/dashboard/households" className="transition-colors hover:text-primary">
-                                Households
-                            </Link>
                             <Link href="/dashboard/stores" className="transition-colors hover:text-primary">
                                 Stores
                             </Link>

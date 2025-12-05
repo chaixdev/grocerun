@@ -55,25 +55,29 @@ export function StoreLists({ lists, storeId }: { lists: List[], storeId: string 
                 </div>
 
                 {activeLists.length === 0 ? (
-                    <div className="text-center p-8 border rounded-lg border-dashed text-muted-foreground">
+                    <div className="text-center p-8 border rounded-lg border-dashed text-muted-foreground bg-muted/10">
                         No active runs. Start a new trip!
                     </div>
                 ) : (
-                    <div className="grid gap-4">
+                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                         {activeLists.map(list => (
                             <Link key={list.id} href={`/dashboard/lists/${list.id}`}>
-                                <Card className="hover:bg-muted/50 transition-colors cursor-pointer">
-                                    <CardHeader className="p-4">
-                                        <div className="flex items-center justify-between">
-                                            <CardTitle className="text-base flex items-center gap-2">
-                                                <ShoppingCart className="h-4 w-4 text-primary" />
-                                                {list.name}
-                                            </CardTitle>
-                                            <span className="text-xs text-muted-foreground">
-                                                {formatDistanceToNow(new Date(list.createdAt), { addSuffix: true })}
+                                <Card className="group hover:border-primary/50 transition-all cursor-pointer shadow-none border bg-card">
+                                    <CardHeader className="p-3">
+                                        <div className="flex items-center justify-between mb-1">
+                                            <div className="flex items-center gap-2">
+                                                <div className="h-8 w-8 rounded-md bg-primary/10 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+                                                    <ShoppingCart className="h-4 w-4" />
+                                                </div>
+                                                <CardTitle className="text-sm font-medium leading-none">
+                                                    {list.name}
+                                                </CardTitle>
+                                            </div>
+                                            <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider bg-muted px-1.5 py-0.5 rounded-sm">
+                                                {formatDistanceToNow(new Date(list.createdAt))}
                                             </span>
                                         </div>
-                                        <CardDescription>
+                                        <CardDescription className="text-xs pl-10">
                                             {list._count.items} items
                                         </CardDescription>
                                     </CardHeader>

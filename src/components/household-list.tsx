@@ -9,8 +9,14 @@ import {
     CardTitle,
 } from "@/components/ui/card"
 import { deleteHousehold } from "@/actions/household"
-import { Trash2, Pencil } from "lucide-react"
+import { MoreHorizontal, Pencil, Trash2 } from "lucide-react"
 import { HouseholdForm } from "./household-form"
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 
 interface Household {
     id: string
@@ -31,29 +37,51 @@ export function HouseholdList({ households }: { households: Household[] }) {
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {households.map((household) => (
                 <Card key={household.id}>
-                    <CardHeader>
-                        <CardTitle>{household.name}</CardTitle>
-                        <CardDescription>Created on {new Date(household.createdAt).toLocaleDateString()}</CardDescription>
-                    </CardHeader>
-                    <CardFooter className="justify-end gap-2">
-                        <HouseholdForm
-                            household={household}
-                            trigger={
-                                <Button variant="outline" size="icon">
-                                    <Pencil className="h-4 w-4" />
+                    <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
+                        <div className="space-y-1">
+                            <CardTitle className="text-base font-medium leading-none">
+                                {household.name}
+                            </CardTitle>
+                            <CardDescription>
+                                Created on {new Date(household.createdAt).toLocaleDateString()}
+                            </CardDescription>
+                        </div>
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8 -mr-2 -mt-2 text-muted-foreground"
+                                >
+                                    <MoreHorizontal className="h-4 w-4" />
+                                    <span className="sr-only">Open menu</span>
                                 </Button>
-                            }
-                        />
-                        <form
-                            action={async () => {
-                                await deleteHousehold(household.id)
-                            }}
-                        >
-                            <Button variant="destructive" size="icon">
-                                <Trash2 className="h-4 w-4" />
-                            </Button>
-                        </form>
-                    </CardFooter>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                                <HouseholdForm
+                                    household={household}
+                                    trigger={
+                                        <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                                            <Pencil className="mr-2 h-4 w-4" />
+                                            Edit Household
+                                        </DropdownMenuItem>
+                                    }
+                                />
+                                <form
+                                    action={async () => {
+                                        await deleteHousehold(household.id)
+                                    }}
+                                >
+                                    <DropdownMenuItem asChild className="text-destructive focus:text-destructive">
+                                        <button className="w-full flex items-center cursor-pointer">
+                                            <Trash2 className="mr-2 h-4 w-4" />
+                                            Delete Household
+                                        </button>
+                                    </DropdownMenuItem>
+                                </form>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    </CardHeader>
                 </Card>
             ))}
         </div>
