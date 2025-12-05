@@ -1,7 +1,7 @@
 import type { Config } from "tailwindcss";
 
 const config: Config = {
-	darkMode: ["class"],
+	darkMode: "class",
 	content: [
 		"./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
 		"./src/components/**/*.{js,ts,jsx,tsx,mdx}",
@@ -86,10 +86,10 @@ const config: Config = {
 				'accordion-up': 'accordion-up 0.2s ease-out'
 			},
 			fontFamily: {
-				sans: ["var(--font-inter)", "sans-serif"],
+				sans: ["Inter", "sans-serif"],
 			}
 		}
 	},
-	plugins: [require("tailwindcss-animate")],
+	plugins: [],
 };
 export default config;

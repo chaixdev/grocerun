@@ -14,22 +14,23 @@ import Link from "next/link"
 export default async function StoreDetailsPage({
     params,
 }: {
-    params: { storeId: string }
+    params: Promise<{ storeId: string }>
 }) {
     const session = await auth()
     if (!session?.user?.id) redirect("/login")
 
-    const hasAccess = await verifyStoreAccess(session.user.id, params.storeId)
+    const { storeId } = await params
+    const hasAccess = await verifyStoreAccess(session.user.id, storeId)
     if (!hasAccess) notFound()
 
     const store = await prisma.store.findUnique({
-        where: { id: params.storeId },
+        where: { id: storeId },
     })
 
     if (!store) notFound()
 
-    const sections = await getSections(params.storeId)
-    const lists = await getLists(params.storeId)
+    const sections = await getSections(storeId)
+    const lists = await getLists(storeId)
 
     return (
         <div className="container py-10 space-y-8">
