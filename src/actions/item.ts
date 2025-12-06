@@ -12,6 +12,10 @@ const UpdateItemSchema = z.object({
     defaultUnit: z.string().optional(),
 })
 
+import { verifyStoreAccess } from "@/lib/store-access"
+
+// ...
+
 export async function updateItem(data: z.infer<typeof UpdateItemSchema>) {
     const session = await auth()
     if (!session?.user?.id) {
@@ -20,32 +24,20 @@ export async function updateItem(data: z.infer<typeof UpdateItemSchema>) {
 
     const { itemId, name, sectionId, defaultUnit } = UpdateItemSchema.parse(data)
 
-    // 1. Verify access to the store via the item (and its household)
+    // 1. Get storeId from item
     const item = await prisma.item.findUnique({
         where: { id: itemId },
-        include: {
-            store: {
-                include: {
-                    household: {
-                        include: {
-                            users: true
-                        }
-                    }
-                }
-            }
-        }
+        select: { storeId: true }
     })
 
     if (!item) {
         throw new Error("Item not found")
     }
 
-    const hasAccess = item.store.household.users.some(u => u.id === session.user?.id)
-    if (!hasAccess) {
-        throw new Error("Unauthorized access to store")
-    }
+    // 2. Verify access
+    await verifyStoreAccess(item.storeId, session.user.id)
 
-    // 2. Update the item
+    // 3. Update the item
     await prisma.item.update({
         where: { id: itemId },
         data: {
@@ -74,30 +66,11 @@ const SearchItemsSchema = z.object({
  */
 export async function searchItems(data: z.infer<typeof SearchItemsSchema>) {
     const session = await auth()
-    if (!session?.user?.id) {
-        throw new Error("Unauthorized")
-    }
 
     const { storeId, query } = SearchItemsSchema.parse(data)
 
     // Verify store access
-    const store = await prisma.store.findUnique({
-        where: { id: storeId },
-        include: {
-            household: {
-                include: { users: true }
-            }
-        }
-    })
-
-    if (!store) {
-        throw new Error("Store not found")
-    }
-
-    const hasAccess = store.household.users.some(u => u.id === session.user?.id)
-    if (!hasAccess) {
-        throw new Error("Unauthorized access to store")
-    }
+    await verifyStoreAccess(storeId, session?.user?.id)
 
     // SQLite doesn't support case-insensitive mode in Prisma, use raw query
     // Build the LIKE pattern before passing to tagged template
@@ -135,30 +108,11 @@ export async function getTopItemsForStore(
     data: z.infer<typeof GetTopItemsSchema>
 ) {
     const session = await auth()
-    if (!session?.user?.id) {
-        throw new Error("Unauthorized")
-    }
 
     const { storeId, limit, threshold } = GetTopItemsSchema.parse(data)
 
     // Verify store access
-    const store = await prisma.store.findUnique({
-        where: { id: storeId },
-        include: {
-            household: {
-                include: { users: true }
-            }
-        }
-    })
-
-    if (!store) {
-        throw new Error("Store not found")
-    }
-
-    const hasAccess = store.household.users.some(u => u.id === session.user?.id)
-    if (!hasAccess) {
-        throw new Error("Unauthorized access to store")
-    }
+    await verifyStoreAccess(storeId, session?.user?.id)
 
     const items = await prisma.item.findMany({
         where: {
