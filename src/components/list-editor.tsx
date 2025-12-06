@@ -7,21 +7,6 @@ import { Input } from "@/components/ui/input"
 import { ItemAutocomplete } from "./item-autocomplete"
 import { Checkbox } from "@/components/ui/checkbox"
 import { toast } from "sonner"
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-} from "@/components/ui/dialog"
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "@/components/ui/select"
 import { Label } from "@/components/ui/label"
 import { TripSummary } from "./trip-summary"
 import { completeList } from "@/actions/list"
@@ -91,10 +76,7 @@ export function ListEditor({ list }: ListEditorProps) {
     const itemRefs = useRef<Record<string, HTMLDivElement | null>>({})
     const [highlightedItemId, setHighlightedItemId] = useState<string | null>(null)
 
-    // State for "New Item" dialog
-    const [newItemName, setNewItemName] = useState<string | null>(null)
-    const [selectedSection, setSelectedSection] = useState<string>("")
-    const [isDialogOpen, setIsDialogOpen] = useState(false)
+    // State for "New Item" dialog - REMOVED (Dead code)
 
     // Trip Completion State
     const [isSummaryOpen, setIsSummaryOpen] = useState(false)
@@ -134,10 +116,6 @@ export function ListEditor({ list }: ListEditorProps) {
             } else if (result.status === "ALREADY_EXISTS") {
                 setInputValue("")
                 toast.info("Item already in list")
-            } else if (result.status === "NEEDS_SECTION") {
-                setNewItemName(inputValue.trim())
-                setSelectedSection("") // Default to uncategorized
-                setIsDialogOpen(true)
             }
         } catch {
             toast.error("Failed to add item")
@@ -183,31 +161,6 @@ export function ListEditor({ list }: ListEditorProps) {
             }
         } catch {
             toast.error("Failed to add item")
-        } finally {
-            setIsSubmitting(false)
-        }
-    }
-
-    const handleConfirmNewItem = async () => {
-        if (!newItemName) return
-
-        setIsSubmitting(true)
-        try {
-            await addItemToList({
-                listId: list.id,
-                name: newItemName,
-                sectionId: selectedSection && selectedSection !== "uncategorized" ? selectedSection : undefined,
-                quantity: inputQty,
-                unit: inputUnit.trim() || undefined,
-            })
-            setInputValue("")
-            setNewItemName(null)
-            setInputQty(1)
-            setInputUnit("")
-            setIsDialogOpen(false)
-            toast.success("Item created and added")
-        } catch {
-            toast.error("Failed to create item")
         } finally {
             setIsSubmitting(false)
         }
@@ -560,45 +513,6 @@ export function ListEditor({ list }: ListEditorProps) {
                 missingItems={missingItems}
                 isSubmitting={isCompleting}
             />
-
-            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>New Item: {newItemName}</DialogTitle>
-                        <DialogDescription>
-                            Where should we find this in the store?
-                        </DialogDescription>
-                    </DialogHeader>
-                    <div className="grid gap-4 py-4">
-                        <div className="grid gap-2">
-                            <Label htmlFor="section">Section</Label>
-                            <Select value={selectedSection} onValueChange={setSelectedSection}>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Select a section" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="uncategorized">
-                                        Uncategorized
-                                    </SelectItem>
-                                    {list.store.sections.map((s) => (
-                                        <SelectItem key={s.id} value={s.id}>
-                                            {s.name}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </div>
-                    </div>
-                    <DialogFooter>
-                        <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
-                            Cancel
-                        </Button>
-                        <Button onClick={handleConfirmNewItem} disabled={isSubmitting}>
-                            Save & Add
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
 
 
             {
