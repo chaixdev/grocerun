@@ -106,6 +106,7 @@ export function ListEditor({ list }: ListEditorProps) {
 
     const handleAddItem = async (e?: React.FormEvent) => {
         e?.preventDefault()
+        if (isSubmitting) return
         if (!inputValue.trim()) return
 
         setIsSubmitting(true)
@@ -201,13 +202,15 @@ export function ListEditor({ list }: ListEditorProps) {
                 unit: inputUnit.trim() || undefined,
             })
 
-            // Close dialog first to avoid content jumping during animation
+            // Clear main input immediately to prevent re-submission
+            setInputValue("")
+
+            // Close dialog
             setIsDialogOpen(false)
             toast.success("Item created and added")
 
-            // Reset form state after a short delay to allow closing animation
+            // Reset dialog state after a short delay
             setTimeout(() => {
-                setInputValue("")
                 setNewItemName(null)
                 setInputQty(1)
                 setInputUnit("")
