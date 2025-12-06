@@ -1,36 +1,62 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 🛍️ Grocerun
 
-## Getting Started
+> **Self-hostable, real-time grocery list app for households.**
 
-First, run the development server:
+Grocerun transforms chaotic grocery runs into organized, efficient trips. It leverages your purchase history to suggest items, organizes them by store section, and syncs instantly across devices.
+
+![License](https://img.shields.io/github/license/chaixdev/grocerun)
+![Docker Image Version (latest by date)](https://img.shields.io/github/v/release/chaixdev/grocerun)
+
+## ✨ Features
+
+- **Smart Catalog**: Remembers what you buy and where.
+- **Store Layouts**: Define custom sections for your favorite stores (e.g., "Produce" -> "Dairy" -> "Frozen").
+- **Mobile First**: Designed to feel like a native app on your phone.
+- **Dark Mode**: Easy on the eyes.
+
+## 🚀 Getting Started
+
+### Self-Hosting (Docker)
+
+The easiest way to run Grocerun is with Docker Compose.
+
+1.  Download the [docker-compose.prod.yml](docker-compose.prod.yml).
+2.  Configure your `.env` file.
+3.  Run `docker compose up -d`.
+
+See the **[Deployment Guide](DEPLOY.md)** for full instructions.
+
+### Development
+
+To run the project locally:
 
 ```bash
+# Install dependencies
+npm install
+
+# Start development server
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 📚 Documentation
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- **[User Guide](wiki/user-guide/features.md)**: How to use Grocerun.
+- **[Self-Hosting](wiki/user-guide/self-hosting.md)**: Detailed deployment instructions.
+- **[Developer Guide](wiki/developer-guide/devops-philosophy.md)**: Architecture and contribution.
 
-## Learn More
+## 🛠️ Tech Stack
 
-To learn more about Next.js, take a look at the following resources:
+- **Frontend**: Next.js 15 (App Router), Tailwind CSS, Shadcn UI
+- **Backend**: Next.js Server Actions
+- **Database**: PostgreSQL (Prisma ORM)
+- **Auth**: NextAuth.js (Google OAuth)
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 🤝 Contributing
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Contributions are welcome! Please check the [Developer Guide](wiki/developer-guide/devops-philosophy.md) for our development philosophy.
 
-## Deploy on Vercel
+## 📄 License
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
