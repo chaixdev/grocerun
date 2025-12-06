@@ -11,7 +11,7 @@
   },
   "lint-staged": {
     "*.{ts,tsx}": [
-      "eslint --fix"
+      "ESLINT_USE_FLAT_CONFIG=false eslint --fix"
     ]
   },
   "dependencies": {
@@ -49,6 +49,7 @@
     "zod": "^4.1.13"
   },
   "devDependencies": {
+    "@eslint/eslintrc": "^3.3.3",
     "@tailwindcss/postcss": "^4.1.17",
     "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^24",
