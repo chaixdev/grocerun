@@ -30,6 +30,8 @@ ENV AUTH_GOOGLE_SECRET="dummy_secret"
 RUN npx prisma generate
 
 # Build Next.js app
+ARG NEXT_PUBLIC_APP_VERSION
+ENV NEXT_PUBLIC_APP_VERSION=$NEXT_PUBLIC_APP_VERSION
 RUN npm run build
 
 # 4. Runner
