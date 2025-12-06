@@ -18,12 +18,13 @@ The application is configured via environment variables.
 
 | Variable | Description | Required | Default |
 |----------|-------------|----------|---------|
-| `DATABASE_URL` | PostgreSQL connection string | Yes | - |
 | `AUTH_SECRET` | Random string for session encryption | Yes | - |
 | `AUTH_GOOGLE_ID` | Google OAuth Client ID | Yes | - |
 | `AUTH_GOOGLE_SECRET` | Google OAuth Client Secret | Yes | - |
 | `HOSTNAME` | Hostname to bind to | No | `0.0.0.0` |
 | `GROCERUN_VERSION` | Docker image tag | No | `latest` |
+
+> **Note**: The application uses SQLite by default. The database file is persisted in the `grocerun_data` volume.
 
 ## Friction Points & Known Issues
 

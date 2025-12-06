@@ -17,18 +17,17 @@ This guide explains how to deploy Grocerun on your own server using Docker Compo
     ```
 
 2.  **Configure Environment**
-    Create a `.env` file in the same directory:
+    Create a `.env` file in the same directory. **Do not commit this file to version control.**
 
     ```bash
     # .env
     GROCERUN_VERSION=latest
-    AUTH_SECRET=your_generated_secret_here
-    # Optional: Google OAuth
+    
+    # Auth
+    AUTH_SECRET=your_generated_secret_here # openssl rand -base64 32
     AUTH_GOOGLE_ID=your_google_client_id
     AUTH_GOOGLE_SECRET=your_google_client_secret
     ```
-
-    > **Note:** Generate a secure `AUTH_SECRET` using `openssl rand -base64 32`.
 
 3.  **Start the Service**
 
