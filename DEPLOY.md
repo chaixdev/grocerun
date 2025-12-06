@@ -17,7 +17,11 @@ This guide explains how to deploy Grocerun on your own server using Docker Compo
     ```
 
 2.  **Configure Environment**
-    Create a `.env` file in the same directory. **Do not commit this file to version control.**
+    Copy `.env.example` to `.env` and fill in your secrets. **Do not commit `.env` to version control.**
+
+    ```bash
+    cp .env.example .env
+    ```
 
     ```bash
     # .env
