@@ -106,6 +106,7 @@ export function ListEditor({ list }: ListEditorProps) {
 
     const handleAddItem = async (e?: React.FormEvent) => {
         e?.preventDefault()
+        if (isSubmitting) return
         if (!inputValue.trim()) return
 
         setIsSubmitting(true)
@@ -189,17 +190,18 @@ export function ListEditor({ list }: ListEditorProps) {
     }
 
     const handleConfirmNewItem = async () => {
-        if (!newItemName) return
+        if (!newItemName || isSubmitting) return
 
         setIsSubmitting(true)
         try {
             await addItemToList({
                 listId: list.id,
                 name: newItemName,
-                sectionId: selectedSection && selectedSection !== "uncategorized" ? selectedSection : undefined,
+                sectionId: selectedSection && selectedSection !== "uncategorized" ? selectedSection : null,
                 quantity: inputQty,
                 unit: inputUnit.trim() || undefined,
             })
+
             setInputValue("")
             setNewItemName(null)
             setInputQty(1)
@@ -590,10 +592,10 @@ export function ListEditor({ list }: ListEditorProps) {
                         </div>
                     </div>
                     <DialogFooter>
-                        <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+                        <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
                             Cancel
                         </Button>
-                        <Button onClick={handleConfirmNewItem} disabled={isSubmitting}>
+                        <Button type="button" onClick={handleConfirmNewItem} disabled={isSubmitting}>
                             Save & Add
                         </Button>
                     </DialogFooter>
