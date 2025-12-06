@@ -189,10 +189,7 @@ export function ListEditor({ list }: ListEditorProps) {
         }
     }
 
-    const handleConfirmNewItem = async (e?: React.MouseEvent) => {
-        e?.preventDefault()
-        e?.stopPropagation()
-
+    const handleConfirmNewItem = async () => {
         if (!newItemName || isSubmitting) return
 
         setIsSubmitting(true)
@@ -205,19 +202,12 @@ export function ListEditor({ list }: ListEditorProps) {
                 unit: inputUnit.trim() || undefined,
             })
 
-            // 1. Clear input to prevent any re-triggering of the main form
             setInputValue("")
-
-            // 2. Close dialog immediately
+            setNewItemName(null)
+            setInputQty(1)
+            setInputUnit("")
             setIsDialogOpen(false)
             toast.success("Item created and added")
-
-            // 3. Reset dialog state after animation
-            setTimeout(() => {
-                setNewItemName(null)
-                setInputQty(1)
-                setInputUnit("")
-            }, 300)
         } catch {
             toast.error("Failed to create item")
         } finally {
