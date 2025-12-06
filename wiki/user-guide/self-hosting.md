@@ -34,4 +34,7 @@ Currently, Grocerun **only supports Google OAuth**. This means you must set up a
 - **Status**: We are tracking this in [GRO-IAM-alternatives](../planning/tickets/backlog/GRO-IAM-alternatives.md).
 
 ### Database
-The app requires a PostgreSQL database. SQLite is used for development but not recommended for production due to concurrency limits.
+Grocerun uses **SQLite** for both development and production.
+- **Persistence**: The database file is stored in the `grocerun_data` Docker volume.
+- **Backups**: To backup, simply copy the `prod.db` file from the volume.
+- **Limitations**: SQLite handles concurrent writes sequentially. For a typical household or small team, this is perfectly fine. If you have hundreds of users writing simultaneously, you may experience locking issues.
