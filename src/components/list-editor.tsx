@@ -200,12 +200,18 @@ export function ListEditor({ list }: ListEditorProps) {
                 quantity: inputQty,
                 unit: inputUnit.trim() || undefined,
             })
-            setInputValue("")
-            setNewItemName(null)
-            setInputQty(1)
-            setInputUnit("")
+
+            // Close dialog first to avoid content jumping during animation
             setIsDialogOpen(false)
             toast.success("Item created and added")
+
+            // Reset form state after a short delay to allow closing animation
+            setTimeout(() => {
+                setInputValue("")
+                setNewItemName(null)
+                setInputQty(1)
+                setInputUnit("")
+            }, 300)
         } catch {
             toast.error("Failed to create item")
         } finally {
@@ -590,10 +596,10 @@ export function ListEditor({ list }: ListEditorProps) {
                         </div>
                     </div>
                     <DialogFooter>
-                        <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+                        <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
                             Cancel
                         </Button>
-                        <Button onClick={handleConfirmNewItem} disabled={isSubmitting}>
+                        <Button type="button" onClick={handleConfirmNewItem} disabled={isSubmitting}>
                             Save & Add
                         </Button>
                     </DialogFooter>
