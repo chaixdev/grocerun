@@ -82,7 +82,7 @@ export async function getList(listId: string) {
 const AddItemSchema = z.object({
     listId: z.string(),
     name: z.string().min(1),
-    sectionId: z.string().optional(),
+    sectionId: z.string().nullable().optional(),
     quantity: z.number().min(0.1).default(1),
     unit: z.string().optional(),
 })
@@ -152,12 +152,19 @@ export async function addItemToList(data: z.infer<typeof AddItemSchema>) {
         return { status: "ADDED", listItem }
     }
 
-    // 3. If item is new, create it (with or without section)
+    // 3. If item is new...
+    // If sectionId is undefined (not provided), ask for it.
+    // If sectionId is null (explicitly uncategorized) or string (categorized), create it.
+    if (sectionId === undefined) {
+        return { status: "NEEDS_SECTION" }
+    }
+
+    // Create item (with or without section)
     item = await prisma.item.create({
         data: {
             name,
             storeId: list.storeId,
-            sectionId: sectionId || null, // null = uncategorized
+            sectionId: sectionId, // null or string
             defaultUnit: unit,
         }
     })
