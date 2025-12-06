@@ -7,10 +7,11 @@ import { HouseholdSelect } from "@/components/household-select"
 export default async function StoresPage({
     searchParams,
 }: {
-    searchParams: { householdId?: string }
+    searchParams: Promise<{ householdId?: string }>
 }) {
     const households = await getHouseholds()
-    const activeHouseholdId = searchParams.householdId || households[0]?.id
+    const { householdId } = await searchParams
+    const activeHouseholdId = householdId || households[0]?.id
     const activeHousehold = households.find((h) => h.id === activeHouseholdId) || households[0]
 
     const stores = await getStores(activeHouseholdId)
