@@ -189,8 +189,11 @@ export function ListEditor({ list }: ListEditorProps) {
         }
     }
 
-    const handleConfirmNewItem = async () => {
-        if (!newItemName) return
+    const handleConfirmNewItem = async (e?: React.MouseEvent) => {
+        e?.preventDefault()
+        e?.stopPropagation()
+
+        if (!newItemName || isSubmitting) return
 
         setIsSubmitting(true)
         try {
@@ -202,14 +205,14 @@ export function ListEditor({ list }: ListEditorProps) {
                 unit: inputUnit.trim() || undefined,
             })
 
-            // Clear main input immediately to prevent re-submission
+            // 1. Clear input to prevent any re-triggering of the main form
             setInputValue("")
 
-            // Close dialog
+            // 2. Close dialog immediately
             setIsDialogOpen(false)
             toast.success("Item created and added")
 
-            // Reset dialog state after a short delay
+            // 3. Reset dialog state after animation
             setTimeout(() => {
                 setNewItemName(null)
                 setInputQty(1)
