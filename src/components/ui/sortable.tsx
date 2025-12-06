@@ -84,8 +84,11 @@ export function SortableList<T extends { id: string }>({
         [activeId, items]
     )
 
+    const id = React.useId()
+
     return (
         <DndContext
+            id={id}
             sensors={sensors}
             collisionDetection={closestCenter}
             onDragStart={handleDragStart}
