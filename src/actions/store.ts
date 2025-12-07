@@ -7,7 +7,7 @@ import { z } from "zod"
 
 import { verifyHouseholdAccess, verifyStoreAccess } from "@/lib/auth-helpers"
 
-const StoreSchema = z.object({
+export const StoreSchema = z.object({
     name: z.string().min(1, "Name is required"),
     location: z.string().optional(),
     householdId: z.string().min(1, "Household ID is required"),
@@ -82,4 +82,46 @@ export async function deleteStore(id: string) {
 
     await prisma.store.delete({ where: { id } })
     revalidatePath("/stores")
+}
+
+export async function getStore(id: string) {
+    const session = await auth()
+    if (!session?.user?.id) return null
+
+    const hasAccess = await verifyStoreAccess(session.user.id, id)
+    if (!hasAccess) return null
+
+    return prisma.store.findUnique({
+        where: { id },
+        select: {
+            id: true,
+            name: true,
+            location: true,
+            householdId: true
+        }
+    })
+}
+
+export async function updateStore(id: string, data: z.infer<typeof StoreSchema>) {
+    const session = await auth()
+    if (!session?.user?.id) throw new Error("Unauthorized")
+
+    // Zod validation is partial for updates usually, but here we expect full form data or partial?
+    // Let's use the same schema but maybe allow partial if needed. 
+    // For now, let's assume the form sends all fields.
+    const validated = StoreSchema.parse(data)
+
+    const hasAccess = await verifyStoreAccess(session.user.id, id)
+    if (!hasAccess) throw new Error("Unauthorized")
+
+    await prisma.store.update({
+        where: { id },
+        data: {
+            name: validated.name,
+            location: validated.location,
+        }
+    })
+
+    revalidatePath("/stores")
+    revalidatePath(`/stores/${id}/settings`)
 }
