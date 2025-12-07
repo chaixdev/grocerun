@@ -33,9 +33,10 @@ interface InvitationManagerProps {
         name: string
         ownerId: string | null
     }[]
+    invitationTimeoutMinutes: number
 }
 
-export function InvitationManager({ userId, households }: InvitationManagerProps) {
+export function InvitationManager({ userId, households, invitationTimeoutMinutes }: InvitationManagerProps) {
     const [inviteToken, setInviteToken] = useState<string | null>(null)
     const [isGenerating, setIsGenerating] = useState(false)
     const [joinToken, setJoinToken] = useState("")
@@ -260,7 +261,7 @@ export function InvitationManager({ userId, households }: InvitationManagerProps
                                                 <DialogHeader>
                                                     <DialogTitle>Invite to {household.name}</DialogTitle>
                                                     <DialogDescription>
-                                                        Share this code. Valid for 24 hours, one-time use.
+                                                        Share this code. Valid for {invitationTimeoutMinutes >= 60 ? `${Math.round(invitationTimeoutMinutes / 60)} hours` : `${invitationTimeoutMinutes} minutes`}, one-time use.
                                                     </DialogDescription>
                                                 </DialogHeader>
 

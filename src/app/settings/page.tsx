@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { SettingsForm } from "@/components/settings-form";
 import { redirect } from "next/navigation";
 
+import { appConfig } from "@/lib/app-config";
+
 export default async function SettingsPage() {
     const session = await auth();
 
@@ -27,7 +29,11 @@ export default async function SettingsPage() {
                     Manage your account settings and preferences.
                 </p>
             </div>
-            <SettingsForm user={user} households={user.households} />
+            <SettingsForm
+                user={user}
+                households={user.households}
+                invitationTimeoutMinutes={appConfig.invitation.expiresInMinutes}
+            />
         </div>
     );
 }
