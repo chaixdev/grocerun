@@ -7,11 +7,7 @@ import { z } from "zod"
 
 import { verifyHouseholdAccess, verifyStoreAccess } from "@/lib/auth-helpers"
 
-export const StoreSchema = z.object({
-    name: z.string().min(1, "Name is required"),
-    location: z.string().optional(),
-    householdId: z.string().min(1, "Household ID is required"),
-})
+import { StoreSchema } from "@/schemas/store"
 
 export async function getStores(householdId?: string) {
     const session = await auth()
@@ -97,6 +93,7 @@ export async function getStore(id: string) {
             id: true,
             name: true,
             location: true,
+            imageUrl: true,
             householdId: true
         }
     })
@@ -119,6 +116,7 @@ export async function updateStore(id: string, data: z.infer<typeof StoreSchema>)
         data: {
             name: validated.name,
             location: validated.location,
+            imageUrl: validated.imageUrl,
         }
     })
 

@@ -17,7 +17,8 @@ import {
     FormMessage,
 } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
-import { StoreSchema, updateStore, deleteStore } from "@/actions/store"
+import { updateStore, deleteStore } from "@/actions/store"
+import { StoreSchema } from "@/schemas/store"
 import {
     AlertDialog,
     AlertDialogAction,
@@ -36,6 +37,7 @@ interface StoreSettingsFormProps {
         id: string
         name: string
         location: string | null
+        imageUrl: string | null
         householdId: string
     }
 }
@@ -50,6 +52,7 @@ export function StoreSettingsForm({ store }: StoreSettingsFormProps) {
         defaultValues: {
             name: store.name,
             location: store.location || "",
+            imageUrl: store.imageUrl || "",
             householdId: store.householdId,
         },
     })
@@ -105,6 +108,19 @@ export function StoreSettingsForm({ store }: StoreSettingsFormProps) {
                                 <FormLabel>Location (Optional)</FormLabel>
                                 <FormControl>
                                     <Input placeholder="address or area" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                    <FormField
+                        control={form.control}
+                        name="imageUrl"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Image URL (Optional)</FormLabel>
+                                <FormControl>
+                                    <Input placeholder="https://..." {...field} />
                                 </FormControl>
                                 <FormMessage />
                             </FormItem>
