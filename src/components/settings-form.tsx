@@ -22,6 +22,7 @@ import { toast } from "sonner"
 import { signOut } from "next-auth/react"
 import { LogOut } from "lucide-react"
 import { ProfileSchema, type ProfileFormValues } from "@/lib/schemas/user"
+import { InvitationManager } from "@/components/invitation-manager"
 
 interface SettingsFormProps {
     user: {
@@ -136,34 +137,18 @@ export function SettingsForm({ user, households }: SettingsFormProps) {
                 </CardContent>
             </Card>
 
-            <Card>
-                <CardHeader>
-                    <CardTitle>Households</CardTitle>
-                    <CardDescription>
-                        Manage the households you are a member of.
-                    </CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <div className="space-y-4">
-                        {households.map((household) => (
-                            <div key={household.id} className="flex items-center justify-between border p-4 rounded-lg">
-                                <div>
-                                    <p className="font-medium">{household.name}</p>
-                                    <p className="text-sm text-muted-foreground">Member</p>
-                                </div>
-                                <Button variant="outline" size="sm" disabled>
-                                    Leave
-                                </Button>
-                            </div>
-                        ))}
-                        {households.length === 0 && (
-                            <p className="text-sm text-muted-foreground">
-                                You are not a member of any household.
-                            </p>
-                        )}
+            <div className="space-y-6">
+                <div className="flex items-center justify-between">
+                    <div>
+                        <h3 className="text-lg font-medium">Households</h3>
+                        <p className="text-sm text-muted-foreground">
+                            Manage your household memberships and invite others.
+                        </p>
                     </div>
-                </CardContent>
-            </Card>
+                </div>
+                <Separator />
+                <InvitationManager households={households} />
+            </div>
 
             <Card className="border-destructive/50">
                 <CardHeader>
@@ -183,6 +168,6 @@ export function SettingsForm({ user, households }: SettingsFormProps) {
                     </Button>
                 </CardContent>
             </Card>
-        </div>
+        </div >
     )
 }
