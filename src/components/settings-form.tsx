@@ -35,6 +35,7 @@ interface SettingsFormProps {
         id: string
         name: string
         ownerId: string | null
+        _count: { users: number }
     }[]
     invitationTimeoutMinutes: number
 }

@@ -17,7 +17,12 @@ export async function getHouseholds() {
 
     const user = await prisma.user.findUnique({
         where: { id: session.user.id },
-        include: { households: { orderBy: { createdAt: "desc" } } },
+        include: {
+            households: {
+                orderBy: { createdAt: "desc" },
+                include: { _count: { select: { users: true } } }
+            }
+        },
     })
 
     return user?.households || []
@@ -96,14 +101,64 @@ export async function updateHousehold(id: string, data: z.infer<typeof Household
     revalidatePath("/households")
 }
 
+export async function leaveHousehold(id: string) {
+    const session = await auth()
+    if (!session?.user?.id) return { success: false, error: "Unauthorized" }
+
+    try {
+        const household = await prisma.household.findUnique({
+            where: { id },
+            select: { ownerId: true }
+        })
+
+        if (!household) return { success: false, error: "Household not found" }
+
+        if (household.ownerId === session.user.id) {
+            return { success: false, error: "Owners cannot leave their own household. Delete it instead." }
+        }
+
+        await prisma.household.update({
+            where: { id },
+            data: {
+                users: { disconnect: { id: session.user.id } }
+            }
+        })
+
+        revalidatePath("/settings")
+        revalidatePath("/households")
+        return { success: true }
+    } catch (error) {
+        return { success: false, error: "Failed to leave household" }
+    }
+}
+
 export async function deleteHousehold(id: string) {
     const session = await auth()
-    if (!session?.user?.id) throw new Error("Unauthorized")
+    if (!session?.user?.id) return { success: false, error: "Unauthorized" }
 
-    // Verify membership
-    const hasAccess = await verifyHouseholdAccess(session.user.id, id)
-    if (!hasAccess) throw new Error("Unauthorized")
+    try {
+        const household = await prisma.household.findUnique({
+            where: { id },
+            include: { _count: { select: { users: true } } }
+        })
 
-    await prisma.household.delete({ where: { id } })
-    revalidatePath("/households")
+        if (!household) return { success: false, error: "Household not found" }
+
+        // Verify ownership
+        if (household.ownerId !== session.user.id) {
+            return { success: false, error: "Only the owner can delete the household" }
+        }
+
+        // Verify member count
+        if (household._count.users > 1) {
+            return { success: false, error: "Cannot delete household with other members. Remove them first." }
+        }
+
+        await prisma.household.delete({ where: { id } })
+        revalidatePath("/households")
+        revalidatePath("/settings")
+        return { success: true }
+    } catch (error) {
+        return { success: false, error: "Failed to delete household" }
+    }
 }

@@ -3,11 +3,11 @@
 
 import { useState } from "react"
 import { createInvitation, joinHousehold, getInvitationDetails } from "@/actions/invitation"
-import { createHousehold, renameHousehold } from "@/actions/household"
+import { createHousehold, renameHousehold, leaveHousehold, deleteHousehold } from "@/actions/household"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { toast } from "sonner"
-import { Copy, Check, Loader2, UserPlus, Plus, Pencil, Shield, User } from "lucide-react"
+import { Copy, Check, Loader2, UserPlus, Plus, Pencil, Shield, User, LogOut, Trash2 } from "lucide-react"
 import {
     Dialog,
     DialogContent,
@@ -32,6 +32,7 @@ interface InvitationManagerProps {
         id: string
         name: string
         ownerId: string | null
+        _count: { users: number }
     }[]
     invitationTimeoutMinutes: number
 }
@@ -55,6 +56,12 @@ export function InvitationManager({ userId, households, invitationTimeoutMinutes
     const [editingHousehold, setEditingHousehold] = useState<{ id: string, name: string } | null>(null)
     const [renameValue, setRenameValue] = useState("")
     const [isRenaming, setIsRenaming] = useState(false)
+
+    // Leave/Delete State
+    const [householdToLeave, setHouseholdToLeave] = useState<{ id: string, name: string } | null>(null)
+    const [isLeaving, setIsLeaving] = useState(false)
+    const [householdToDelete, setHouseholdToDelete] = useState<{ id: string, name: string } | null>(null)
+    const [isDeleting, setIsDeleting] = useState(false)
 
     async function handleGenerateInvite(householdId: string) {
         setIsGenerating(true)
@@ -148,6 +155,42 @@ export function InvitationManager({ userId, households, invitationTimeoutMinutes
         }
     }
 
+    async function handleLeaveHousehold() {
+        if (!householdToLeave) return
+        setIsLeaving(true)
+        try {
+            const result = await leaveHousehold(householdToLeave.id)
+            if (result.success) {
+                toast.success("Left Household", { description: `You have left ${householdToLeave.name}` })
+                setHouseholdToLeave(null)
+            } else {
+                toast.error("Error", { description: result.error })
+            }
+        } catch (error) {
+            toast.error("Error", { description: "Failed to leave household" })
+        } finally {
+            setIsLeaving(false)
+        }
+    }
+
+    async function handleDeleteHousehold() {
+        if (!householdToDelete) return
+        setIsDeleting(true)
+        try {
+            const result = await deleteHousehold(householdToDelete.id)
+            if (result.success) {
+                toast.success("Household Deleted", { description: `${householdToDelete.name} has been deleted` })
+                setHouseholdToDelete(null)
+            } else {
+                toast.error("Error", { description: result.error })
+            }
+        } catch (error) {
+            toast.error("Error", { description: "Failed to delete household" })
+        } finally {
+            setIsDeleting(false)
+        }
+    }
+
     function copyToClipboard() {
         if (inviteToken) {
             navigator.clipboard.writeText(inviteToken)
@@ -203,6 +246,8 @@ export function InvitationManager({ userId, households, invitationTimeoutMinutes
                 <h3 className="text-sm font-medium text-muted-foreground">Your Households</h3>
                 {households.map((household) => {
                     const isOwner = !household.ownerId || household.ownerId === userId
+                    const memberCount = household._count.users
+
                     return (
                         <Card key={household.id}>
                             <CardHeader className="pb-2">
@@ -216,7 +261,9 @@ export function InvitationManager({ userId, households, invitationTimeoutMinutes
                                                 <Badge variant="secondary" className="text-[10px] px-1 py-0 h-5"><User className="w-3 h-3 mr-1" /> Member</Badge>
                                             )}
                                         </div>
-                                        <CardDescription className="text-xs">ID: {household.id}</CardDescription>
+                                        <CardDescription className="text-xs">
+                                            ID: {household.id} • {memberCount} member{memberCount !== 1 ? 's' : ''}
+                                        </CardDescription>
                                     </div>
                                     <div className="flex gap-2">
                                         {isOwner && (
@@ -250,6 +297,7 @@ export function InvitationManager({ userId, households, invitationTimeoutMinutes
                                                 </DialogContent>
                                             </Dialog>
                                         )}
+
                                         <Dialog>
                                             <DialogTrigger asChild>
                                                 <Button variant="outline" size="sm" onClick={() => handleGenerateInvite(household.id)}>
@@ -289,6 +337,30 @@ export function InvitationManager({ userId, households, invitationTimeoutMinutes
                                                 )}
                                             </DialogContent>
                                         </Dialog>
+
+                                        {/* Leave/Delete Button */}
+                                        {isOwner ? (
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                                disabled={memberCount > 1}
+                                                onClick={() => setHouseholdToDelete(household)}
+                                                title={memberCount > 1 ? "Cannot delete household with other members" : "Delete Household"}
+                                            >
+                                                <Trash2 className="h-4 w-4" />
+                                            </Button>
+                                        ) : (
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                                onClick={() => setHouseholdToLeave(household)}
+                                                title="Leave Household"
+                                            >
+                                                <LogOut className="h-4 w-4" />
+                                            </Button>
+                                        )}
                                     </div>
                                 </div>
                             </CardHeader>
@@ -311,6 +383,44 @@ export function InvitationManager({ userId, households, invitationTimeoutMinutes
                         <Button onClick={handleConfirmJoin} disabled={isJoining}>
                             {isJoining ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                             Confirm & Join
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Leave Confirmation Dialog */}
+            <Dialog open={!!householdToLeave} onOpenChange={(open) => !open && setHouseholdToLeave(null)}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Leave Household</DialogTitle>
+                        <DialogDescription>
+                            Are you sure you want to leave <strong>{householdToLeave?.name}</strong>? You will need a new invitation to rejoin.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setHouseholdToLeave(null)}>Cancel</Button>
+                        <Button variant="destructive" onClick={handleLeaveHousehold} disabled={isLeaving}>
+                            {isLeaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                            Leave
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Delete Confirmation Dialog */}
+            <Dialog open={!!householdToDelete} onOpenChange={(open) => !open && setHouseholdToDelete(null)}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Delete Household</DialogTitle>
+                        <DialogDescription>
+                            Are you sure you want to delete <strong>{householdToDelete?.name}</strong>? This action cannot be undone.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setHouseholdToDelete(null)}>Cancel</Button>
+                        <Button variant="destructive" onClick={handleDeleteHousehold} disabled={isDeleting}>
+                            {isDeleting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                            Delete
                         </Button>
                     </DialogFooter>
                 </DialogContent>
