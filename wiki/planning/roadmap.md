@@ -16,7 +16,7 @@
 *Goal: Enable users to manage stores and view their active lists.*
 - [x] [GRO-38: Dashboard Layout](./tickets/done/GRO-38-dashboard-layout.md) ([US-7](./user-stories/US-7-dashboard-experience.md))
 - [x] [GRO-37: Active List Card](./tickets/done/GRO-37-list-card-design.md) ([US-7](./user-stories/US-7-dashboard-experience.md))
-- [ ] [GRO-41: Store Catalog Page](./tickets/backlog/GRO-41-store-catalog.md) ([US-8](./user-stories/US-8-store-catalog-management.md))
+- [x] [GRO-41: Store Catalog Page](./tickets/done/GRO-41-store-catalog.md) ([US-8](./user-stories/US-8-store-catalog-management.md))
 - [ ] [GRO-40: Store Card Design](./tickets/backlog/GRO-40-store-card-design.md) ([US-8](./user-stories/US-8-store-catalog-management.md))
 - [ ] [GRO-44: Store Configuration Screen](./tickets/backlog/GRO-44-store-config.md) ([US-8](./user-stories/US-8-store-catalog-management.md))
 - [ ] [GRO-45: Section Management UI](./tickets/backlog/GRO-45-section-management.md) ([US-8](./user-stories/US-8-store-catalog-management.md))
