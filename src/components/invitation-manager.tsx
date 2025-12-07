@@ -63,6 +63,9 @@ export function InvitationManager({ userId, households, invitationTimeoutMinutes
     const [householdToDelete, setHouseholdToDelete] = useState<{ id: string, name: string } | null>(null)
     const [isDeleting, setIsDeleting] = useState(false)
 
+    // Invite Dialog State
+    const [activeInviteHouseholdId, setActiveInviteHouseholdId] = useState<string | null>(null)
+
     async function handleGenerateInvite(householdId: string) {
         setIsGenerating(true)
         try {
@@ -298,13 +301,24 @@ export function InvitationManager({ userId, households, invitationTimeoutMinutes
                                             </Dialog>
                                         )}
 
-                                        <Dialog>
-                                            <DialogTrigger asChild>
-                                                <Button variant="outline" size="sm" onClick={() => handleGenerateInvite(household.id)}>
-                                                    <UserPlus className="mr-2 h-4 w-4" />
-                                                    Invite
-                                                </Button>
-                                            </DialogTrigger>
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => {
+                                                setInviteToken(null)
+                                                setCopied(false)
+                                                setActiveInviteHouseholdId(household.id)
+                                                handleGenerateInvite(household.id)
+                                            }}
+                                        >
+                                            <UserPlus className="mr-2 h-4 w-4" />
+                                            Invite
+                                        </Button>
+
+                                        <Dialog
+                                            open={activeInviteHouseholdId === household.id}
+                                            onOpenChange={(open) => !open && setActiveInviteHouseholdId(null)}
+                                        >
                                             <DialogContent>
                                                 <DialogHeader>
                                                     <DialogTitle>Invite to {household.name}</DialogTitle>
