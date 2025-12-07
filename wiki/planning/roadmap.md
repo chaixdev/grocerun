@@ -6,9 +6,9 @@
 
 ## 🟢 Phase 1: The Foundation (Responsive Shell)
 *Goal: Establish the app structure, navigation, and user settings.*
-- [ ] [GRO-35: Responsive Navigation Shell](./tickets/backlog/GRO-35-responsive-shell.md) ([US-6](./user-stories/US-6-responsive-shell.md))
-- [ ] [GRO-36: Routing & Placeholders](./tickets/backlog/GRO-36-routing-setup.md) ([US-6](./user-stories/US-6-responsive-shell.md))
-- [ ] [GRO-49: Settings Page](./tickets/backlog/GRO-49-settings-page.md) ([US-10](./user-stories/US-10-settings-and-preferences.md))
+- [x] [GRO-35: Responsive Navigation Shell](./tickets/done/GRO-35-responsive-shell.md) ([US-6](./user-stories/US-6-responsive-shell.md))
+- [x] [GRO-36: Routing & Placeholders](./tickets/done/GRO-36-routing-setup.md) ([US-6](./user-stories/US-6-responsive-shell.md))
+- [x] [GRO-49: Settings Page](./tickets/done/GRO-49-settings-page.md) ([US-10](./user-stories/US-10-settings-and-preferences.md))
 - [ ] [GRO-16: Invite User to Household](./tickets/backlog/GRO-16-invite-user.md) ([US-3](./user-stories/US-3-household-collaboration.md))
 
 ## 🟡 Phase 2: Core Data (Stores & Dashboard)

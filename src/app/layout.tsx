@@ -13,12 +13,16 @@ import { ThemeProvider } from "@/components/theme-provider"
 import { Header } from "@/components/header"
 import { Toaster } from "@/components/ui/sonner"
 import { AppVersion } from "@/components/app-version"
+import { ResponsiveShell } from "@/components/layout/responsive-shell"
+import { auth } from "@/auth"
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const session = await auth();
+
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${inter.variable} font-sans antialiased`}>
@@ -29,7 +33,9 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <Header />
-          {children}
+          <ResponsiveShell user={session?.user}>
+            {children}
+          </ResponsiveShell>
           <Toaster />
           <AppVersion />
         </ThemeProvider>
