@@ -13,11 +13,12 @@ interface StoreSettingsPageProps {
     }
 }
 
-export default async function StoreSettingsPage({ params }: StoreSettingsPageProps) {
+export default async function StoreSettingsPage({ params }: { params: Promise<{ storeId: string }> }) {
+    const { storeId } = await params
     const session = await auth()
     if (!session?.user) redirect("/login")
 
-    const store = await getStore(params.storeId)
+    const store = await getStore(storeId)
 
     if (!store) {
         notFound()
