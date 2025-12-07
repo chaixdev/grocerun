@@ -1,4 +1,4 @@
-# GRO-41: Implement Store Catalog Page
+# GRO-41: Implement Store Directory Page
 
 **Story**: "US-8: Store Catalog & Configuration"
 **Status**: Done
