@@ -3,7 +3,7 @@
 > *"As a user, I want to easily add common items from previous grocery runs."*
 
 ## Goal
-Speed up list creation by pre-populating with frequently purchased items ("My Usuals").
+Speed up list creation by pre-populating with frequently purchased items ("My Usuals"). This is the "Create List" flow triggered from the Store Card (see [US-8](./US-8-store-catalog-management.md)).
 
 ## Acceptance Criteria
 - [ ] When creating a new list, a form shows all items boughtfrom this store

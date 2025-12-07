@@ -1,8 +1,7 @@
 # GRO-19: Drag-and-Drop Section Reordering
 
 **User Story**: [US-4: In-Trip Store Config](../user-stories/US-4-in-trip-config.md)
-**Priority**: Low
-**Status**: Backlog (Deferred)
+**Status**: Deprecated (Superseded by GRO-45)
 
 ## Context
 Store sections have an `order` field but no UI to reorder them.

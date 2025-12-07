@@ -1,7 +1,6 @@
 # GRO-20: Display Quantity/Unit on List Items
 
 **User Story**: [US-5: Mobile-Friendly List Item Editing](../user-stories/US-5-mobile-quantity-editing.md)
-**Priority**: High
 **Status**: Backlog
 
 ## Context

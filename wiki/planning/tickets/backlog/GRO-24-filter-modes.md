@@ -1,7 +1,6 @@
 # GRO-24: List Creation Filter Modes
 
 **User Story**: [US-2: Easily Add Common Items](../user-stories/US-2-common-items.md)
-**Priority**: Medium
 **Status**: Backlog
 **Depends On**: GRO-15, GRO-23
 

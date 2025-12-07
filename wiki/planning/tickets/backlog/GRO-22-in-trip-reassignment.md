@@ -1,7 +1,6 @@
 # GRO-22: In-Trip Section Reassignment
 
 **User Story**: [US-4: In-Trip Store Config](../user-stories/US-4-in-trip-config.md)
-**Priority**: Low
 **Status**: Backlog (Deferred)
 **Depends On**: GRO-19
 

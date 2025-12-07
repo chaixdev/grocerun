@@ -1,7 +1,6 @@
 # GRO-3: Store Management (CRUD)
 
 **Phase**: 1 - Core Setup
-**Priority**: High
 **Status**: Done
 
 ## Context

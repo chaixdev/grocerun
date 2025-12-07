@@ -1,7 +1,6 @@
 # GRO-9: Archived & Immutable Lists
 
 **Phase**: 3 - Refinement
-**Priority**: Medium
 **Status**: Done
 
 ## Context

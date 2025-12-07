@@ -1,7 +1,6 @@
 # GRO-16: Invite User to Household
 
 **User Story**: [US-3: Household Collaboration](../user-stories/US-3-household-collaboration.md)
-**Priority**: High
 **Status**: Backlog
 
 ## Context

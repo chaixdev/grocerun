@@ -1,7 +1,6 @@
 # GRO-2: Authentication System
 
 **Phase**: 1 - Core Setup
-**Priority**: High
 **Status**: Done
 
 ## Context

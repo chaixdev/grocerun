@@ -1,7 +1,6 @@
 # GRO-17: Shared List Visibility
 
 **User Story**: [US-3: Household Collaboration](../user-stories/US-3-household-collaboration.md)
-**Priority**: High
 **Status**: Backlog
 **Depends On**: GRO-16
 
