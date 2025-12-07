@@ -27,7 +27,7 @@ export async function createList(data: z.infer<typeof CreateListSchema>) {
         },
     })
 
-    revalidatePath(`/dashboard/stores/${validated.storeId}`)
+    revalidatePath(`/stores/${validated.storeId}`)
     return list
 }
 
@@ -148,7 +148,7 @@ export async function addItemToList(data: z.infer<typeof AddItemSchema>) {
             include: { item: true }
         })
 
-        revalidatePath(`/dashboard/lists/${listId}`)
+        revalidatePath(`/lists/${listId}`)
         return { status: "ADDED", listItem }
     }
 
@@ -179,7 +179,7 @@ export async function addItemToList(data: z.infer<typeof AddItemSchema>) {
         include: { item: true }
     })
 
-    revalidatePath(`/dashboard/lists/${listId}`)
+    revalidatePath(`/lists/${listId}`)
     return { status: "ADDED", listItem }
 }
 
@@ -214,7 +214,7 @@ export async function toggleListItem(itemId: string, isChecked: boolean, purchas
         }
     })
 
-    revalidatePath(`/dashboard/lists/${listItem.listId}`)
+    revalidatePath(`/lists/${listItem.listId}`)
 }
 
 export async function removeItemFromList(listItemId: string) {
@@ -237,7 +237,7 @@ export async function removeItemFromList(listItemId: string) {
         where: { id: listItemId }
     })
 
-    revalidatePath(`/dashboard/lists/${listItem.listId}`)
+    revalidatePath(`/lists/${listItem.listId}`)
 }
 
 export async function completeList(listId: string) {
@@ -278,6 +278,6 @@ export async function completeList(listId: string) {
         }
     })
 
-    revalidatePath(`/dashboard/stores/${list.storeId}`)
-    revalidatePath(`/dashboard/lists/${listId}`)
+    revalidatePath(`/stores/${list.storeId}`)
+    revalidatePath(`/lists/${listId}`)
 }

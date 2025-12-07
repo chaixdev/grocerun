@@ -36,7 +36,7 @@ export async function createHousehold(data: z.infer<typeof HouseholdSchema>) {
         },
     })
 
-    revalidatePath("/dashboard/households")
+    revalidatePath("/households")
 }
 
 export async function updateHousehold(id: string, data: z.infer<typeof HouseholdSchema>) {
@@ -55,7 +55,7 @@ export async function updateHousehold(id: string, data: z.infer<typeof Household
         data: validated
     })
 
-    revalidatePath("/dashboard/households")
+    revalidatePath("/households")
 }
 
 export async function deleteHousehold(id: string) {
@@ -67,5 +67,5 @@ export async function deleteHousehold(id: string) {
     if (!hasAccess) throw new Error("Unauthorized")
 
     await prisma.household.delete({ where: { id } })
-    revalidatePath("/dashboard/households")
+    revalidatePath("/households")
 }

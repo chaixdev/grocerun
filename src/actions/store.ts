@@ -69,7 +69,7 @@ export async function createStore(data: z.infer<typeof StoreSchema>) {
         },
     })
 
-    revalidatePath("/dashboard/stores")
+    revalidatePath("/stores")
 }
 
 export async function deleteStore(id: string) {
@@ -81,5 +81,5 @@ export async function deleteStore(id: string) {
     if (!hasAccess) throw new Error("Unauthorized")
 
     await prisma.store.delete({ where: { id } })
-    revalidatePath("/dashboard/stores")
+    revalidatePath("/stores")
 }
