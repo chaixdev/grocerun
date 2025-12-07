@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma"
 // Define the return type based on inferred return from the function
 // We will rely on simple type inference for the action return
 
-export type CatalogHousehold = {
+export type DirectoryHousehold = {
     id: string
     name: string
     stores: {
@@ -15,7 +15,7 @@ export type CatalogHousehold = {
     }[]
 }
 
-export async function getStoreCatalogData(): Promise<CatalogHousehold[]> {
+export async function getStoreDirectoryData(): Promise<DirectoryHousehold[]> {
     const session = await auth()
     if (!session?.user?.id) return []
 
@@ -38,7 +38,7 @@ export async function getStoreCatalogData(): Promise<CatalogHousehold[]> {
 
         return households
     } catch (error) {
-        console.error("Failed to fetch catalog data:", error)
-        throw new Error("Failed to load store catalog")
+        console.error("Failed to fetch store directory data:", error)
+        throw new Error("Failed to load store directory")
     }
 }

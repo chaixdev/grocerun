@@ -1,6 +1,6 @@
 import { auth } from "@/auth"
-import { getStoreCatalogData } from "@/actions/catalog"
-import { HouseholdStoreGroup } from "@/components/catalog/HouseholdStoreGroup"
+import { getStoreDirectoryData } from "@/actions/store-directory"
+import { HouseholdStoreGroup } from "@/components/store-directory/HouseholdStoreGroup"
 import { redirect } from "next/navigation"
 
 export default async function StoresPage() {
@@ -10,9 +10,9 @@ export default async function StoresPage() {
     let households = []
 
     try {
-        households = await getStoreCatalogData()
+        households = await getStoreDirectoryData()
     } catch (error) {
-        console.error("Store catalog error:", error)
+        console.error("Store directory error:", error)
         return (
             <div className="container max-w-4xl mx-auto py-12 px-4 text-center">
                 <div className="p-8 border rounded-lg bg-destructive/10 border-destructive/20">
@@ -28,7 +28,7 @@ export default async function StoresPage() {
     return (
         <div className="container max-w-4xl mx-auto py-8 px-4 space-y-8">
             <div className="flex flex-col gap-2">
-                <h1 className="text-3xl font-bold tracking-tight">Stores</h1>
+                <h1 className="text-3xl font-bold tracking-tight">My Stores</h1>
                 <p className="text-muted-foreground">
                     Manage your stores and start shopping lists.
                 </p>
