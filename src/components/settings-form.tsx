@@ -36,9 +36,10 @@ interface SettingsFormProps {
         name: string
         ownerId: string | null
     }[]
+    invitationTimeoutMinutes: number
 }
 
-export function SettingsForm({ user, households }: SettingsFormProps) {
+export function SettingsForm({ user, households, invitationTimeoutMinutes }: SettingsFormProps) {
     const [isLoading, setIsLoading] = useState(false)
 
     const form = useForm<ProfileFormValues>({
@@ -149,7 +150,7 @@ export function SettingsForm({ user, households }: SettingsFormProps) {
                     </div>
                 </div>
                 <Separator />
-                <InvitationManager userId={user.id} households={households} />
+                <InvitationManager userId={user.id} households={households} invitationTimeoutMinutes={invitationTimeoutMinutes} />
             </div>
 
             <Card className="border-destructive/50">
