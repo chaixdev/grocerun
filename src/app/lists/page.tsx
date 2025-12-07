@@ -7,7 +7,23 @@ export default async function ListsPage() {
     const session = await auth();
     if (!session?.user) redirect("/login");
 
-    const households = await getDashboardData();
+    let households = [];
+
+    try {
+        households = await getDashboardData();
+    } catch (error) {
+        console.error("Dashboard page error:", error);
+        return (
+            <div className="container max-w-4xl mx-auto py-12 px-4 text-center">
+                <div className="p-8 border rounded-lg bg-destructive/10 border-destructive/20">
+                    <h2 className="text-lg font-semibold text-destructive mb-2">Something went wrong</h2>
+                    <p className="text-muted-foreground mb-4">
+                        We couldn't load your lists. Please try again later.
+                    </p>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="container max-w-4xl mx-auto py-8 px-4 space-y-8">
