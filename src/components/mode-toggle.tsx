@@ -13,7 +13,7 @@ export function ModeToggle({ className }: { className?: string }) {
         <button
             onClick={() => setTheme(theme === "light" ? "dark" : "light")}
             className={cn(
-                "inline-flex h-10 w-10 items-center justify-center rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground",
+                "inline-flex h-10 w-10 items-center justify-center rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground relative",
                 className
             )}
         >

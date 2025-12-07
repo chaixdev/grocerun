@@ -9,8 +9,8 @@
 - [x] [GRO-35: Responsive Navigation Shell](./tickets/done/GRO-35-responsive-shell.md) ([US-6](./user-stories/US-6-responsive-shell.md))
 - [x] [GRO-36: Routing & Placeholders](./tickets/done/GRO-36-routing-setup.md) ([US-6](./user-stories/US-6-responsive-shell.md))
 - [x] [GRO-49: Settings Page](./tickets/done/GRO-49-settings-page.md) ([US-10](./user-stories/US-10-settings-and-preferences.md))
-- [ ] [GRO-16: Invitation Backend](./tickets/backlog/GRO-16-invite-user.md) ([US-3](./user-stories/US-3-household-collaboration.md))
-- [ ] [GRO-50: Invitation UI](./tickets/backlog/GRO-50-invitation-ui.md) ([US-3](./user-stories/US-3-household-collaboration.md))
+- [x] [GRO-16: Invitation Backend](./tickets/done/GRO-16-invite-user.md) ([US-3](./user-stories/US-3-household-collaboration.md))
+- [x] [GRO-50: Invitation UI](./tickets/done/GRO-50-invitation-ui.md) ([US-3](./user-stories/US-3-household-collaboration.md))
 
 ## 🟡 Phase 2: Core Data (Stores & Dashboard)
 *Goal: Enable users to manage stores and view their active lists.*

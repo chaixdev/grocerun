@@ -1,7 +1,7 @@
 # GRO-50: Invitation UI (Sender & Receiver)
 
 **Story**: [US-3: Household Collaboration](../user-stories/US-3-household-collaboration.md)
-**Status**: Backlog
+**Status**: Done
 
 ## Context
 Users need an interface to generate invitation tokens and enter them to join households.

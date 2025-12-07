@@ -19,6 +19,7 @@ model User {
   accounts      Account[]
   sessions      Session[]
   households    Household[]
+  ownedHouseholds Household[] @relation("HouseholdOwner")
   invitationsCreated Invitation[]
 }
 
@@ -29,6 +30,9 @@ model Household {
   stores    Store[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  ownerId   String?
+  owner     User?    @relation("HouseholdOwner", fields: [ownerId], references: [id])
   invitations Invitation[]
 }
 
