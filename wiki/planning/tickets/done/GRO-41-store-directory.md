@@ -15,3 +15,4 @@
 - [x] Stores are grouped by household
 - [x] "Add Store" button is present in headers
 - [x] Grid/List layout adapts to screen size
+- [x] Store Card "Start List" button handles navigation (even if route 404s)

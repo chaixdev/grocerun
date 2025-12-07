@@ -28,8 +28,15 @@ export async function getStoreDirectoryData(): Promise<DirectoryHousehold[]> {
                     }
                 }
             },
-            include: {
+            select: {
+                id: true,
+                name: true,
                 stores: {
+                    select: {
+                        id: true,
+                        name: true,
+                        location: true
+                    },
                     orderBy: { name: "asc" }
                 }
             },
