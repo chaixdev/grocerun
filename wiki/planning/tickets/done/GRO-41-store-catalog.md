@@ -1,7 +1,7 @@
 # GRO-41: Implement Store Catalog Page
 
 **Story**: "US-8: Store Catalog & Configuration"
-**Status**: Todo
+**Status**: Done
 
 ## Context
 "I want to see all the stores I frequent, organized by household."
@@ -12,6 +12,6 @@
 3.  **Add Action**: "+" button in the household header to add a new store.
 
 ## Acceptance Criteria
-- [ ] Stores are grouped by household
-- [ ] "Add Store" button is present in headers
-- [ ] Grid/List layout adapts to screen size
+- [x] Stores are grouped by household
+- [x] "Add Store" button is present in headers
+- [x] Grid/List layout adapts to screen size
