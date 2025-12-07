@@ -1,7 +1,6 @@
 # GRO-7: Trip Completion
 
 **Phase**: 1 - Rope Bridge
-**Priority**: High
 **Status**: Done
 
 ## Context

@@ -1,7 +1,6 @@
 # GRO-6: In-Store Execution & Catalog Confirmation
 
 **Phase**: 1 - Rope Bridge
-**Priority**: Critical
 **Status**: Backlog
 
 ## Context

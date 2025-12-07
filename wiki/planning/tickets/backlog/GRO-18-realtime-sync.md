@@ -1,7 +1,6 @@
 # GRO-18: Real-Time Sync (Polling)
 
 **User Story**: [US-3: Household Collaboration](../user-stories/US-3-household-collaboration.md)
-**Priority**: Medium
 **Status**: Backlog
 **Depends On**: GRO-17
 

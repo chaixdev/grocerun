@@ -1,7 +1,6 @@
 # GRO-4: Store Section Configuration
 
 **Phase**: 1 - Core Setup
-**Priority**: Critical (Core Value Prop)
 **Status**: Draft
 
 ## Context

@@ -1,7 +1,6 @@
 # GRO-13: Intelligent Autocomplete
 
 **User Story**: [US-1: Autocomplete for Item Selection](../user-stories/US-1-autocomplete.md)
-**Priority**: High
 **Status**: Done ✅
 
 ## Context

@@ -1,7 +1,6 @@
 # GRO-14: Fuzzy Matching (FTS5 + Spellfix1)
 
 **User Story**: [US-1: Autocomplete for Item Selection](../user-stories/US-1-autocomplete.md)
-**Priority**: Medium
 **Status**: Backlog
 **Depends On**: GRO-13
 

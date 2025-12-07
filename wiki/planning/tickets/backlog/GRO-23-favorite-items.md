@@ -1,7 +1,6 @@
 # GRO-23: Favorite Items (Schema + Toggle UI)
 
 **User Story**: [US-2: Easily Add Common Items](../user-stories/US-2-common-items.md)
-**Priority**: Medium
 **Status**: Backlog
 
 ## Context

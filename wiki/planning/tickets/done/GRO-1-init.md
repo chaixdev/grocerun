@@ -1,7 +1,6 @@
 # GRO-1: Project Initialization & Infrastructure
 
 **Phase**: 1 - Core Setup
-**Priority**: Critical
 **Status**: Done
 
 ## Context

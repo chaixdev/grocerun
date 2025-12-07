@@ -13,7 +13,7 @@ Allow users to correct item placement and section order during a shopping trip, 
 ## Tickets
 | ID | Title | Status |
 |---|---|---|
-| GRO-19 | Drag-and-Drop Section Reordering | 🔲 TODO |
+| GRO-19 | Drag-and-Drop Section Reordering | ❌ Deprecated (see GRO-45) |
 | GRO-22 | In-Trip Section Reassignment | 🔲 TODO |
 
 ---

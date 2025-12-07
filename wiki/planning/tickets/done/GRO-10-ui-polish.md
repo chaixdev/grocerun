@@ -1,7 +1,6 @@
 # GRO-10: UI/UX Overhaul
 
 **Phase**: 4 - Polish & Delight
-**Priority**: High
 **Status**: Planning
 
 ## Goal

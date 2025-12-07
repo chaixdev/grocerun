@@ -1,7 +1,6 @@
 # GRO-5: List Creation & Organic Catalog
 
 **Phase**: 1 - Rope Bridge
-**Priority**: High
 **Status**: Done
 
 ## Context

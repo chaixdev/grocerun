@@ -1,7 +1,6 @@
 # GRO-8: Amounts & Units
 
 **Phase**: 3 - Refinement
-**Priority**: High
 **Status**: Done
 
 ## Context

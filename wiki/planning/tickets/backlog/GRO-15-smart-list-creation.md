@@ -1,15 +1,14 @@
 # GRO-15: Smart List Creation ("My Usuals")
 
 **User Story**: [US-2: Easily Add Common Items](../user-stories/US-2-common-items.md)
-**Priority**: High
 **Status**: Backlog
 
 ## Context
-Creating a new list is tedious. Users buy the same items regularly. Let them pre-populate from history.
+Creating a new list is tedious. Users buy the same items regularly. Let them pre-populate from history. This is the action triggered by "Start List" on the Store Card (see [US-8](../user-stories/US-8-store-catalog-management.md)).
 
 ## Requirements
 1. **New Create List Flow**:
-   - Show all items previously bought at this store
+   - Show all `CatalogItems` previously bought at this store
    - Checkbox + quantity/unit per item
    - "Create List" copies selected items
 2. **Filter Options** (see GRO-24):
