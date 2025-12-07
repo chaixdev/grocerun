@@ -3,7 +3,6 @@
 import { useState } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { z } from "zod"
 import { updateProfile } from "@/actions/user"
 import { Button } from "@/components/ui/button"
 import {
@@ -22,11 +21,7 @@ import { Separator } from "@/components/ui/separator"
 import { toast } from "sonner"
 import { signOut } from "next-auth/react"
 import { LogOut } from "lucide-react"
-
-const profileSchema = z.object({
-    name: z.string().min(1, "Name is required"),
-    image: z.string().optional(),
-})
+import { ProfileSchema, type ProfileFormValues } from "@/lib/schemas/user"
 
 interface SettingsFormProps {
     user: {
@@ -43,24 +38,31 @@ interface SettingsFormProps {
 export function SettingsForm({ user, households }: SettingsFormProps) {
     const [isLoading, setIsLoading] = useState(false)
 
-    const form = useForm<z.infer<typeof profileSchema>>({
-        resolver: zodResolver(profileSchema),
+    const form = useForm<ProfileFormValues>({
+        resolver: zodResolver(ProfileSchema),
         defaultValues: {
             name: user.name || "",
             image: user.image || "",
         },
     })
 
-    async function onSubmit(values: z.infer<typeof profileSchema>) {
+    async function onSubmit(values: ProfileFormValues) {
         setIsLoading(true)
         try {
-            await updateProfile(values)
-            toast.success("Profile updated", {
-                description: "Your profile has been updated successfully.",
-            })
+            const result = await updateProfile(values)
+
+            if (result.success) {
+                toast.success("Profile updated", {
+                    description: "Your profile has been updated successfully.",
+                })
+            } else {
+                toast.error("Error", {
+                    description: result.error || "Failed to update profile.",
+                })
+            }
         } catch (error) {
             toast.error("Error", {
-                description: "Failed to update profile.",
+                description: "An unexpected error occurred.",
             })
         } finally {
             setIsLoading(false)
