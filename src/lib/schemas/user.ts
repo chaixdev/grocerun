@@ -1,7 +1,7 @@
 import { z } from "zod"
 
 export const ProfileSchema = z.object({
-    name: z.string().min(1, "Name is required"),
+    name: z.string().min(1, { message: "Name is required" }),
     image: z.string().optional(),
 })
 
