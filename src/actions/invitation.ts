@@ -155,3 +155,35 @@ export async function revokeInvitation(invitationId: string) {
         return { success: false, error: "Failed to revoke invitation" }
     }
 }
+
+export async function getInvitationDetails(token: string) {
+    const session = await auth()
+    if (!session?.user?.id) return { success: false, error: "Unauthorized" }
+
+    try {
+        const invitation = await prisma.invitation.findUnique({
+            where: { token },
+            include: {
+                household: {
+                    include: {
+                        owner: { select: { name: true, email: true } }
+                    }
+                },
+                creator: { select: { name: true } }
+            }
+        })
+
+        if (!invitation) return { success: false, error: "Invalid invitation code" }
+        if (invitation.status !== "ACTIVE") return { success: false, error: "Invitation is not active" }
+        if (new Date() > invitation.expiresAt) return { success: false, error: "Invitation has expired" }
+
+        return {
+            success: true,
+            householdName: invitation.household.name,
+            ownerName: invitation.household.owner?.name || "Unknown",
+            creatorName: invitation.creator.name || "Unknown"
+        }
+    } catch (error) {
+        return { success: false, error: "Failed to fetch invitation details" }
+    }
+}

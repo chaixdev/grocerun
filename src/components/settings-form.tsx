@@ -26,6 +26,7 @@ import { InvitationManager } from "@/components/invitation-manager"
 
 interface SettingsFormProps {
     user: {
+        id: string
         name?: string | null
         email?: string | null
         image?: string | null
@@ -33,6 +34,7 @@ interface SettingsFormProps {
     households: {
         id: string
         name: string
+        ownerId: string | null
     }[]
 }
 
@@ -147,7 +149,7 @@ export function SettingsForm({ user, households }: SettingsFormProps) {
                     </div>
                 </div>
                 <Separator />
-                <InvitationManager households={households} />
+                <InvitationManager userId={user.id} households={households} />
             </div>
 
             <Card className="border-destructive/50">

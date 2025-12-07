@@ -32,11 +32,49 @@ export async function createHousehold(data: z.infer<typeof HouseholdSchema>) {
     await prisma.household.create({
         data: {
             ...validated,
+            ownerId: session.user.id,
             users: { connect: { id: session.user.id } },
         },
     })
 
     revalidatePath("/households")
+}
+
+export async function renameHousehold(id: string, name: string) {
+    const session = await auth()
+    if (!session?.user?.id) return { success: false, error: "Unauthorized" }
+
+    try {
+        const household = await prisma.household.findUnique({
+            where: { id },
+            select: { ownerId: true }
+        })
+
+        if (!household) return { success: false, error: "Household not found" }
+
+        // Only owner can rename
+        if (household.ownerId && household.ownerId !== session.user.id) {
+            return { success: false, error: "Only the owner can rename the household" }
+        }
+
+        // If no ownerId (legacy), allow any member? Or enforce ownership?
+        // For now, if ownerId is null, we might want to allow it or claim ownership.
+        // Let's assume strict ownership if ownerId exists.
+
+        await prisma.household.update({
+            where: { id },
+            data: {
+                name,
+                // If it was a legacy household (no owner), claim ownership
+                ...(household.ownerId === null ? { ownerId: session.user.id } : {})
+            }
+        })
+
+        revalidatePath("/settings")
+        return { success: true }
+    } catch (error) {
+        return { success: false, error: "Failed to rename household" }
+    }
 }
 
 export async function updateHousehold(id: string, data: z.infer<typeof HouseholdSchema>) {

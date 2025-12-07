@@ -24,4 +24,3 @@ We are implementing a token-based invitation system (KISS/YAGNI). This ticket co
 - [ ] `createInvitation` action returns a valid token
 - [ ] `joinHousehold` successfully adds user and invalidates token
 - [ ] `joinHousehold` fails for expired/used tokens
-
