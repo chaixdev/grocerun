@@ -4,6 +4,7 @@ import { auth } from "@/auth"
 import { prisma } from "@/lib/prisma"
 import { revalidatePath } from "next/cache"
 import { nanoid, customAlphabet } from "nanoid"
+import { appConfig } from "@/lib/app-config"
 
 // Use a readable alphabet for tokens (no confusing chars like 0/O, 1/l)
 const generateToken = customAlphabet("23456789ABCDEFGHJKLMNPQRSTUVWXYZ", 8)
@@ -27,12 +28,12 @@ export async function createInvitation(householdId: string) {
     })
 
     if (!membership) {
-        return { success: false, error: "You are not a member of this household" }
+        return { success: false, error: "Household not found" }
     }
 
     try {
         const token = generateToken()
-        const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours
+        const expiresAt = new Date(Date.now() + appConfig.invitation.expiresInHours * 60 * 60 * 1000) // 24 hours
 
         const invitation = await prisma.invitation.create({
             data: {
