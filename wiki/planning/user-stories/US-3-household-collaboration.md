@@ -15,7 +15,7 @@ Enable multiple household members to share stores and lists, with real-time upda
 ## Tickets
 | ID | Title | Status |
 |---|---|---|
-| GRO-16 | Invitation Backend (Schema & Actions) | 🔲 TODO |
-| GRO-50 | Invitation UI (Sender & Receiver) | 🔲 TODO |
-| GRO-17 | Shared List Visibility | 🔲 TODO |
+| GRO-16 | Invitation Backend (Schema & Actions) | ✅ DONE |
+| GRO-50 | Invitation UI (Sender & Receiver) | ✅ DONE |
+| GRO-17 | Shared List Visibility | ✅ DONE (Implicit) |
 | GRO-18 | Real-Time Sync (Polling) | 🔲 TODO |

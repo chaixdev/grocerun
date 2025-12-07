@@ -14,8 +14,8 @@
 
 ## 🟡 Phase 2: Core Data (Stores & Dashboard)
 *Goal: Enable users to manage stores and view their active lists.*
-- [ ] [GRO-38: Dashboard Layout](./tickets/backlog/GRO-38-dashboard-layout.md) ([US-7](./user-stories/US-7-dashboard-experience.md))
-- [ ] [GRO-37: Active List Card](./tickets/backlog/GRO-37-list-card-design.md) ([US-7](./user-stories/US-7-dashboard-experience.md))
+- [x] [GRO-38: Dashboard Layout](./tickets/done/GRO-38-dashboard-layout.md) ([US-7](./user-stories/US-7-dashboard-experience.md))
+- [x] [GRO-37: Active List Card](./tickets/done/GRO-37-list-card-design.md) ([US-7](./user-stories/US-7-dashboard-experience.md))
 - [ ] [GRO-41: Store Catalog Page](./tickets/backlog/GRO-41-store-catalog.md) ([US-8](./user-stories/US-8-store-catalog-management.md))
 - [ ] [GRO-40: Store Card Design](./tickets/backlog/GRO-40-store-card-design.md) ([US-8](./user-stories/US-8-store-catalog-management.md))
 - [ ] [GRO-44: Store Configuration Screen](./tickets/backlog/GRO-44-store-config.md) ([US-8](./user-stories/US-8-store-catalog-management.md))
