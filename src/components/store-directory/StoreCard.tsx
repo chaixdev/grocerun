@@ -1,6 +1,9 @@
+"use client"
+
 import { MapPin } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { useRouter } from "next/navigation"
 
 interface StoreCardProps {
     store: {
@@ -11,6 +14,8 @@ interface StoreCardProps {
 }
 
 export function StoreCard({ store }: StoreCardProps) {
+    const router = useRouter()
+
     return (
         <Card className="hover:shadow-md transition-shadow">
             <CardContent className="p-4 flex flex-col justify-between h-full bg-card/50">
@@ -25,7 +30,12 @@ export function StoreCard({ store }: StoreCardProps) {
                 </div>
 
                 <div className="flex justify-end mt-4">
-                    <Button size="sm" variant="secondary" className="w-full text-xs">
+                    <Button
+                        size="sm"
+                        variant="secondary"
+                        className="w-full text-xs"
+                        onClick={() => router.push(`/stores/${store.id}/lists/new`)}
+                    >
                         Start List
                     </Button>
                 </div>
