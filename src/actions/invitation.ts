@@ -33,7 +33,7 @@ export async function createInvitation(householdId: string) {
 
     try {
         const token = generateToken()
-        const expiresAt = new Date(Date.now() + appConfig.invitation.expiresInHours * 60 * 60 * 1000) // 24 hours
+        const expiresAt = new Date(Date.now() + appConfig.invitation.expiresInMinutes * 60 * 1000)
 
         const invitation = await prisma.invitation.create({
             data: {
