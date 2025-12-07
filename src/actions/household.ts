@@ -145,7 +145,8 @@ export async function deleteHousehold(id: string) {
         if (!household) return { success: false, error: "Household not found" }
 
         // Verify ownership
-        if (household.ownerId !== session.user.id) {
+        // Allow if ownerId matches OR if it's a legacy household (null ownerId)
+        if (household.ownerId && household.ownerId !== session.user.id) {
             return { success: false, error: "Only the owner can delete the household" }
         }
 
