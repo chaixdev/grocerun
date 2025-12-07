@@ -1,6 +1,6 @@
 "use client"
 
-import { MapPin } from "lucide-react"
+import { MapPin, Settings } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { useRouter } from "next/navigation"
@@ -17,26 +17,44 @@ export function StoreCard({ store }: StoreCardProps) {
     const router = useRouter()
 
     return (
-        <Card className="hover:shadow-md transition-shadow">
-            <CardContent className="p-4 flex flex-col justify-between h-full bg-card/50">
-                <div className="space-y-1">
-                    <h3 className="font-semibold tracking-tight truncate">{store.name}</h3>
-                    {store.location && (
-                        <div className="flex items-center text-xs text-muted-foreground gap-1">
-                            <MapPin className="h-3 w-3" />
-                            <span className="truncate">{store.location}</span>
+        <Card className="group hover:shadow-lg transition-all duration-300 border-border/50 bg-gradient-to-br from-card to-secondary/5">
+            <CardContent className="p-5 flex flex-col justify-between h-full">
+                <div className="space-y-3">
+                    <div className="flex justify-between items-start gap-2">
+                        <div className="space-y-1.5 flex-1 min-w-0">
+                            <h3 className="font-bold text-lg tracking-tight truncate group-hover:text-primary transition-colors">
+                                {store.name}
+                            </h3>
+                            {store.location && (
+                                <div className="flex items-center text-sm text-muted-foreground gap-1.5">
+                                    <MapPin className="h-3.5 w-3.5 shrink-0" />
+                                    <span className="truncate">{store.location}</span>
+                                </div>
+                            )}
                         </div>
-                    )}
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-muted-foreground hover:text-foreground -mr-2 -mt-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                            onClick={(e) => {
+                                e.stopPropagation()
+                                router.push(`/stores/${store.id}/settings`)
+                            }}
+                            title="Store Settings"
+                        >
+                            <Settings className="h-4 w-4" />
+                            <span className="sr-only">Store Settings</span>
+                        </Button>
+                    </div>
                 </div>
 
-                <div className="flex justify-end mt-4">
+                <div className="mt-6 pt-4 border-t border-border/50">
                     <Button
-                        size="sm"
-                        variant="secondary"
-                        className="w-full text-xs"
+                        size="default"
+                        className="w-full font-medium shadow-sm hover:shadow-md transition-all active:scale-[0.98]"
                         onClick={() => router.push(`/stores/${store.id}/lists/new`)}
                     >
-                        Start List
+                        Start Shopping List
                     </Button>
                 </div>
             </CardContent>
