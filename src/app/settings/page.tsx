@@ -14,7 +14,11 @@ export default async function SettingsPage() {
 
     const user = await prisma.user.findUnique({
         where: { id: session.user.id },
-        include: { households: true },
+        include: {
+            households: {
+                include: { _count: { select: { users: true } } }
+            }
+        },
     });
 
     if (!user) {
