@@ -1,21 +1,8 @@
 import { ActiveListCard } from "./ActiveListCard"
+import { DashboardHousehold } from "@/actions/dashboard"
 
 interface HouseholdListGroupProps {
-    household: {
-        id: string
-        name: string
-        stores: {
-            id: string
-            name: string
-            lists: {
-                id: string
-                name: string
-                status: string
-                updatedAt: Date
-                _count: { items: number }
-            }[]
-        }[]
-    }
+    household: DashboardHousehold
 }
 
 export function HouseholdListGroup({ household }: HouseholdListGroupProps) {
