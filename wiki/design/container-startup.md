@@ -7,16 +7,19 @@ This document describes the initialization procedure executed by the application
 
 The entrypoint script performs the following steps on every container start:
 
-1.  **Check for Existing Database**: Looks for `/app/data/prod.db`.
-2.  **Safety Backup (Conditional)**:
+1.  **Health Checks**:
+    *   **Permissions**: Verifies that `/app/data` is writable. Fails fast if volume permissions are incorrect.
+2.  **Check for Existing Database**: Looks for `/app/data/prod.db`.
+3.  **Safety Backup (Conditional)**:
     *   **Deduplication**: Calculates `md5sum` of the current `prod.db` and compares it to the most recent backup.
     *   **Skip**: If checksums match, backup is skipped (prevents creating infinite duplicates during a restart loop).
     *   **Create**: If checksums differ, a copy is created at `/app/data/grocerun_[VERSION]_[TIMESTAMP].db`.
-3.  **Rotation**:
+    *   **Integrity**: Explicitly checks if the `cp` command succeeds. Fails fast on disk space issues.
+4.  **Rotation**:
     *   Maintains the **5 most recent** backups matching the `grocerun_*.db` pattern.
     *   Older backups are effectively deleted to preserve disk space.
-4.  **Schema Synchronization**:
-    *   Executes `npx prisma db push`.
+5.  **Schema Synchronization**:
+    *   Executes `npx prisma db push` with explicit error handling.
     *   This ensures the database structure always matches the application code in the container.
 
 ## Rollback Procedure (Manual)
