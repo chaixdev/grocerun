@@ -49,6 +49,23 @@ export async function getLists(storeId: string) {
     })
 }
 
+export async function getActiveListForStore(storeId: string) {
+    const session = await auth()
+    if (!session?.user?.id) return null
+
+    const hasAccess = await verifyStoreAccess(session.user.id, storeId)
+    if (!hasAccess) return null
+
+    return prisma.list.findFirst({
+        where: {
+            storeId,
+            status: "ACTIVE"
+        },
+        orderBy: { createdAt: "desc" },
+        select: { id: true }
+    })
+}
+
 export async function getList(listId: string) {
     const session = await auth()
     if (!session?.user?.id) return null

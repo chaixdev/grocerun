@@ -51,6 +51,7 @@ export function StoreSettingsForm({ store }: StoreSettingsFormProps) {
                 await updateStore(store.id, data)
                 toast.success("Store updated successfully")
                 router.refresh()
+                router.push("/stores")
             } catch (error) {
                 toast.error("Failed to update store")
                 console.error(error)

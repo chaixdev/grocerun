@@ -1,7 +1,7 @@
 import Link from "next/link"
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { ShoppingBasket, ShoppingCart, ListChecks, CalendarDays } from "lucide-react"
+import { ShoppingBasket, ShoppingCart, ListChecks, CalendarDays, ScrollText } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 interface ActiveListCardProps {
@@ -35,18 +35,19 @@ export function ActiveListCard({ list, storeName }: ActiveListCardProps) {
                 <CardHeader className="pb-2 space-y-0">
                     <div className="flex justify-between items-start">
                         <div className="space-y-1">
-                            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                                {storeName}
+                            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+                                <ScrollText className="h-3 w-3" />
+                                <span>List</span>
                             </span>
                             <h3 className="font-bold text-lg leading-tight group-hover:text-primary transition-colors">
-                                {list.name}
+                                {storeName}
                             </h3>
                         </div>
                         <div className={cn(
                             "p-2 rounded-full",
                             isShopping ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" : "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
                         )}>
-                            {isGeneral ? <ListChecks size={20} /> : <ShoppingCart size={20} />}
+                            {isGeneral ? <ListChecks size={20} /> : <ScrollText size={20} />}
                         </div>
                     </div>
                 </CardHeader>

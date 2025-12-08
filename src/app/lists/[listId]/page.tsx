@@ -22,7 +22,7 @@ export default async function ListDetailsPage({
         <div className="container py-10 space-y-8 max-w-2xl mx-auto">
             <div className="flex items-center gap-4">
                 <Button variant="ghost" size="icon" asChild>
-                    <Link href={`/dashboard/stores/${list.storeId}`}>
+                    <Link href="/lists">
                         <ArrowLeft className="h-4 w-4" />
                     </Link>
                 </Button>
