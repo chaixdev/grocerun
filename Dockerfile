@@ -38,15 +38,14 @@ RUN npm run build
 FROM base AS runner
 WORKDIR /app
 
-ENV NODE_ENV production
+ENV NODE_ENV=production
 # Disable telemetry during runtime.
-ENV NEXT_TELEMETRY_DISABLED 1
+ENV NEXT_TELEMETRY_DISABLED=1
 
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
 # Install Prisma CLI locally for auto-init and config resolution
-# Install Prisma CLI locally for auto-init and config resolution.
 # We COPY it from the 'deps' stage (where it was successfully installed) instead of running 'npm install' here.
 # This prevents 'Illegal instruction' crashes in QEMU/Alpine/Node22 on ARM64 runners.
 COPY --from=deps /app/node_modules/prisma ./node_modules/prisma
@@ -84,9 +83,9 @@ USER nextjs
 
 EXPOSE 3000
 
-ENV PORT 3000
+ENV PORT=3000
 # set hostname to localhost
-ENV HOSTNAME "0.0.0.0"
+ENV HOSTNAME="0.0.0.0"
 
 ENTRYPOINT ["./docker-entrypoint.sh"]
 
