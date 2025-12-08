@@ -5,11 +5,29 @@ set -e
 # If DATABASE_URL is set (e.g. from .env or infra), try to extract the file path.
 # Support format: "file:/path/to/db" or "file:./path/to/db"
 if [ -n "$DATABASE_URL" ]; then
-    # Strip 'file:' prefix
-    clean_url="${DATABASE_URL#file:}"
-    # Strip any query parameters (e.g. ?connection_limit=1)
-    DB_FILE="${clean_url%%\?*}"
-    echo "Configured via DATABASE_URL: Using $DB_FILE"
+    # Validation: Ensure it's a file: URL or a plain path (assume sqlite)
+    # Reject other schemes like postgres://, mysql://
+    case "$DATABASE_URL" in
+        file:*)
+            # Valid file: URL
+            clean_url="${DATABASE_URL#file:}"
+            DB_FILE="${clean_url%%\?*}"
+            echo "Configured via DATABASE_URL: Using $DB_FILE"
+            ;;
+        /*|./*|../*)
+            # Plain path detected (starts with /, ./, or ../), assume it's the DB file
+            DB_FILE="$DATABASE_URL"
+            # Normalize it back to a URL for Prisma
+            export DATABASE_URL="file:${DB_FILE}"
+            echo "Configured via plain path: Using $DB_FILE (set DATABASE_URL=file:${DB_FILE})"
+            ;;
+        *)
+            echo "CRITICAL ERROR: Unsupported DATABASE_URL scheme."
+            echo "Expected 'file:...' or explicit file path for SQLite."
+            echo "Got: ${DATABASE_URL%%:*}..."
+            exit 1
+            ;;
+    esac
 else
     # Fallback/Default behavior
     DB_FILE="${DB_FILE:-/app/data/prod.db}"
