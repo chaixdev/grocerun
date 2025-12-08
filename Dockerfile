@@ -14,6 +14,31 @@ COPY package.json ./
 COPY package-lock.json* ./
 RUN npm ci
 
+# 2.5 Prod Deps (Lean modules for runner)
+FROM base AS prod-deps
+RUN apk add --no-cache python3 make g++
+WORKDIR /app
+COPY package.json package-lock.json* ./
+# Install ONLY production dependencies (now includes prisma CLI)
+# This bypasses devDependencies like typescript/eslint, saving space.
+RUN npm ci --omit=dev && npm cache clean --force
+
+# Remove heavy dependencies that will be provided by Next.js standalone output later
+# This keeps the layer small while preserving Prisma CLI and its transitive deps.
+RUN rm -rf node_modules/next \
+    node_modules/react \
+    node_modules/react-dom \
+    node_modules/@radix-ui \
+    node_modules/better-sqlite3 \
+    node_modules/@auth/prisma-adapter \
+    node_modules/@dnd-kit \
+    node_modules/lucide-react \
+    node_modules/date-fns \
+    node_modules/class-variance-authority \
+    node_modules/@next \
+    node_modules/@img \
+    node_modules/typescript
+
 # 3. Builder
 FROM base AS builder
 WORKDIR /app
@@ -48,11 +73,10 @@ RUN adduser --system --uid 1001 nextjs
 ARG NEXT_PUBLIC_APP_VERSION
 ENV NEXT_PUBLIC_APP_VERSION=$NEXT_PUBLIC_APP_VERSION
 
-# Restore full node_modules from deps stage
-# This ensures all transitive dependencies (e.g. valibot) are present for the Prisma CLI
-# avoiding "Cannot find module" errors.
-# We copy this BEFORE the standalone build so that the app's optimized runtime files take precedence later.
-COPY --from=deps /app/node_modules ./node_modules
+# Install dependencies from prod-deps stage
+# This ensures we get a lean node_modules (no dev deps) but INCLUDES prisma (moved to dependencies).
+# copying from a stage that ran 'npm ci' avoids the ARM64 crash validation issues.
+COPY --from=prod-deps /app/node_modules ./node_modules
 
 # Cleanup unused Prisma binaries (Introspection, Format) to save space. 
 RUN rm -rf node_modules/@prisma/engines/*introspection* \
