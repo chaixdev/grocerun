@@ -47,7 +47,6 @@ RUN adduser --system --uid 1001 nextjs
 
 # Install Prisma CLI locally for auto-init and config resolution
 # Install Prisma CLI locally for auto-init and config resolution
-# Install Prisma CLI locally for auto-init and config resolution
 # Cleanup unused Prisma binaries (Introspection, Format) to save space. 
 # We cannot remove studio-core or electric-sql as they are hard requirements for the CLI to boot.
 RUN npm install prisma \
