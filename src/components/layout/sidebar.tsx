@@ -39,7 +39,7 @@ export function Sidebar({ user }: SidebarProps) {
     return (
         <aside className="hidden w-64 flex-col border-r bg-background md:flex">
             <div className="flex h-14 items-center border-b px-4">
-                <span className="text-lg font-semibold">Grocerun</span>
+                <span className="text-lg font-semibold text-primary">Grocerun</span>
             </div>
             <nav className="flex-1 space-y-1 p-4">
                 {items.map((item) => (

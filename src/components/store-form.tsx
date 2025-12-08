@@ -25,7 +25,7 @@ const formSchema = z.object({
     location: z.string().optional(),
 })
 
-export function StoreForm({ householdId }: { householdId: string }) {
+export function StoreForm({ householdId, trigger }: { householdId: string, trigger?: React.ReactNode }) {
     const [open, setOpen] = useState(false)
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
@@ -50,9 +50,11 @@ export function StoreForm({ householdId }: { householdId: string }) {
     return (
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-                <Button>
-                    <Plus className="mr-2 h-4 w-4" /> Add Store
-                </Button>
+                {trigger ? trigger : (
+                    <Button>
+                        <Plus className="mr-2 h-4 w-4" /> Add Store
+                    </Button>
+                )}
             </DialogTrigger>
             <DialogContent className="sm:max-w-[425px]">
                 <DialogHeader>
