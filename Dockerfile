@@ -46,7 +46,8 @@ RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
 # Install Prisma CLI locally for auto-init and config resolution
-RUN npm install prisma
+# Install Prisma CLI locally for auto-init and config resolution
+RUN npm install prisma && npm cache clean --force
 
 COPY --from=builder /app/public ./public
 
