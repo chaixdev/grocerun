@@ -45,6 +45,9 @@ ENV NEXT_TELEMETRY_DISABLED=1
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
+ARG NEXT_PUBLIC_APP_VERSION
+ENV NEXT_PUBLIC_APP_VERSION=$NEXT_PUBLIC_APP_VERSION
+
 # Install Prisma CLI locally for auto-init and config resolution
 # We COPY it from the 'deps' stage (where it was successfully installed) instead of running 'npm install' here.
 # This prevents 'Illegal instruction' crashes in QEMU/Alpine/Node22 on ARM64 runners.
@@ -52,6 +55,9 @@ COPY --from=deps /app/node_modules/prisma ./node_modules/prisma
 COPY --from=deps /app/node_modules/@prisma ./node_modules/@prisma
 # Copy hard dependencies of Prisma CLI explicitly to ensure they exist
 COPY --from=deps /app/node_modules/@electric-sql ./node_modules/@electric-sql
+
+# Manually link the prisma binary since we skipped `npm install`
+RUN mkdir -p node_modules/.bin && ln -s ../prisma/build/index.js node_modules/.bin/prisma
 
 # Cleanup unused Prisma binaries (Introspection, Format) to save space. 
 RUN rm -rf node_modules/@prisma/engines/*introspection* \
