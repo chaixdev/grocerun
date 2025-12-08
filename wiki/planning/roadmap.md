@@ -19,7 +19,7 @@
 - [x] [GRO-41: Store Directory Page](./tickets/done/GRO-41-store-directory.md) ([US-8](./user-stories/US-8-store-catalog-management.md))
 - [x] [GRO-40: Store Card Design](./tickets/done/GRO-40-store-card-design.md) ([US-8](./user-stories/US-8-store-catalog-management.md))
 - [x] [GRO-44: Store Configuration Screen](./tickets/done/GRO-44-store-config.md) ([US-8](./user-stories/US-8-store-catalog-management.md))
-- [ ] [GRO-45: Section Management UI](./tickets/backlog/GRO-45-section-management.md) ([US-8](./user-stories/US-8-store-catalog-management.md))
+- [x] [GRO-45: Section Management UI](./tickets/done/GRO-45-section-management.md) ([US-8](./user-stories/US-8-store-catalog-management.md))
 
 ## 🟠 Phase 3: Planning Mode (List Creation)
 *Goal: Frictionless list creation and item entry.*
