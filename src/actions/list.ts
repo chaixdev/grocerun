@@ -298,3 +298,45 @@ export async function completeList(listId: string) {
     revalidatePath(`/stores/${list.storeId}`)
     revalidatePath(`/lists/${listId}`)
 }
+
+export async function startShopping(listId: string) {
+    const session = await auth()
+    if (!session?.user?.id) throw new Error("Unauthorized")
+
+    const list = await prisma.list.findUnique({
+        where: { id: listId },
+    })
+
+    if (!list) throw new Error("List not found")
+
+    const hasAccess = await verifyStoreAccess(session.user.id, list.storeId)
+    if (!hasAccess) throw new Error("Unauthorized")
+
+    await prisma.list.update({
+        where: { id: listId },
+        data: { status: "SHOPPING" }
+    })
+
+    revalidatePath(`/lists/${listId}`)
+}
+
+export async function cancelShopping(listId: string) {
+    const session = await auth()
+    if (!session?.user?.id) throw new Error("Unauthorized")
+
+    const list = await prisma.list.findUnique({
+        where: { id: listId },
+    })
+
+    if (!list) throw new Error("List not found")
+
+    const hasAccess = await verifyStoreAccess(session.user.id, list.storeId)
+    if (!hasAccess) throw new Error("Unauthorized")
+
+    await prisma.list.update({
+        where: { id: listId },
+        data: { status: "PLANNING" }
+    })
+
+    revalidatePath(`/lists/${listId}`)
+}

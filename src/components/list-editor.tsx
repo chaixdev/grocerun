@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useOptimistic, useRef, startTransition } from "react"
-import { addItemToList, toggleListItem, removeItemFromList } from "@/actions/list"
+import { addItemToList, toggleListItem, removeItemFromList, startShopping, cancelShopping } from "@/actions/list"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { ItemAutocomplete } from "./item-autocomplete"
@@ -26,7 +26,7 @@ import { Label } from "@/components/ui/label"
 import { TripSummary } from "./trip-summary"
 import { completeList } from "@/actions/list"
 import { useRouter } from "next/navigation"
-import { MoreHorizontal, Pencil, Trash2 } from "lucide-react"
+import { MoreHorizontal, Pencil, Trash2, ShoppingCart, CheckCheck, X } from "lucide-react"
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -410,12 +410,12 @@ export function ListEditor({ list }: ListEditorProps) {
                                         className={`group flex items-center gap-3 p-3 border-b last:border-0 hover:bg-muted/30 transition-all duration-200 ${listItem.isChecked ? "opacity-50" : ""
                                             } ${highlightedItemId === listItem.id ? "bg-primary/10" : ""
                                             }`}
-                                        onClick={() => !isReadOnly && handleToggle(listItem.id, !listItem.isChecked)}
+                                        onClick={() => !isReadOnly && list.status !== "PLANNING" && handleToggle(listItem.id, !listItem.isChecked)}
                                     >
                                         <Checkbox
                                             checked={listItem.isChecked}
                                             onCheckedChange={() => { }} // Handled by div click
-                                            disabled={isReadOnly}
+                                            disabled={isReadOnly || list.status === "PLANNING"}
                                             className="h-5 w-5 rounded-[4px] border-muted-foreground/30 data-[state=checked]:bg-primary data-[state=checked]:border-primary transition-all"
                                         />
                                         <div className="flex-1 flex items-center justify-between gap-2 min-w-0">
@@ -483,12 +483,12 @@ export function ListEditor({ list }: ListEditorProps) {
                                     className={`group flex items-center gap-3 p-3 border-b last:border-0 hover:bg-muted/30 transition-all duration-200 ${listItem.isChecked ? "opacity-50" : ""
                                         } ${highlightedItemId === listItem.id ? "bg-primary/10" : ""
                                         }`}
-                                    onClick={() => !isReadOnly && handleToggle(listItem.id, !listItem.isChecked)}
+                                    onClick={() => !isReadOnly && list.status !== "PLANNING" && handleToggle(listItem.id, !listItem.isChecked)}
                                 >
                                     <Checkbox
                                         checked={listItem.isChecked}
                                         onCheckedChange={() => { }}
-                                        disabled={isReadOnly}
+                                        disabled={isReadOnly || list.status === "PLANNING"}
                                         className="h-5 w-5 rounded-[4px] border-muted-foreground/30 data-[state=checked]:bg-primary data-[state=checked]:border-primary transition-all"
                                     />
                                     <div className="flex-1 flex items-center justify-between gap-2 min-w-0">
@@ -542,16 +542,53 @@ export function ListEditor({ list }: ListEditorProps) {
                 )}
             </div>
 
-            {/* Sticky Footer */}
+            {/* Floating Action Button */}
             {!isReadOnly && (
-                <div className="fixed bottom-0 left-0 right-0 p-4 bg-background/80 backdrop-blur border-t flex justify-center z-50">
-                    <Button
-                        size="lg"
-                        className="w-full max-w-md shadow-lg"
-                        onClick={handleFinishShopping}
-                    >
-                        Finish Shopping ({optimisticItems.filter(i => i.isChecked).length}/{optimisticItems.length})
-                    </Button>
+                <div className="fixed bottom-20 right-4 z-50">
+                    {list.status === "PLANNING" ? (
+                        <Button
+                            size="lg"
+                            className="h-14 rounded-full shadow-xl px-6 bg-primary hover:bg-primary/90 transition-all active:scale-95"
+                            onClick={async () => {
+                                try {
+                                    await startShopping(list.id)
+                                    toast.success("Have a great trip! 🛒")
+                                } catch {
+                                    toast.error("Failed to start shopping")
+                                }
+                            }}
+                        >
+                            <ShoppingCart className="mr-2 h-5 w-5" />
+                            Start Shopping
+                        </Button>
+                    ) : (
+                        <div className="flex items-center gap-2">
+                            <Button
+                                size="icon"
+                                variant="secondary"
+                                className="h-10 w-10 rounded-full shadow-lg bg-background border hover:bg-muted"
+                                onClick={async () => {
+                                    try {
+                                        await cancelShopping(list.id)
+                                        toast("Shopping Cancelled", { description: "List reverted to planning mode." })
+                                    } catch {
+                                        toast.error("Failed to cancel shopping")
+                                    }
+                                }}
+                            >
+                                <X className="h-5 w-5" />
+                                <span className="sr-only">Cancel Shopping</span>
+                            </Button>
+                            <Button
+                                size="lg"
+                                className="h-14 rounded-full shadow-xl px-6 bg-tangerine hover:bg-tangerine/90 text-white transition-all active:scale-95"
+                                onClick={handleFinishShopping}
+                            >
+                                <CheckCheck className="mr-2 h-5 w-5" />
+                                Finish ({optimisticItems.filter(i => i.isChecked).length}/{optimisticItems.length})
+                            </Button>
+                        </div>
+                    )}
                 </div>
             )}
 
