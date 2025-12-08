@@ -68,3 +68,9 @@ jobs:
           cache-to: type=gha,mode=max
           build-args: |
             NEXT_PUBLIC_APP_VERSION=${{ github.ref_name }}
+
+      - name: Trigger Watchtower Update
+        if: startsWith(github.ref, 'refs/tags/') && success()
+        run: |
+          curl -v -H 'Authorization: Bearer ${{ secrets.WATCHTOWER_HTTP_API_TOKEN }}' \
+          ${{ secrets.WATCHTOWER_HTTP_API_URL }}
