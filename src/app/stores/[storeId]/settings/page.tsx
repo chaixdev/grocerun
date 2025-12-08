@@ -4,8 +4,10 @@ import Link from "next/link"
 
 import { auth } from "@/auth"
 import { getStore } from "@/actions/store"
+import { getSections } from "@/actions/section"
 import { Button } from "@/components/ui/button"
 import { StoreSettingsForm } from "@/components/stores/StoreSettingsForm"
+import { SectionList } from "@/components/section-list"
 
 interface StoreSettingsPageProps {
     params: {
@@ -41,8 +43,22 @@ export default async function StoreSettingsPage({ params }: { params: Promise<{ 
                 </div>
             </div>
 
-            <div className="p-6 border rounded-lg bg-card">
-                <StoreSettingsForm store={store} />
+            <div className="space-y-6">
+                <div className="p-6 border rounded-lg bg-card">
+                    <h2 className="text-lg font-semibold mb-4">Store Details</h2>
+                    <StoreSettingsForm store={store} />
+                </div>
+
+                <div className="p-6 border rounded-lg bg-card">
+                    <h2 className="text-lg font-semibold mb-4">Sections (Aisles)</h2>
+                    <p className="text-sm text-muted-foreground mb-4">
+                        Order your sections to match the store layout.
+                    </p>
+                    <SectionList
+                        sections={await getSections(storeId)}
+                        storeId={storeId}
+                    />
+                </div>
             </div>
         </div>
     )
