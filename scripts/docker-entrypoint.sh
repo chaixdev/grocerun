@@ -1,13 +1,23 @@
 #!/bin/sh
 set -e
 
-# Path to the SQLite database
-DB_FILE="/app/data/prod.db"
-DB_DIR="/app/data"
+# 1. Determine DB_FILE (Source of Truth for Backups)
+# If DATABASE_URL is set (e.g. from .env or infra), try to extract the file path.
+# Support format: "file:/path/to/db" or "file:./path/to/db"
+if [ -n "$DATABASE_URL" ]; then
+    # Strip 'file:' prefix
+    clean_url="${DATABASE_URL#file:}"
+    # Strip any query parameters (e.g. ?connection_limit=1)
+    DB_FILE="${clean_url%%\?*}"
+    echo "Configured via DATABASE_URL: Using $DB_FILE"
+else
+    # Fallback/Default behavior
+    DB_FILE="${DB_FILE:-/app/data/prod.db}"
+    export DATABASE_URL="file:${DB_FILE}"
+    echo "Using default/env DB_FILE: $DB_FILE"
+fi
 
-# FORCE DATABASE_URL to match the managed DB_FILE
-# This prevents accidental usage of dev databases from injected .env files
-export DATABASE_URL="file:${DB_FILE}"
+DB_DIR=$(dirname "$DB_FILE")
 
 # Health Check 1: Permissions
 if [ ! -w "$DB_DIR" ]; then
