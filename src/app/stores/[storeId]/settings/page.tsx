@@ -8,6 +8,7 @@ import { getSections } from "@/actions/section"
 import { Button } from "@/components/ui/button"
 import { StoreSettingsForm } from "@/components/stores/StoreSettingsForm"
 import { SectionList } from "@/components/section-list"
+import { StoreDeleteSection } from "@/components/stores/StoreDeleteSection"
 
 interface StoreSettingsPageProps {
     params: {
@@ -58,6 +59,10 @@ export default async function StoreSettingsPage({ params }: { params: Promise<{ 
                         sections={await getSections(storeId)}
                         storeId={storeId}
                     />
+                </div>
+
+                <div className="p-6 border border-destructive/20 rounded-lg bg-destructive/5">
+                    <StoreDeleteSection storeId={store.id} storeName={store.name} />
                 </div>
             </div>
         </div>

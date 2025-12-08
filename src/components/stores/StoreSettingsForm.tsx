@@ -17,19 +17,8 @@ import {
     FormMessage,
 } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
-import { updateStore, deleteStore } from "@/actions/store"
+import { updateStore } from "@/actions/store"
 import { StoreSchema } from "@/schemas/store"
-import {
-    AlertDialog,
-    AlertDialogAction,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle,
-    AlertDialogTrigger,
-} from "@/components/ui/alert-dialog"
 import { toast } from "sonner"
 
 interface StoreSettingsFormProps {
@@ -45,7 +34,6 @@ interface StoreSettingsFormProps {
 export function StoreSettingsForm({ store }: StoreSettingsFormProps) {
     const router = useRouter()
     const [isPending, startTransition] = useTransition()
-    const [isDeleting, setIsDeleting] = useState(false)
 
     const form = useForm<z.infer<typeof StoreSchema>>({
         resolver: zodResolver(StoreSchema),
@@ -70,18 +58,7 @@ export function StoreSettingsForm({ store }: StoreSettingsFormProps) {
         })
     }
 
-    async function handleDelete() {
-        setIsDeleting(true)
-        try {
-            await deleteStore(store.id)
-            toast.success("Store deleted")
-            router.push("/stores")
-            router.refresh()
-        } catch (error) {
-            toast.error("Failed to delete store")
-            setIsDeleting(false)
-        }
-    }
+
 
     return (
         <div className="space-y-8">
@@ -137,43 +114,6 @@ export function StoreSettingsForm({ store }: StoreSettingsFormProps) {
                 </form>
             </Form>
 
-            <div className="pt-8 border-t">
-                <div className="flex items-center justify-between">
-                    <div>
-                        <h3 className="text-lg font-medium text-destructive">Danger Zone</h3>
-                        <p className="text-sm text-muted-foreground">
-                            Deleting this store will permanently remove it.
-                        </p>
-                    </div>
-                    <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                            <Button variant="destructive" disabled={isDeleting}>
-                                <Trash2 className="mr-2 h-4 w-4" />
-                                Delete Store
-                            </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                            <AlertDialogHeader>
-                                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                    This action cannot be undone. This will permanently delete
-                                    <span className="font-semibold"> {store.name} </span>
-                                    and remove all data associated with it.
-                                </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction
-                                    onClick={handleDelete}
-                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                >
-                                    {isDeleting ? "Deleting..." : "Delete Store"}
-                                </AlertDialogAction>
-                            </AlertDialogFooter>
-                        </AlertDialogContent>
-                    </AlertDialog>
-                </div>
-            </div>
         </div>
     )
 }
