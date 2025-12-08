@@ -65,7 +65,7 @@ export async function createSection(data: z.infer<typeof SectionSchema>) {
         },
     })
 
-    revalidatePath(`/dashboard/stores/${validated.storeId}`)
+    revalidatePath(`/stores/${validated.storeId}/settings`)
     return section
 }
 
@@ -85,7 +85,7 @@ export async function updateSection(id: string, name: string) {
         data: { name },
     })
 
-    revalidatePath(`/dashboard/stores/${section.storeId}`)
+    revalidatePath(`/stores/${section.storeId}/settings`)
 }
 
 export async function deleteSection(id: string) {
@@ -99,7 +99,7 @@ export async function deleteSection(id: string) {
     if (!hasAccess) throw new Error("Unauthorized")
 
     await prisma.section.delete({ where: { id } })
-    revalidatePath(`/dashboard/stores/${section.storeId}`)
+    revalidatePath(`/stores/${section.storeId}/settings`)
 }
 
 export async function reorderSections(storeId: string, orderedIds: string[]) {
@@ -119,5 +119,5 @@ export async function reorderSections(storeId: string, orderedIds: string[]) {
         )
     )
 
-    revalidatePath(`/dashboard/stores/${storeId}`)
+    revalidatePath(`/stores/${storeId}/settings`)
 }
