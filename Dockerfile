@@ -46,12 +46,16 @@ RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
 # Install Prisma CLI locally for auto-init and config resolution
-# Install Prisma CLI locally for auto-init and config resolution
+# Install Prisma CLI locally for auto-init and config resolution.
+# We COPY it from the 'deps' stage (where it was successfully installed) instead of running 'npm install' here.
+# This prevents 'Illegal instruction' crashes in QEMU/Alpine/Node22 on ARM64 runners.
+COPY --from=deps /app/node_modules/prisma ./node_modules/prisma
+COPY --from=deps /app/node_modules/@prisma ./node_modules/@prisma
+# Copy hard dependencies of Prisma CLI explicitly to ensure they exist
+COPY --from=deps /app/node_modules/@electric-sql ./node_modules/@electric-sql
+
 # Cleanup unused Prisma binaries (Introspection, Format) to save space. 
-# We cannot remove studio-core or electric-sql as they are hard requirements for the CLI to boot.
-RUN npm install prisma \
-    && npm cache clean --force \
-    && rm -rf node_modules/@prisma/engines/*introspection* \
+RUN rm -rf node_modules/@prisma/engines/*introspection* \
     && rm -rf node_modules/@prisma/engines/*fmt*
 
 COPY --from=builder /app/public ./public
