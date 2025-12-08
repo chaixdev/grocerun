@@ -5,6 +5,10 @@ set -e
 DB_FILE="/app/data/prod.db"
 DB_DIR="/app/data"
 
+# FORCE DATABASE_URL to match the managed DB_FILE
+# This prevents accidental usage of dev databases from injected .env files
+export DATABASE_URL="file:${DB_FILE}"
+
 # Health Check 1: Permissions
 if [ ! -w "$DB_DIR" ]; then
     echo "CRITICAL ERROR: Directory $DB_DIR is not writable."
