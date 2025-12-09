@@ -1,6 +1,6 @@
 "use client"
 
-import { MapPin, Settings, Store as StoreIcon, ArrowRight, Play, Eye } from "lucide-react"
+import { MapPin, Settings, Store as StoreIcon, ArrowRight, Eye } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { useRouter } from "next/navigation"
