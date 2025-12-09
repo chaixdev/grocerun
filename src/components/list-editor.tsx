@@ -554,6 +554,7 @@ export function ListEditor({ list }: ListEditorProps) {
                                 onClick={async () => {
                                     try {
                                         await startShopping(list.id)
+                                        router.refresh()
                                         toast.success("List is definitely Live! 🛒")
                                     } catch {
                                         toast.error("Failed to start shopping")
@@ -572,6 +573,7 @@ export function ListEditor({ list }: ListEditorProps) {
                                     onClick={async () => {
                                         try {
                                             await cancelShopping(list.id)
+                                            router.refresh()
                                             toast("Shopping Cancelled", { description: "List reverted to planning mode." })
                                         } catch {
                                             toast.error("Failed to cancel shopping")
