@@ -32,3 +32,20 @@ docker compose up -d
 ## Status
 - ✅ Tag created locally on main branch commit
 - ⚠️ Tag push pending (requires GitHub authentication/PR merge)
+
+## Next Steps
+To push this tag to the remote repository, run:
+```bash
+./scripts/push-tag.sh
+```
+
+Or manually:
+```bash
+git push origin 0.1.9
+```
+
+Once the tag is pushed, the GitHub Actions workflow will automatically:
+- Build Docker images for linux/amd64 and linux/arm64
+- Tag the images with version 0.1.9
+- Push to GitHub Container Registry (ghcr.io)
+- Trigger Watchtower updates (if configured)
