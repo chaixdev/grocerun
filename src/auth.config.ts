@@ -1,11 +1,12 @@
+import { env } from "@/lib/env"
 import type { NextAuthConfig } from "next-auth"
 import Google from "next-auth/providers/google"
 
 export const authConfig = {
     providers: [
         Google({
-            clientId: process.env.AUTH_GOOGLE_ID,
-            clientSecret: process.env.AUTH_GOOGLE_SECRET,
+            clientId: env.AUTH_GOOGLE_ID,
+            clientSecret: env.AUTH_GOOGLE_SECRET,
         }),
     ],
     pages: {
