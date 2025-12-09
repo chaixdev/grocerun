@@ -68,7 +68,7 @@ model Item {
   storeId   String
   store     Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
   sectionId String?
-  section   Section? @relation(fields: [sectionId], references: [id])
+  section   Section? @relation(fields: [sectionId], references: [id], onDelete: SetNull)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   purchaseCount Int @default(0)
@@ -77,6 +77,8 @@ model Item {
   listItems ListItem[]
 
   @@unique([storeId, name])
+  @@index([purchaseCount])
+  @@index([storeId, purchaseCount])
 }
 
 model List {
@@ -88,6 +90,9 @@ model List {
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
   items     ListItem[]
+
+  @@index([status])
+  @@index([storeId, status])
 }
 
 enum ListStatus {
@@ -110,6 +115,8 @@ model ListItem {
   updatedAt         DateTime @updatedAt
 
   @@unique([listId, itemId])
+  @@index([isChecked])
+  @@index([listId, isChecked])
 }
 
 model Account {
