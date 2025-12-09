@@ -545,7 +545,7 @@ export function ListEditor({ list }: ListEditorProps) {
 
             {/* Floating Action Button or Footer based on State */}
             {!isReadOnly && (
-                <div className="fixed bottom-6 left-0 right-0 px-4 flex justify-center z-50 pointer-events-none">
+                <div className="fixed bottom-24 md:bottom-6 left-0 right-0 px-4 flex justify-center z-50 pointer-events-none">
                     <div className="pointer-events-auto flex items-center gap-2">
                         {list.status === "PLANNING" ? (
                             <Button
@@ -583,7 +583,7 @@ export function ListEditor({ list }: ListEditorProps) {
                                 </Button>
                                 <Button
                                     size="lg"
-                                    className="h-14 rounded-full shadow-xl px-6 bg-tangerine hover:bg-tangerine/90 text-white transition-all active:scale-95"
+                                    className="h-14 rounded-full shadow-xl px-6 bg-orange-500 hover:bg-orange-600 text-white transition-all active:scale-95"
                                     onClick={handleFinishShopping}
                                 >
                                     <CheckCheck className="mr-2 h-5 w-5" />
