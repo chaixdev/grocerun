@@ -24,7 +24,8 @@ export async function createList(data: z.infer<typeof CreateListSchema>) {
         where: {
             storeId: validated.storeId,
             status: { not: "COMPLETED" }
-        }
+        },
+        orderBy: { createdAt: "desc" }
     })
 
     if (existingList) {

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { createList } from "@/actions/list"
 import { Button } from "@/components/ui/button"
 import { Plus, ShoppingCart, ChevronDown, ChevronRight } from "lucide-react"
