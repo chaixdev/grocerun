@@ -5,16 +5,19 @@ import { prisma } from "@/lib/prisma"
 // Define the return type based on inferred return from the function
 // We will rely on simple type inference for the action return
 
+// Shared type for store directory item
+export type DirectoryStore = {
+    id: string
+    name: string
+    location: string | null
+    activeListId: string | null
+}
+
 // Update type
 export type DirectoryHousehold = {
     id: string
     name: string
-    stores: {
-        id: string
-        name: string
-        location: string | null
-        activeListId: string | null
-    }[]
+    stores: DirectoryStore[]
 }
 
 export async function getStoreDirectoryData(): Promise<DirectoryHousehold[]> {

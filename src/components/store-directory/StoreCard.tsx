@@ -1,23 +1,19 @@
-"use client"
-
-import { MapPin, Settings, Store as StoreIcon, ArrowRight, Eye } from "lucide-react"
+import { useState } from "react"
+import { MapPin, Settings, Store as StoreIcon, ArrowRight, Eye, Loader2 } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { useRouter } from "next/navigation"
 import { createList } from "@/actions/list"
 import { toast } from "sonner"
+import type { DirectoryStore } from "@/actions/store-directory"
 
 interface StoreCardProps {
-    store: {
-        id: string
-        name: string
-        location: string | null
-        activeListId: string | null
-    }
+    store: DirectoryStore
 }
 
 export function StoreCard({ store }: StoreCardProps) {
     const router = useRouter()
+    const [isCreating, setIsCreating] = useState(false)
 
     return (
         <Card className="group hover:shadow-lg transition-all duration-300 border-border/50 bg-gradient-to-br from-card to-secondary/5">
@@ -86,18 +82,28 @@ export function StoreCard({ store }: StoreCardProps) {
                         <Button
                             size="default"
                             className="w-full font-medium shadow-sm hover:shadow-md transition-all active:scale-[0.98]"
+                            disabled={isCreating}
                             onClick={async (e) => {
                                 e.stopPropagation()
+                                setIsCreating(true)
                                 try {
                                     const newList = await createList({ storeId: store.id })
                                     router.push(`/lists/${newList.id}`)
                                 } catch (error) {
+                                    setIsCreating(false)
                                     console.error("Failed to create list:", error)
                                     toast.error("Failed to start shopping list")
                                 }
                             }}
                         >
-                            Start Shopping List
+                            {isCreating ? (
+                                <>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    Creating...
+                                </>
+                            ) : (
+                                "Start Shopping List"
+                            )}
                         </Button>
                     )}
                 </div>
