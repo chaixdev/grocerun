@@ -45,6 +45,9 @@
 - [ ] [GRO-48: Trip Summary & Completion](./tickets/backlog/GRO-48-trip-summary.md) ([US-9](./user-stories/US-9-shopping-state-machine.md))
 - [ ] [GRO-39: Archived Lists Accordion](./tickets/backlog/GRO-39-archived-accordion.md) ([US-7](./user-stories/US-7-dashboard-experience.md))
 
+## 🏗️ Architecture & Refactoring
+- [ ] [GRO-53: Refactor Folder Structure](./tickets/backlog/GRO-53-refactor-folder-structure.md) (Feature-Based Architecture)
+
 ## 🧊 Deferred / Future
 *Items that are valid but not currently prioritized.*
 - [ ] [GRO-22: In-Trip Section Reassignment](./tickets/backlog/GRO-22-in-trip-reassignment.md) ([US-4](./user-stories/US-4-in-trip-config.md))

@@ -20,6 +20,17 @@ export async function createList(data: z.infer<typeof CreateListSchema>) {
     const hasAccess = await verifyStoreAccess(session.user.id, validated.storeId)
     if (!hasAccess) throw new Error("Unauthorized")
 
+    const existingList = await prisma.list.findFirst({
+        where: {
+            storeId: validated.storeId,
+            status: { not: "COMPLETED" }
+        }
+    })
+
+    if (existingList) {
+        return existingList
+    }
+
     const list = await prisma.list.create({
         data: {
             name: validated.name || "Shopping List",
@@ -59,7 +70,9 @@ export async function getActiveListForStore(storeId: string) {
     return prisma.list.findFirst({
         where: {
             storeId,
-            status: "ACTIVE"
+            status: {
+                not: "COMPLETED"
+            }
         },
         orderBy: { createdAt: "desc" },
         select: { id: true }

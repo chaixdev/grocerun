@@ -1,10 +1,10 @@
 "use client"
 
-import { MapPin, Settings, Store as StoreIcon } from "lucide-react"
+import { MapPin, Settings, Store as StoreIcon, ArrowRight, Play, Eye } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { useRouter } from "next/navigation"
-import { getActiveListForStore, createList } from "@/actions/list"
+import { createList } from "@/actions/list"
 import { toast } from "sonner"
 
 interface StoreCardProps {
@@ -12,6 +12,7 @@ interface StoreCardProps {
         id: string
         name: string
         location: string | null
+        activeListId: string | null
     }
 }
 
@@ -37,45 +38,70 @@ export function StoreCard({ store }: StoreCardProps) {
                                 </div>
                             )}
                         </div>
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-muted-foreground hover:text-foreground -mr-2 -mt-2 opacity-0 group-hover:opacity-100 transition-opacity"
-                            onClick={(e) => {
-                                e.stopPropagation()
-                                router.push(`/stores/${store.id}/settings`)
-                            }}
-                            title="Store Settings"
-                        >
-                            <Settings className="h-4 w-4" />
-                            <span className="sr-only">Store Settings</span>
-                        </Button>
+                        <div className="flex items-center gap-1 -mr-2 -mt-2">
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-muted-foreground hover:text-foreground opacity-0 group-hover:opacity-100 transition-opacity"
+                                onClick={(e) => {
+                                    e.stopPropagation()
+                                    router.push(`/stores/${store.id}`)
+                                }}
+                                title="View Store Details"
+                            >
+                                <Eye className="h-4 w-4" />
+                                <span className="sr-only">View Store Details</span>
+                            </Button>
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-muted-foreground hover:text-foreground opacity-0 group-hover:opacity-100 transition-opacity"
+                                onClick={(e) => {
+                                    e.stopPropagation()
+                                    router.push(`/stores/${store.id}/settings`)
+                                }}
+                                title="Store Settings"
+                            >
+                                <Settings className="h-4 w-4" />
+                                <span className="sr-only">Store Settings</span>
+                            </Button>
+                        </div>
                     </div>
                 </div>
 
                 <div className="mt-6 pt-4 border-t border-border/50">
-                    <Button
-                        size="default"
-                        className="w-full font-medium shadow-sm hover:shadow-md transition-all active:scale-[0.98]"
-                        onClick={async () => {
-                            try {
-                                const activeList = await getActiveListForStore(store.id)
-                                if (activeList) {
-                                    router.push(`/lists/${activeList.id}`)
-                                } else {
+                    {store.activeListId ? (
+                        <Button
+                            size="default"
+                            className="w-full font-medium shadow-sm hover:shadow-md transition-all active:scale-[0.98] bg-primary/10 text-primary hover:bg-primary/20 border border-primary/20"
+                            onClick={(e) => {
+                                e.stopPropagation()
+                                router.push(`/lists/${store.activeListId}`)
+                            }}
+                        >
+                            <ArrowRight className="mr-2 h-4 w-4" />
+                            Go To List
+                        </Button>
+                    ) : (
+                        <Button
+                            size="default"
+                            className="w-full font-medium shadow-sm hover:shadow-md transition-all active:scale-[0.98]"
+                            onClick={async (e) => {
+                                e.stopPropagation()
+                                try {
                                     const newList = await createList({ storeId: store.id })
                                     router.push(`/lists/${newList.id}`)
+                                } catch (error) {
+                                    console.error("Failed to create list:", error)
+                                    toast.error("Failed to start shopping list")
                                 }
-                            } catch (error) {
-                                console.error("Failed to check/create active list:", error)
-                                toast.error("Failed to start shopping list")
-                            }
-                        }}
-                    >
-                        Start Shopping List
-                    </Button>
+                            }}
+                        >
+                            Start Shopping List
+                        </Button>
+                    )}
                 </div>
             </CardContent>
-        </Card>
+        </Card >
     )
 }

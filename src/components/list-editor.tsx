@@ -304,7 +304,7 @@ export function ListEditor({ list }: ListEditorProps) {
         try {
             await completeList(list.id)
             toast.success("Trip completed!")
-            router.push(`/dashboard/stores/${list.store.id}`)
+            router.push(`/stores/${list.store.id}`)
         } catch {
             toast.error("Failed to complete trip")
             setIsCompleting(false)
@@ -399,7 +399,7 @@ export function ListEditor({ list }: ListEditorProps) {
 
                     return (
                         <div key={section.id} className="space-y-2">
-                            <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wider sticky top-20 bg-background/90 backdrop-blur py-2 z-0">
+                            <h3 className="font-bold text-sm text-primary uppercase tracking-wider sticky top-20 bg-background/95 backdrop-blur py-2 z-10 border-b border-border/40">
                                 {section.name}
                             </h3>
                             <div className="space-y-2">
@@ -472,7 +472,7 @@ export function ListEditor({ list }: ListEditorProps) {
                 {/* Uncategorized Items */}
                 {(itemsBySection["uncategorized"]?.length ?? 0) > 0 && (
                     <div className="space-y-2">
-                        <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wider sticky top-20 bg-background/90 backdrop-blur py-2 z-0">
+                        <h3 className="font-bold text-sm text-primary uppercase tracking-wider sticky top-20 bg-background/95 backdrop-blur py-2 z-10 border-b border-border/40">
                             Uncategorized
                         </h3>
                         <div className="space-y-2">
