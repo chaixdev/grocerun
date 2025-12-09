@@ -35,7 +35,7 @@ export function StoreList({ stores }: { stores: Store[] }) {
     return (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {stores.map((store) => (
-                <Link key={store.id} href={`/dashboard/stores/${store.id}`}>
+                <Link key={store.id} href={`/stores/${store.id}`}>
                     <Card className="relative hover:border-primary/50 transition-colors">
                         <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
                             <div className="space-y-1">

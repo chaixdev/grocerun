@@ -47,8 +47,8 @@ export async function updateItem(data: z.infer<typeof UpdateItemSchema>) {
         }
     })
 
-    revalidatePath(`/dashboard/lists/[id]`, "page")
-    revalidatePath(`/dashboard/stores/${item.storeId}`)
+    revalidatePath(`/lists/[id]`, "page")
+    revalidatePath(`/stores/${item.storeId}`)
 
     return { status: "UPDATED" }
 }

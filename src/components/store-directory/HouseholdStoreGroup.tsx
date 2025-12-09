@@ -27,9 +27,15 @@ export function HouseholdStoreGroup({ household }: HouseholdStoreGroupProps) {
             {household.stores.length === 0 ? (
                 <div className="p-8 border rounded-lg bg-muted/20 border-dashed text-center">
                     <p className="text-muted-foreground">No stores yet.</p>
-                    <Button variant="link" className="mt-2 h-auto p-0">
-                        Add your first store
-                    </Button>
+                    <StoreForm
+                        householdId={household.id}
+                        trigger={
+                            <Button variant="link" className="mt-2 h-auto p-0">
+                                Add your first store
+                            </Button>
+                        }
+                    />
+
                 </div>
             ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
