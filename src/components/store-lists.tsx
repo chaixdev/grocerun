@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { createList } from "@/actions/list"
 import { Button } from "@/components/ui/button"
 import { Plus, ShoppingCart, ChevronDown, ChevronRight } from "lucide-react"
@@ -36,7 +36,7 @@ export function StoreLists({ lists, storeId }: { lists: List[], storeId: string 
             setIsCreating(true)
             const list = await createList({ storeId })
             // toast.success("List created") - Removed to speed up perceived navigation
-            router.push(`/dashboard/lists/${list.id}`)
+            router.push(`/lists/${list.id}`)
         } catch {
             toast.error("Failed to create list")
             setIsCreating(false)
@@ -48,7 +48,7 @@ export function StoreLists({ lists, storeId }: { lists: List[], storeId: string 
             <div className="space-y-4">
                 <div className="flex items-center justify-between">
                     <h3 className="text-lg font-medium">Active Runs</h3>
-                    <Button onClick={handleCreate} disabled={isCreating} size="sm">
+                    <Button onClick={handleCreate} disabled={isCreating || activeLists.length > 0} size="sm">
                         <Plus className="mr-2 h-4 w-4" />
                         New List
                     </Button>
@@ -61,7 +61,7 @@ export function StoreLists({ lists, storeId }: { lists: List[], storeId: string 
                 ) : (
                     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                         {activeLists.map(list => (
-                            <Link key={list.id} href={`/dashboard/lists/${list.id}`}>
+                            <Link key={list.id} href={`/lists/${list.id}`}>
                                 <Card className="group hover:border-primary/50 transition-all cursor-pointer shadow-none border bg-card">
                                     <CardHeader className="p-3">
                                         <div className="flex items-center justify-between mb-1">
@@ -94,24 +94,21 @@ export function StoreLists({ lists, storeId }: { lists: List[], storeId: string 
                     onOpenChange={setIsOpen}
                     className="space-y-2"
                 >
-                    <div className="flex items-center justify-between px-1">
-                        <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
-                            Archived Runs ({completedLists.length})
-                        </h4>
-                        <CollapsibleTrigger asChild>
-                            <Button variant="ghost" size="sm" className="w-9 p-0">
-                                {isOpen ? (
-                                    <ChevronDown className="h-4 w-4" />
-                                ) : (
-                                    <ChevronRight className="h-4 w-4" />
-                                )}
-                                <span className="sr-only">Toggle</span>
-                            </Button>
-                        </CollapsibleTrigger>
-                    </div>
+                    <CollapsibleTrigger asChild>
+                        <Button variant="ghost" className="flex w-full items-center justify-between p-2 hover:bg-muted/50 rounded-lg group">
+                            <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+                                Archived Runs ({completedLists.length})
+                            </h4>
+                            {isOpen ? (
+                                <ChevronDown className="h-4 w-4 text-muted-foreground group-hover:text-foreground" />
+                            ) : (
+                                <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground" />
+                            )}
+                        </Button>
+                    </CollapsibleTrigger>
                     <CollapsibleContent className="space-y-2">
                         {completedLists.map(list => (
-                            <Link key={list.id} href={`/dashboard/lists/${list.id}`}>
+                            <Link key={list.id} href={`/lists/${list.id}`}>
                                 <div className="flex items-center justify-between p-3 rounded-lg border bg-card hover:bg-muted/50 transition-colors">
                                     <div className="flex items-center gap-3">
                                         <div className="h-2 w-2 rounded-full bg-muted-foreground/30" />
