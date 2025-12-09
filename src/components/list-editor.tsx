@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useOptimistic, useRef, startTransition } from "react"
-import { addItemToList, toggleListItem, removeItemFromList } from "@/actions/list"
+import { addItemToList, toggleListItem, removeItemFromList, startShopping, cancelShopping } from "@/actions/list"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { ItemAutocomplete } from "./item-autocomplete"
@@ -26,7 +26,7 @@ import { Label } from "@/components/ui/label"
 import { TripSummary } from "./trip-summary"
 import { completeList } from "@/actions/list"
 import { useRouter } from "next/navigation"
-import { MoreHorizontal, Pencil, Trash2 } from "lucide-react"
+import { MoreHorizontal, Pencil, Trash2, ShoppingCart, CheckCheck, X } from "lucide-react"
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -542,16 +542,56 @@ export function ListEditor({ list }: ListEditorProps) {
                 )}
             </div>
 
-            {/* Sticky Footer */}
+
+            {/* Floating Action Button or Footer based on State */}
             {!isReadOnly && (
-                <div className="fixed bottom-0 left-0 right-0 p-4 bg-background/80 backdrop-blur border-t flex justify-center z-50">
-                    <Button
-                        size="lg"
-                        className="w-full max-w-md shadow-lg"
-                        onClick={handleFinishShopping}
-                    >
-                        Finish Shopping ({optimisticItems.filter(i => i.isChecked).length}/{optimisticItems.length})
-                    </Button>
+                <div className="fixed bottom-6 left-0 right-0 px-4 flex justify-center z-50 pointer-events-none">
+                    <div className="pointer-events-auto flex items-center gap-2">
+                        {list.status === "PLANNING" ? (
+                            <Button
+                                size="lg"
+                                className="h-14 rounded-full shadow-xl px-6 bg-primary hover:bg-primary/90 transition-all active:scale-95"
+                                onClick={async () => {
+                                    try {
+                                        await startShopping(list.id)
+                                        toast.success("List is definitely Live! 🛒")
+                                    } catch {
+                                        toast.error("Failed to start shopping")
+                                    }
+                                }}
+                            >
+                                <ShoppingCart className="mr-2 h-5 w-5" />
+                                Start Shopping
+                            </Button>
+                        ) : (
+                            <>
+                                <Button
+                                    size="icon"
+                                    variant="secondary"
+                                    className="h-14 w-14 rounded-full shadow-lg bg-background border hover:bg-muted"
+                                    onClick={async () => {
+                                        try {
+                                            await cancelShopping(list.id)
+                                            toast("Shopping Cancelled", { description: "List reverted to planning mode." })
+                                        } catch {
+                                            toast.error("Failed to cancel shopping")
+                                        }
+                                    }}
+                                >
+                                    <X className="h-5 w-5" />
+                                    <span className="sr-only">Cancel Shopping</span>
+                                </Button>
+                                <Button
+                                    size="lg"
+                                    className="h-14 rounded-full shadow-xl px-6 bg-tangerine hover:bg-tangerine/90 text-white transition-all active:scale-95"
+                                    onClick={handleFinishShopping}
+                                >
+                                    <CheckCheck className="mr-2 h-5 w-5" />
+                                    Finish ({optimisticItems.filter(i => i.isChecked).length}/{optimisticItems.length})
+                                </Button>
+                            </>
+                        )}
+                    </div>
                 </div>
             )}
 
