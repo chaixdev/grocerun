@@ -13,7 +13,14 @@ This task is being executed in a sandboxed environment that doesn't have direct 
 ## How to Push the Tag
 
 ### Option 1: Using the Helper Script
+The script already has executable permissions, so you can run it directly:
 ```bash
+./scripts/push-tag.sh
+```
+
+If needed, make it executable:
+```bash
+chmod +x scripts/push-tag.sh
 ./scripts/push-tag.sh
 ```
 
@@ -32,7 +39,7 @@ git push origin 0.1.9
 Once the tag `0.1.9` is pushed to the remote repository:
 
 1. **GitHub Actions Workflow Triggers**
-   - The `docker-build.yml` workflow will be triggered (matches pattern `*.*.*`)
+   - The `docker-build.yml` workflow will be triggered (matches patterns `v*.*.*` or `*.*.*`)
    - Docker images will be built for `linux/amd64` and `linux/arm64`
    - Images will be tagged with `0.1.9` and pushed to GitHub Container Registry
 
