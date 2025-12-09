@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useOptimistic, useRef, startTransition } from "react"
+import { useState, useOptimistic, useRef, useTransition } from "react"
 import { addItemToList, toggleListItem, removeItemFromList, startShopping, cancelShopping } from "@/actions/list"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -77,6 +77,7 @@ export function ListEditor({ list }: ListEditorProps) {
     const [inputQty, setInputQty] = useState(1)
     const [inputUnit, setInputUnit] = useState("")
     const [isSubmitting, setIsSubmitting] = useState(false)
+    const [isPending, startTransition] = useTransition()
 
     // Optimistic UI
     const [optimisticItems, setOptimisticItems] = useOptimistic(
@@ -215,84 +216,89 @@ export function ListEditor({ list }: ListEditorProps) {
         }
     }
 
-    const handleToggle = async (itemId: string, checked: boolean) => {
-        // 1. Optimistic Update
-        startTransition(() => {
+    const handleToggle = (itemId: string, checked: boolean) => {
+        // Capture prior state for rollback if the server update fails
+        const previousChecked = optimisticItems.find(i => i.id === itemId)?.isChecked ?? false
+
+        startTransition(async () => {
+            // 1. Optimistic Update
             setOptimisticItems({ itemId, isChecked: checked })
+
+            // 2. Auto-scroll Logic (only when checking off)
+            if (checked) {
+                // Calculate flat list based on CURRENT optimistic state (before this toggle applied? No, inside transition it's tricky)
+                // We use the derived 'itemsBySection' from the NEXT render usually, but here we need to calculate it manually or wait.
+                // Simpler: Calculate from 'optimisticItems' but manually applying the change for the logic check
+
+                // Actually, let's just find the next item in the current 'optimisticItems' list 
+                // assuming the toggle has "happened" for the logic search.
+
+                // We need the visual order.
+                const flatItems: ListItem[] = []
+                list.store.sections.forEach((s) => {
+                    const items = optimisticItems.filter(i => (i.item.sectionId || "uncategorized") === s.id)
+                    flatItems.push(...items)
+                })
+
+                // Note: logic above for uncategorized might duplicate if sectionId is null vs "uncategorized" string. 
+                // Let's stick to the render logic below for consistency.
+
+                // Re-deriving render logic for safety:
+                const itemsBySection: Record<string, ListItem[]> = {}
+                list.store.sections.forEach(s => itemsBySection[s.id] = [])
+                itemsBySection["uncategorized"] = []
+
+                optimisticItems.forEach(item => {
+                    // Apply the toggle strictly for this calculation if it wasn't already (optimistic state updates are batched/async in React logic sometimes)
+                    // But 'optimisticItems' here is the OLD state until next render.
+                    // So we must manually map it.
+                    const isItemChecked = item.id === itemId ? checked : item.isChecked
+
+                    const sectionId = item.item.sectionId || "uncategorized"
+                    if (!itemsBySection[sectionId]) itemsBySection[sectionId] = []
+                    itemsBySection[sectionId].push({ ...item, isChecked: isItemChecked })
+                })
+
+                const visualOrder: ListItem[] = []
+                list.store.sections.forEach(s => visualOrder.push(...(itemsBySection[s.id] || [])))
+                visualOrder.push(...(itemsBySection["uncategorized"] || []))
+
+                // Find index of current item
+                const currentIndex = visualOrder.findIndex(i => i.id === itemId)
+
+                // Find next UNCHECKED item after this one
+                let nextItem: ListItem | undefined
+                for (let i = currentIndex + 1; i < visualOrder.length; i++) {
+                    if (!visualOrder[i].isChecked) {
+                        nextItem = visualOrder[i]
+                        break
+                    }
+                }
+
+                // If no unchecked item found after, wrap around or stop? 
+                // Let's stop. Or maybe look from beginning?
+                // User said "next item in the list".
+
+                if (nextItem) {
+                    const el = itemRefs.current[nextItem.id]
+                    if (el) {
+                        el.scrollIntoView({ behavior: "smooth", block: "center" })
+                        setHighlightedItemId(nextItem.id)
+                        // Remove highlight after animation
+                        setTimeout(() => setHighlightedItemId(null), 2000)
+                    }
+                }
+            }
+
+            // 3. Server Action
+            try {
+                await toggleListItem(itemId, checked)
+            } catch {
+                // Roll back optimistic change on failure
+                setOptimisticItems({ itemId, isChecked: previousChecked })
+                toast.error("Failed to update item")
+            }
         })
-
-        // 2. Auto-scroll Logic (only when checking off)
-        if (checked) {
-            // Calculate flat list based on CURRENT optimistic state (before this toggle applied? No, inside transition it's tricky)
-            // We use the derived 'itemsBySection' from the NEXT render usually, but here we need to calculate it manually or wait.
-            // Simpler: Calculate from 'optimisticItems' but manually applying the change for the logic check
-
-            // Actually, let's just find the next item in the current 'optimisticItems' list 
-            // assuming the toggle has "happened" for the logic search.
-
-            // We need the visual order.
-            const flatItems: ListItem[] = []
-            list.store.sections.forEach((s) => {
-                const items = optimisticItems.filter(i => (i.item.sectionId || "uncategorized") === s.id)
-                flatItems.push(...items)
-            })
-
-            // Note: logic above for uncategorized might duplicate if sectionId is null vs "uncategorized" string. 
-            // Let's stick to the render logic below for consistency.
-
-            // Re-deriving render logic for safety:
-            const itemsBySection: Record<string, ListItem[]> = {}
-            list.store.sections.forEach(s => itemsBySection[s.id] = [])
-            itemsBySection["uncategorized"] = []
-
-            optimisticItems.forEach(item => {
-                // Apply the toggle strictly for this calculation if it wasn't already (optimistic state updates are batched/async in React logic sometimes)
-                // But 'optimisticItems' here is the OLD state until next render.
-                // So we must manually map it.
-                const isItemChecked = item.id === itemId ? checked : item.isChecked
-
-                const sectionId = item.item.sectionId || "uncategorized"
-                if (!itemsBySection[sectionId]) itemsBySection[sectionId] = []
-                itemsBySection[sectionId].push({ ...item, isChecked: isItemChecked })
-            })
-
-            const visualOrder: ListItem[] = []
-            list.store.sections.forEach(s => visualOrder.push(...(itemsBySection[s.id] || [])))
-            visualOrder.push(...(itemsBySection["uncategorized"] || []))
-
-            // Find index of current item
-            const currentIndex = visualOrder.findIndex(i => i.id === itemId)
-
-            // Find next UNCHECKED item after this one
-            let nextItem: ListItem | undefined
-            for (let i = currentIndex + 1; i < visualOrder.length; i++) {
-                if (!visualOrder[i].isChecked) {
-                    nextItem = visualOrder[i]
-                    break
-                }
-            }
-
-            // If no unchecked item found after, wrap around or stop? 
-            // Let's stop. Or maybe look from beginning?
-            // User said "next item in the list".
-
-            if (nextItem) {
-                const el = itemRefs.current[nextItem.id]
-                if (el) {
-                    el.scrollIntoView({ behavior: "smooth", block: "center" })
-                    setHighlightedItemId(nextItem.id)
-                    // Remove highlight after animation
-                    setTimeout(() => setHighlightedItemId(null), 2000)
-                }
-            }
-        }
-
-        // 3. Server Action
-        try {
-            await toggleListItem(itemId, checked)
-        } catch {
-            toast.error("Failed to update item")
-        }
     }
 
     const handleFinishShopping = () => {

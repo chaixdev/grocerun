@@ -55,17 +55,22 @@ export function ItemAutocomplete({
         try {
             if (query.trim()) {
                 const items = await searchItems({ storeId, query: query.trim() })
+                if (lastQueryRef.current !== query) return
                 setSuggestions(items)
             } else {
                 // Empty query: show top items
                 const items = await getTopItemsForStore({ storeId, limit: 5, threshold: 1 })
+                if (lastQueryRef.current !== query) return
                 setSuggestions(items)
             }
         } catch (error) {
+            if (lastQueryRef.current !== query) return
             console.error("Autocomplete error:", error)
             setSuggestions([])
         } finally {
-            setIsLoading(false)
+            if (lastQueryRef.current === query) {
+                setIsLoading(false)
+            }
         }
     }, [storeId])
 

@@ -1,7 +1,7 @@
-import NextAuth from "next-auth"
-import { authConfig } from "./auth.config"
+import { auth } from "@/auth"
 
-export default NextAuth(authConfig).auth
+// Reuse the fully configured NextAuth instance (with adapter/callbacks)
+export default auth
 
 export const config = {
     matcher: ["/((?!api|_next/static|_next/image|favicon.ico).*)"],

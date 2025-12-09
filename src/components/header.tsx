@@ -1,11 +1,13 @@
-import { auth } from "@/auth"
 import { ModeToggle } from "@/components/mode-toggle"
 import { UserNav } from "@/components/user-nav"
 import Link from "next/link"
+import { User } from "next-auth"
 
-export async function Header() {
-    const session = await auth()
+interface HeaderProps {
+    user?: User
+}
 
+export function Header({ user }: HeaderProps) {
     return (
         <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 md:hidden">
             <div className="container flex h-14 items-center justify-between">
@@ -13,7 +15,7 @@ export async function Header() {
                     <Link href="/" className="flex items-center gap-2 hover:no-underline">
                         <span className="text-primary">Grocerun</span>
                     </Link>
-                    {session?.user && (
+                    {user && (
                         <nav className="flex items-center gap-4 text-sm font-medium">
                             <Link href="/stores" className="transition-colors hover:text-primary">
                                 Stores
@@ -24,8 +26,8 @@ export async function Header() {
 
                 <div className="flex items-center gap-4">
                     <ModeToggle />
-                    {session?.user ? (
-                        <UserNav user={session.user} />
+                    {user ? (
+                        <UserNav user={user} />
                     ) : (
                         <Link
                             href="/login"

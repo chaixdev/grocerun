@@ -2,7 +2,7 @@
 
 import { auth } from "@/auth"
 import { prisma } from "@/lib/prisma"
-import { verifyStoreAccess } from "@/lib/auth-helpers"
+import { verifyStoreAccess } from "@/lib/store-access"
 import { revalidatePath } from "next/cache"
 import { z } from "zod"
 
@@ -16,8 +16,11 @@ export async function getSections(storeId: string) {
     const session = await auth()
     if (!session?.user?.id) return []
 
-    const hasAccess = await verifyStoreAccess(session.user.id, storeId)
-    if (!hasAccess) return []
+    try {
+        await verifyStoreAccess(storeId, session.user.id)
+    } catch {
+        return []
+    }
 
     return prisma.section.findMany({
         where: { storeId },
@@ -31,8 +34,7 @@ export async function createSection(data: z.infer<typeof SectionSchema>) {
 
     const validated = SectionSchema.parse(data)
 
-    const hasAccess = await verifyStoreAccess(session.user.id, validated.storeId)
-    if (!hasAccess) throw new Error("Unauthorized")
+    await verifyStoreAccess(validated.storeId, session.user.id)
 
     // If order is provided, shift everything down
     if (validated.order !== undefined) {
@@ -77,8 +79,7 @@ export async function updateSection(id: string, name: string) {
     const section = await prisma.section.findUnique({ where: { id } })
     if (!section) throw new Error("Section not found")
 
-    const hasAccess = await verifyStoreAccess(session.user.id, section.storeId)
-    if (!hasAccess) throw new Error("Unauthorized")
+    await verifyStoreAccess(section.storeId, session.user.id)
 
     await prisma.section.update({
         where: { id },
@@ -95,8 +96,7 @@ export async function deleteSection(id: string) {
     const section = await prisma.section.findUnique({ where: { id } })
     if (!section) throw new Error("Section not found")
 
-    const hasAccess = await verifyStoreAccess(session.user.id, section.storeId)
-    if (!hasAccess) throw new Error("Unauthorized")
+    await verifyStoreAccess(section.storeId, session.user.id)
 
     await prisma.section.delete({ where: { id } })
     revalidatePath(`/stores/${section.storeId}/settings`)
@@ -106,8 +106,7 @@ export async function reorderSections(storeId: string, orderedIds: string[]) {
     const session = await auth()
     if (!session?.user?.id) throw new Error("Unauthorized")
 
-    const hasAccess = await verifyStoreAccess(session.user.id, storeId)
-    if (!hasAccess) throw new Error("Unauthorized")
+    await verifyStoreAccess(storeId, session.user.id)
 
     // Transaction to update all orders
     await prisma.$transaction(
