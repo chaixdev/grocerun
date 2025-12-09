@@ -32,7 +32,7 @@ export default async function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <Header />
+          <Header user={session?.user} />
           <ResponsiveShell user={session?.user}>
             {children}
           </ResponsiveShell>

@@ -47,7 +47,8 @@ export async function updateItem(data: z.infer<typeof UpdateItemSchema>) {
         }
     })
 
-    revalidatePath(`/lists/[id]`, "page")
+    // Revalidate list pages that may display this item
+    revalidatePath(`/lists`, "layout")
     revalidatePath(`/stores/${item.storeId}`)
 
     return { status: "UPDATED" }

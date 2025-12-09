@@ -1,6 +1,6 @@
 import { auth } from "@/auth"
 import { prisma } from "@/lib/prisma"
-import { verifyStoreAccess } from "@/lib/auth-helpers"
+import { verifyStoreAccess } from "@/lib/store-access"
 import { getSections } from "@/actions/section"
 import { SectionList } from "@/components/section-list"
 import { SectionForm } from "@/components/section-form"
@@ -20,8 +20,11 @@ export default async function StoreDetailsPage({
     if (!session?.user?.id) redirect("/login")
 
     const { storeId } = await params
-    const hasAccess = await verifyStoreAccess(session.user.id, storeId)
-    if (!hasAccess) notFound()
+    try {
+        await verifyStoreAccess(storeId, session.user.id)
+    } catch {
+        notFound()
+    }
 
     const store = await prisma.store.findUnique({
         where: { id: storeId },

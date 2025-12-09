@@ -84,10 +84,16 @@ model List {
   name      String     @default("Shopping List")
   storeId   String
   store     Store      @relation(fields: [storeId], references: [id], onDelete: Cascade)
-  status    String     @default("PLANNING") // PLANNING, COMPLETED
+  status    ListStatus @default(PLANNING)
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
   items     ListItem[]
+}
+
+enum ListStatus {
+  PLANNING
+  SHOPPING
+  COMPLETED
 }
 
 model ListItem {
@@ -148,10 +154,17 @@ model Invitation {
   household   Household @relation(fields: [householdId], references: [id], onDelete: Cascade)
   creatorId   String
   creator     User     @relation(fields: [creatorId], references: [id])
-  status      String   @default("ACTIVE") // ACTIVE, COMPLETED, EXPIRED, REVOKED
+  status      InvitationStatus @default(ACTIVE)
   expiresAt   DateTime
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
   @@index([token])
+}
+
+enum InvitationStatus {
+  ACTIVE
+  COMPLETED
+  EXPIRED
+  REVOKED
 }

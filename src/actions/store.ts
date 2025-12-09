@@ -5,21 +5,25 @@ import { prisma } from "@/lib/prisma"
 import { revalidatePath } from "next/cache"
 import { z } from "zod"
 
-import { verifyHouseholdAccess, verifyStoreAccess } from "@/lib/auth-helpers"
+import { verifyHouseholdAccess } from "@/lib/auth-helpers"
+import { verifyStoreAccess } from "@/lib/store-access"
 
 import { StoreSchema } from "@/schemas/store"
 
+/**
+ * Pure query - returns stores for the user's household.
+ * Returns empty array if user has no households (caller should handle onboarding).
+ */
 export async function getStores(householdId?: string) {
     const session = await auth()
     if (!session?.user?.id) return []
 
-    // Get user's household (create if none)
     const user = await prisma.user.findUnique({
         where: { id: session.user.id },
         include: { households: true },
     })
 
-    if (!user) return []
+    if (!user || user.households.length === 0) return []
 
     let targetHouseholdId = householdId
 
@@ -28,23 +32,45 @@ export async function getStores(householdId?: string) {
         targetHouseholdId = user.households[0]?.id
     }
 
-    if (!targetHouseholdId) {
-        // Create default household
-        const household = await prisma.household.create({
-            data: {
-                name: "My Household",
-                users: { connect: { id: user.id } },
-            },
-        })
-        targetHouseholdId = household.id
-    }
-
     const stores = await prisma.store.findMany({
         where: { householdId: targetHouseholdId },
         orderBy: { createdAt: "desc" },
     })
 
     return stores
+}
+
+/**
+ * Creates a default household for a user during onboarding.
+ * Should be called explicitly, not as a side effect of reads.
+ */
+export async function createDefaultHousehold() {
+    const session = await auth()
+    if (!session?.user?.id) throw new Error("Unauthorized")
+
+    const user = await prisma.user.findUnique({
+        where: { id: session.user.id },
+        include: { households: true },
+    })
+
+    if (!user) throw new Error("User not found")
+
+    // Don't create if user already has households
+    if (user.households.length > 0) {
+        return user.households[0]
+    }
+
+    const household = await prisma.household.create({
+        data: {
+            name: "My Household",
+            users: { connect: { id: session.user.id } },
+            ownerId: session.user.id,
+        },
+    })
+
+    revalidatePath("/stores")
+    revalidatePath("/households")
+    return household
 }
 
 export async function createStore(data: z.infer<typeof StoreSchema>) {
@@ -73,8 +99,7 @@ export async function deleteStore(id: string) {
     if (!session?.user?.id) throw new Error("Unauthorized")
 
     // Verify ownership via household
-    const hasAccess = await verifyStoreAccess(session.user.id, id)
-    if (!hasAccess) throw new Error("Unauthorized")
+    await verifyStoreAccess(id, session.user.id)
 
     await prisma.store.delete({ where: { id } })
     revalidatePath("/stores")
@@ -84,8 +109,11 @@ export async function getStore(id: string) {
     const session = await auth()
     if (!session?.user?.id) return null
 
-    const hasAccess = await verifyStoreAccess(session.user.id, id)
-    if (!hasAccess) return null
+    try {
+        await verifyStoreAccess(id, session.user.id)
+    } catch {
+        return null
+    }
 
     return prisma.store.findUnique({
         where: { id },
@@ -108,8 +136,7 @@ export async function updateStore(id: string, data: z.infer<typeof StoreSchema>)
     // For now, let's assume the form sends all fields.
     const validated = StoreSchema.parse(data)
 
-    const hasAccess = await verifyStoreAccess(session.user.id, id)
-    if (!hasAccess) throw new Error("Unauthorized")
+    await verifyStoreAccess(id, session.user.id)
 
     await prisma.store.update({
         where: { id },

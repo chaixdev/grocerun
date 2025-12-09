@@ -1,8 +1,8 @@
 # 🛍️ Grocerun
 
-> **Self-hostable, real-time grocery list app for households.**
+> **Self-hostable grocery list app for households.**
 
-Grocerun transforms chaotic grocery runs into organized, efficient trips. It leverages your purchase history to suggest items, organizes them by store section, and syncs instantly across devices.
+Grocerun transforms chaotic grocery runs into organized, efficient trips. It leverages your purchase history to suggest items and organizes them by store section.
 
 ![License](https://img.shields.io/github/license/chaixdev/grocerun)
 ![Docker Image Version (latest by date)](https://img.shields.io/github/v/release/chaixdev/grocerun)
@@ -50,7 +50,7 @@ Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
 
 - **Frontend**: Next.js 15 (App Router), Tailwind CSS, Shadcn UI
 - **Backend**: Next.js Server Actions
-- **Database**: PostgreSQL (Prisma ORM)
+- **Database**: SQLite (Prisma ORM)
 - **Auth**: NextAuth.js (Google OAuth)
 
 ## 🤝 Contributing

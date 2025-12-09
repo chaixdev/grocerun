@@ -2,7 +2,7 @@
 
 import { auth } from "@/auth"
 import { prisma } from "@/lib/prisma"
-import { verifyStoreAccess } from "@/lib/auth-helpers"
+import { verifyStoreAccess } from "@/lib/store-access"
 import { revalidatePath } from "next/cache"
 import { z } from "zod"
 
@@ -17,8 +17,7 @@ export async function createList(data: z.infer<typeof CreateListSchema>) {
 
     const validated = CreateListSchema.parse(data)
 
-    const hasAccess = await verifyStoreAccess(session.user.id, validated.storeId)
-    if (!hasAccess) throw new Error("Unauthorized")
+    await verifyStoreAccess(validated.storeId, session.user.id)
 
     const existingList = await prisma.list.findFirst({
         where: {
@@ -47,8 +46,11 @@ export async function getLists(storeId: string) {
     const session = await auth()
     if (!session?.user?.id) return []
 
-    const hasAccess = await verifyStoreAccess(session.user.id, storeId)
-    if (!hasAccess) return []
+    try {
+        await verifyStoreAccess(storeId, session.user.id)
+    } catch {
+        return []
+    }
 
     return prisma.list.findMany({
         where: { storeId },
@@ -65,8 +67,11 @@ export async function getActiveListForStore(storeId: string) {
     const session = await auth()
     if (!session?.user?.id) return null
 
-    const hasAccess = await verifyStoreAccess(session.user.id, storeId)
-    if (!hasAccess) return null
+    try {
+        await verifyStoreAccess(storeId, session.user.id)
+    } catch {
+        return null
+    }
 
     return prisma.list.findFirst({
         where: {
@@ -104,8 +109,11 @@ export async function getList(listId: string) {
 
     if (!list) return null
 
-    const hasAccess = await verifyStoreAccess(session.user.id, list.storeId)
-    if (!hasAccess) return null
+    try {
+        await verifyStoreAccess(list.storeId, session.user.id)
+    } catch {
+        return null
+    }
 
     return list
 }
@@ -132,8 +140,7 @@ export async function addItemToList(data: z.infer<typeof AddItemSchema>) {
 
     if (list.status === "COMPLETED") throw new Error("List is completed")
 
-    const hasAccess = await verifyStoreAccess(session.user.id, list.storeId)
-    if (!hasAccess) throw new Error("Unauthorized")
+    await verifyStoreAccess(list.storeId, session.user.id)
 
     // 1. Check if item exists in catalog
     let item = await prisma.item.findUnique({
@@ -227,8 +234,7 @@ export async function toggleListItem(itemId: string, isChecked: boolean, purchas
 
     if (listItem.list.status === "COMPLETED") throw new Error("List is completed")
 
-    const hasAccess = await verifyStoreAccess(session.user.id, listItem.list.storeId)
-    if (!hasAccess) throw new Error("Unauthorized")
+    await verifyStoreAccess(listItem.list.storeId, session.user.id)
 
     // Logic:
     // If checking (true): use provided purchasedQuantity OR default to requested quantity
@@ -261,8 +267,7 @@ export async function removeItemFromList(listItemId: string) {
 
     if (listItem.list.status === "COMPLETED") throw new Error("List is completed")
 
-    const hasAccess = await verifyStoreAccess(session.user.id, listItem.list.storeId)
-    if (!hasAccess) throw new Error("Unauthorized")
+    await verifyStoreAccess(listItem.list.storeId, session.user.id)
 
     await prisma.listItem.delete({
         where: { id: listItemId }
@@ -284,8 +289,7 @@ export async function completeList(listId: string) {
 
     if (list.status === "COMPLETED") throw new Error("List is already completed")
 
-    const hasAccess = await verifyStoreAccess(session.user.id, list.storeId)
-    if (!hasAccess) throw new Error("Unauthorized")
+    await verifyStoreAccess(list.storeId, session.user.id)
 
 
     // Update list status and item stats in a transaction
@@ -323,8 +327,7 @@ export async function startShopping(listId: string) {
 
     if (!list) throw new Error("List not found")
 
-    const hasAccess = await verifyStoreAccess(session.user.id, list.storeId)
-    if (!hasAccess) throw new Error("Unauthorized")
+    await verifyStoreAccess(list.storeId, session.user.id)
 
     if (list.status !== "PLANNING") throw new Error("List must be in PLANNING state to start shopping")
 
@@ -347,8 +350,7 @@ export async function cancelShopping(listId: string) {
 
     if (!list) throw new Error("List not found")
 
-    const hasAccess = await verifyStoreAccess(session.user.id, list.storeId)
-    if (!hasAccess) throw new Error("Unauthorized")
+    await verifyStoreAccess(list.storeId, session.user.id)
 
     if (list.status !== "SHOPPING") throw new Error("List must be in SHOPPING state to cancel")
 
