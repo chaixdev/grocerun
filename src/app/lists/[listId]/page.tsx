@@ -20,37 +20,35 @@ export default async function ListDetailsPage({
 
     return (
         <div className="container py-10 space-y-8 max-w-2xl mx-auto">
-            <div className="flex items-start gap-4 justify-between">
-                <div className="flex items-center gap-4">
-                    <Button variant="ghost" size="icon" asChild>
-                        <Link href="/lists">
-                            <ArrowLeft className="h-4 w-4" />
-                        </Link>
-                    </Button>
-                    <div>
-                        <h1 className="text-3xl font-bold tracking-tight leading-tight">
-                            {list.store.name} shopping list
-                        </h1>
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            {list.status === "PLANNING" && (
-                                <>
-                                    <Pencil className="h-4 w-4 text-primary" />
-                                    <span className="font-medium text-primary">Planning Mode</span>
-                                </>
-                            )}
-                            {list.status === "SHOPPING" && (
-                                <>
-                                    <ShoppingCart className="h-4 w-4 text-primary" />
-                                    <span className="font-medium text-primary">Shopping Mode</span>
-                                </>
-                            )}
-                            {list.status === "COMPLETED" && (
-                                <>
-                                    <CheckCircle2 className="h-4 w-4 text-primary" />
-                                    <span className="font-medium text-primary">Completed</span>
-                                </>
-                            )}
-                        </div>
+            <div className="flex items-center gap-4">
+                <Button variant="ghost" size="icon" asChild>
+                    <Link href="/lists">
+                        <ArrowLeft className="h-4 w-4" />
+                    </Link>
+                </Button>
+                <div className="flex-1">
+                    <h1 className="text-2xl font-bold tracking-tight leading-tight">
+                        {list.store.name}
+                    </h1>
+                    <div className="flex items-center gap-1.5 mt-1">
+                        {list.status === "PLANNING" && (
+                            <>
+                                <Pencil className="h-3.5 w-3.5 text-primary" />
+                                <span className="text-sm font-medium text-primary">Planning</span>
+                            </>
+                        )}
+                        {list.status === "SHOPPING" && (
+                            <>
+                                <ShoppingCart className="h-3.5 w-3.5 text-primary" />
+                                <span className="text-sm font-medium text-primary">Shopping</span>
+                            </>
+                        )}
+                        {list.status === "COMPLETED" && (
+                            <>
+                                <CheckCircle2 className="h-3.5 w-3.5 text-muted-foreground" />
+                                <span className="text-sm font-medium text-muted-foreground">Completed</span>
+                            </>
+                        )}
                     </div>
                 </div>
             </div>
