@@ -12,16 +12,23 @@ export default async function SettingsPage() {
         redirect("/login");
     }
 
-    const user = await prisma.user.findUnique({
-        where: { id: session.user.id },
-        include: {
-            households: {
-                include: { _count: { select: { users: true } } }
-            }
-        },
-    });
+    let user;
+    try {
+        user = await prisma.user.findUnique({
+            where: { id: session.user.id },
+            include: {
+                households: {
+                    include: { _count: { select: { users: true } } }
+                }
+            },
+        });
+    } catch (error) {
+        console.error("Settings page - failed to fetch user:", error);
+        redirect("/login");
+    }
 
     if (!user) {
+        console.error("Settings page - user not found in database:", session.user.id);
         redirect("/login");
     }
 
