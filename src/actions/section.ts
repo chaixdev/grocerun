@@ -149,10 +149,23 @@ export async function reorderSections(data: z.infer<typeof ReorderSectionsSchema
         await verifyStoreAccess(storeId, session.user.id)
 
         // Transaction to update all orders
+
+        // Security check: verify all IDs belong to the store
+        const count = await prisma.section.count({
+            where: {
+                id: { in: orderedIds },
+                storeId: storeId
+            }
+        })
+
+        if (count !== orderedIds.length) {
+            return failure("Invalid section ids for store")
+        }
+
         await prisma.$transaction(
             orderedIds.map((id, index) =>
                 prisma.section.update({
-                    where: { id },
+                    where: { id, storeId }, // Ensure cross-store updates are impossible
                     data: { order: index },
                 })
             )

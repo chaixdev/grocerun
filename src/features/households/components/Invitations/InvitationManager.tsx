@@ -150,19 +150,14 @@ export function InvitationManager({ userId, households, invitationTimeoutMinutes
     async function handleRenameHousehold() {
         if (!editingHousehold || !renameValue.trim()) return
         setIsRenaming(true)
-        try {
-            const result = await renameHousehold(editingHousehold.id, renameValue)
-            if (result.success) {
-                toast.success("Household Renamed")
-                setEditingHousehold(null)
-            } else {
-                toast.error("Error", { description: result.error })
-            }
-        } catch (error) {
-            toast.error("Error", { description: "Failed to rename household" })
-        } finally {
-            setIsRenaming(false)
+        const result = await renameHousehold({ householdId: editingHousehold.id, name: renameValue })
+        if (result.success) {
+            toast.success("Household Renamed")
+            setEditingHousehold(null)
+        } else {
+            toast.error("Error", { description: result.error || "Failed to rename household" })
         }
+        setIsRenaming(false)
     }
 
     async function handleLeaveHousehold() {

@@ -11,7 +11,7 @@ import {
     DialogTrigger,
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
-import { createHousehold, updateHousehold } from "@/actions/household"
+import { createHousehold, renameHousehold } from "@/actions/household"
 import { useState } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -38,18 +38,27 @@ export function HouseholdForm({ household, trigger }: HouseholdFormProps) {
         },
     })
 
-    // ... (inside HouseholdForm)
     async function onSubmit(values: z.infer<typeof formSchema>) {
         try {
             if (household) {
-                await updateHousehold(household.id, values)
-                toast.success("Household updated")
+                const result = await renameHousehold({ householdId: household.id, name: values.name })
+                if (result.success) {
+                    toast.success("Household updated")
+                    setOpen(false)
+                    form.reset()
+                } else {
+                    toast.error(result.error || "Failed to update household")
+                }
             } else {
-                await createHousehold(values)
-                toast.success("Household created")
+                const result = await createHousehold(values)
+                if (result.success) {
+                    toast.success("Household created")
+                    setOpen(false)
+                    form.reset()
+                } else {
+                    toast.error(result.error || "Failed to create household")
+                }
             }
-            setOpen(false)
-            form.reset()
         } catch (error) {
             console.error("Failed to save household", error)
             toast.error("Failed to save household")
