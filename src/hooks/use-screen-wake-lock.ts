@@ -1,7 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useState } from "react"
-import { toast } from "sonner"
+
 
 export function useScreenWakeLock(enabled: boolean = true) {
     const [isSupported, setIsSupported] = useState(false)
@@ -44,7 +44,7 @@ export function useScreenWakeLock(enabled: boolean = true) {
 
     useEffect(() => {
         // If enabled and supported, try to request
-        if (enabled && isSupported) {
+        if (enabled && isSupported && !wakeLock) {
             requestLock()
         }
 
