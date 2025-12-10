@@ -25,8 +25,8 @@
 *Goal: Frictionless list creation and item entry.*
 - [x] [GRO-13: Intelligent Autocomplete](./tickets/done/GRO-13-autocomplete.md) ([US-1](./user-stories/US-1-autocomplete.md))
 - [x] [GRO-52: Fix "Start Shopping List" Logic](./tickets/done/GRO-52-fix-active-list-logic.md) ([US-9](./user-stories/US-9-shopping-state-machine.md))
-- [ ] [GRO-46: Planning Mode UI](./tickets/backlog/GRO-46-planning-mode.md) ([US-9](./user-stories/US-9-shopping-state-machine.md))
-- [ ] [GRO-51: Planning Mode Quantity Editing](./tickets/backlog/GRO-51-planning-quantity.md) ([US-5](./user-stories/US-5-mobile-quantity-editing.md))
+- [x] [GRO-46: Planning Mode UI](./tickets/done/GRO-46-planning-mode.md) ([US-9](./user-stories/US-9-shopping-state-machine.md))
+- [x] [GRO-51: Planning Mode Quantity Editing](./tickets/done/GRO-51-planning-quantity.md) ([US-5](./user-stories/US-5-mobile-quantity-editing.md))
 - [ ] [GRO-14: Fuzzy Matching (FTS5)](./tickets/backlog/GRO-14-fuzzy-matching.md) ([US-1](./user-stories/US-1-autocomplete.md))
 - [ ] [GRO-23: Pantry Items](./tickets/backlog/GRO-23-pantry-items.md) ([US-2](./user-stories/US-2-common-items.md))
 - [ ] [GRO-15: Smart List Creation ("My Usuals")](./tickets/backlog/GRO-15-smart-list-creation.md) ([US-8](./user-stories/US-8-store-catalog-management.md))

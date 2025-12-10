@@ -28,8 +28,11 @@ interface SectionGroupProps {
     items: ListItem[]
     isReadOnly: boolean
     highlightedItemId: string | null
+    isPlanningMode: boolean
     onToggle: (id: string, checked: boolean) => void
     onEdit: (item: Item) => void
+    onRemove: (id: string) => void
+    onUpdateQuantity?: (id: string, quantity: number, unit?: string) => void
     itemRefs: React.MutableRefObject<Record<string, HTMLDivElement | null>>
 }
 
@@ -38,8 +41,11 @@ export function SectionGroup({
     items,
     isReadOnly,
     highlightedItemId,
+    isPlanningMode,
     onToggle,
     onEdit,
+    onRemove,
+    onUpdateQuantity,
     itemRefs,
 }: SectionGroupProps) {
     if (items.length === 0) return null
@@ -56,8 +62,11 @@ export function SectionGroup({
                         listItem={listItem}
                         isReadOnly={isReadOnly}
                         isHighlighted={highlightedItemId === listItem.id}
+                        isPlanningMode={isPlanningMode}
                         onToggle={onToggle}
                         onEdit={onEdit}
+                        onRemove={onRemove}
+                        onUpdateQuantity={onUpdateQuantity}
                         itemRef={(el) => { itemRefs.current[listItem.id] = el }}
                     />
                 ))}

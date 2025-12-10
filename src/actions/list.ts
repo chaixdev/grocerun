@@ -295,6 +295,46 @@ const RemoveItemSchema = z.object({
     listItemId: z.string().min(1, "Item ID is required"),
 })
 
+const UpdateQuantitySchema = z.object({
+    listItemId: z.string().min(1, "Item ID is required"),
+    quantity: z.number().min(0.1, "Quantity must be at least 0.1"),
+    unit: z.string().optional(),
+})
+
+export async function updateListItemQuantity(data: z.infer<typeof UpdateQuantitySchema>): Promise<ActionResult<void>> {
+    const session = await auth()
+    if (!session?.user?.id) return failure("Unauthorized")
+
+    try {
+        const { listItemId, quantity, unit } = UpdateQuantitySchema.parse(data)
+
+        const listItem = await prisma.listItem.findUnique({
+            where: { id: listItemId },
+            include: { list: true }
+        })
+
+        if (!listItem) return failure("Item not found")
+
+        if (listItem.list.status === "COMPLETED") return failure("List is completed")
+
+        await verifyStoreAccess(listItem.list.storeId, session.user.id)
+
+        await prisma.listItem.update({
+            where: { id: listItemId },
+            data: {
+                quantity,
+                ...(unit !== undefined ? { unit } : {})
+            }
+        })
+
+        revalidatePath(`/lists/${listItem.listId}`)
+        return success(undefined)
+    } catch (error: unknown) {
+        console.error("Failed to update item quantity:", error)
+        return failure("Failed to update quantity")
+    }
+}
+
 export async function removeItemFromList(data: z.infer<typeof RemoveItemSchema>): Promise<ActionResult<void>> {
     const session = await auth()
     if (!session?.user?.id) return failure("Unauthorized")
