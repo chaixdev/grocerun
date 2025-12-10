@@ -3,7 +3,8 @@ import { getList } from "@/actions/list"
 import { notFound, redirect } from "next/navigation"
 import { ListEditor } from "@/features/lists"
 import { Button } from "@/components/ui/button"
-import { ArrowLeft, Pencil, ShoppingCart, CheckCircle2, ScrollText } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
+import { ArrowLeft, ScrollText } from "lucide-react"
 import Link from "next/link"
 
 export default async function ListDetailsPage({
@@ -33,24 +34,21 @@ export default async function ListDetailsPage({
                             {list.store.name}
                         </h1>
                     </div>
-                    <div className="flex items-center gap-1.5 mt-1 ml-7">
+                    <div className="flex items-center gap-2 mt-1.5 ml-7">
                         {list.status === "PLANNING" && (
-                            <>
-                                <Pencil className="h-3.5 w-3.5 text-primary" />
-                                <span className="text-sm font-medium text-primary">Planning</span>
-                            </>
+                            <Badge variant="outline" className="text-[9px] font-bold uppercase tracking-wider border-primary/20 text-primary">
+                                Planning
+                            </Badge>
                         )}
                         {list.status === "SHOPPING" && (
-                            <>
-                                <ShoppingCart className="h-3.5 w-3.5 text-primary" />
-                                <span className="text-sm font-medium text-primary">Shopping</span>
-                            </>
+                            <Badge variant="default" className="text-[9px] font-bold uppercase tracking-wider animate-pulse">
+                                Shopping
+                            </Badge>
                         )}
                         {list.status === "COMPLETED" && (
-                            <>
-                                <CheckCircle2 className="h-3.5 w-3.5 text-muted-foreground" />
-                                <span className="text-sm font-medium text-muted-foreground">Completed</span>
-                            </>
+                            <Badge variant="secondary" className="text-[9px] font-bold uppercase tracking-wider">
+                                Completed
+                            </Badge>
                         )}
                     </div>
                 </div>
