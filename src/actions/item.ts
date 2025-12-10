@@ -14,7 +14,7 @@ const UpdateItemSchema = z.object({
 
 import { verifyStoreAccess } from "@/core/auth"
 
-// ...
+
 
 export async function updateItem(data: z.infer<typeof UpdateItemSchema>) {
     const session = await auth()

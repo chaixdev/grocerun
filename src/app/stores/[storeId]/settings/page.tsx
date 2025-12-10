@@ -10,11 +10,6 @@ import { StoreSettingsForm } from "@/components/stores/StoreSettingsForm"
 import { SectionList } from "@/components/section-list"
 import { StoreDeleteSection } from "@/components/stores/StoreDeleteSection"
 
-interface StoreSettingsPageProps {
-    params: {
-        storeId: string
-    }
-}
 
 export default async function StoreSettingsPage({ params }: { params: Promise<{ storeId: string }> }) {
     const { storeId } = await params
