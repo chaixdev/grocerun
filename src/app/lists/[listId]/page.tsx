@@ -28,6 +28,9 @@ export default async function ListDetailsPage({
                     </Link>
                 </Button>
                 <div className="flex-1">
+                    <h1 className="text-2xl font-bold tracking-tight leading-tight">
+                        {list.store.name}
+                    </h1>
                     <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
                         <span className="font-semibold uppercase tracking-wider flex items-center gap-1">
                             <ScrollText className="h-3 w-3" />
@@ -52,9 +55,6 @@ export default async function ListDetailsPage({
                             </Badge>
                         )}
                     </div>
-                    <h1 className="text-2xl font-bold tracking-tight leading-tight">
-                        {list.store.name}
-                    </h1>
                 </div>
             </div>
 

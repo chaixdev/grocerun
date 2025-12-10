@@ -46,6 +46,9 @@ export function ActiveListCard({ list, storeName }: ActiveListCardProps) {
                 <CardHeader className="pb-2 space-y-0">
                     <div className="flex justify-between items-start">
                         <div className="space-y-1.5 flex-1">
+                            <h3 className="font-bold text-lg leading-tight group-hover:text-primary transition-colors">
+                                {storeName}
+                            </h3>
                             <div className="flex items-center gap-2 text-xs text-muted-foreground">
                                 <span className="font-semibold uppercase tracking-wider flex items-center gap-1">
                                     <ScrollText className="h-3 w-3" />
@@ -68,9 +71,6 @@ export function ActiveListCard({ list, storeName }: ActiveListCardProps) {
                                     </Badge>
                                 )}
                             </div>
-                            <h3 className="font-bold text-lg leading-tight group-hover:text-primary transition-colors">
-                                {storeName}
-                            </h3>
                         </div>
                         <div className={cn(
                             "flex items-center gap-1.5 px-2.5 py-1.5 rounded-full border text-xs font-semibold",
