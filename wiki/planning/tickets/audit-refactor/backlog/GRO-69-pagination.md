@@ -93,9 +93,9 @@ export function processPaginatedResult<T extends { id: string }>(
 
 Update `src/actions/store.ts`:
 
-```typescript
 import { PaginationParams, PaginatedResult } from '@/core/types/pagination'
 import { buildPrismaArgs, processPaginatedResult, normalizePagination } from '@/core/utils/paginate'
+import { verifyHouseholdAccess } from '@/lib/auth-helpers'
 
 export async function getStores(
   householdId: string,
@@ -104,6 +104,16 @@ export async function getStores(
   const session = await auth()
   if (!session?.user?.id) {
     return { success: false, error: 'Unauthorized' }
+  }
+  
+  // Verify user has access to this household
+  try {
+    const hasAccess = await verifyHouseholdAccess(session.user.id, householdId)
+    if (!hasAccess) {
+      return { success: false, error: 'Access denied to household' }
+    }
+  } catch {
+    return { success: false, error: 'Failed to verify household access' }
   }
   
   const { limit } = normalizePagination(pagination)
