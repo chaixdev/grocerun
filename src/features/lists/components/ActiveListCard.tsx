@@ -54,7 +54,7 @@ export function ActiveListCard({ list, storeName }: ActiveListCardProps) {
                                 <span className="text-muted-foreground/40">•</span>
                                 <div className="flex items-center gap-1 text-primary font-medium">
                                     <CalendarDays size={12} />
-                                    <span>{new Date(list.updatedAt).toLocaleDateString()}</span>
+                                    <span suppressHydrationWarning>{new Date(list.updatedAt).toLocaleDateString()}</span>
                                 </div>
                             </div>
                             <h3 className="font-bold text-lg leading-tight group-hover:text-primary transition-colors">
