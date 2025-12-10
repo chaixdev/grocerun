@@ -3,13 +3,18 @@
 import { auth } from "@/core/auth"
 import { prisma } from "@/core/db"
 import { revalidatePath } from "next/cache"
-import { z } from "zod"
+import { z, ZodError } from "zod"
 
 import { verifyHouseholdAccess } from "@/core/auth"
 import { type ActionResult, success, failure } from "@/core/types"
 
-const HouseholdSchema = z.object({
+const CreateHouseholdSchema = z.object({
     name: z.string().min(1, "Name is required"),
+})
+
+const RenameHouseholdSchema = z.object({
+    householdId: z.string().min(1, "Household ID is required"),
+    name: z.string().min(1, "Name is required").max(100, "Name must be less than 100 characters"),
 })
 
 export async function getHouseholds() {
@@ -29,12 +34,12 @@ export async function getHouseholds() {
     return user?.households || []
 }
 
-export async function createHousehold(data: z.infer<typeof HouseholdSchema>): Promise<ActionResult<void>> {
+export async function createHousehold(data: z.infer<typeof CreateHouseholdSchema>): Promise<ActionResult<void>> {
     const session = await auth()
     if (!session?.user?.id) return failure("Unauthorized")
 
     try {
-        const validated = HouseholdSchema.parse(data)
+        const validated = CreateHouseholdSchema.parse(data)
 
         await prisma.household.create({
             data: {
@@ -52,13 +57,15 @@ export async function createHousehold(data: z.infer<typeof HouseholdSchema>): Pr
     }
 }
 
-export async function renameHousehold(id: string, name: string): Promise<ActionResult<void>> {
+export async function renameHousehold(data: z.infer<typeof RenameHouseholdSchema>): Promise<ActionResult<void>> {
     const session = await auth()
     if (!session?.user?.id) return failure("Unauthorized")
 
     try {
+        const { householdId, name } = RenameHouseholdSchema.parse(data)
+
         const household = await prisma.household.findUnique({
-            where: { id },
+            where: { id: householdId },
             select: { ownerId: true }
         })
 
@@ -70,7 +77,7 @@ export async function renameHousehold(id: string, name: string): Promise<ActionR
         }
 
         await prisma.household.update({
-            where: { id },
+            where: { id: householdId },
             data: {
                 name,
                 // If it was a legacy household (no owner), claim ownership
@@ -81,31 +88,11 @@ export async function renameHousehold(id: string, name: string): Promise<ActionR
         revalidatePath("/settings")
         return success(undefined)
     } catch (error: unknown) {
+        if (error instanceof ZodError) {
+            return failure((error as any).errors[0].message)
+        }
         console.error("Failed to rename household:", error)
         return failure("Failed to rename household")
-    }
-}
-
-export async function updateHousehold(id: string, data: z.infer<typeof HouseholdSchema>): Promise<ActionResult<void>> {
-    const session = await auth()
-    if (!session?.user?.id) return failure("Unauthorized")
-
-    try {
-        const validated = HouseholdSchema.parse(data)
-
-        const hasAccess = await verifyHouseholdAccess(session.user.id, id)
-        if (!hasAccess) return failure("Unauthorized")
-
-        await prisma.household.update({
-            where: { id },
-            data: validated
-        })
-
-        revalidatePath("/households")
-        return success(undefined)
-    } catch (error: unknown) {
-        console.error("Failed to update household:", error)
-        return failure("Failed to update household")
     }
 }
 
