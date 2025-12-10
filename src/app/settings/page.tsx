@@ -3,7 +3,7 @@ import { prisma } from "@/core/db";
 import { SettingsForm } from "@/components/settings-form";
 import { redirect } from "next/navigation";
 
-import { appConfig } from "@/lib/app-config";
+import { appConfig } from "@/core/config";
 
 export default async function SettingsPage() {
     const session = await auth();

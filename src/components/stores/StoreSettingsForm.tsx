@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
 import { updateStore } from "@/actions/store"
-import { StoreSchema } from "@/schemas/store"
+import { StoreSchema } from "@/core/schemas"
 import { toast } from "sonner"
 
 interface StoreSettingsFormProps {
