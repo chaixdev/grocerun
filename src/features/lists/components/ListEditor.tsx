@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useOptimistic, useRef, useTransition } from "react"
-import { addItemToList, toggleListItem, removeItemFromList, startShopping, cancelShopping } from "@/actions/list"
+import { addItemToList, toggleListItem, removeItemFromList, startShopping, cancelShopping, updateListItemQuantity } from "@/actions/list"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { ItemAutocomplete } from "./ItemAutocomplete"
@@ -27,6 +27,7 @@ import { TripSummary } from "./TripSummary"
 import { completeList } from "@/actions/list"
 import { useRouter } from "next/navigation"
 import { MoreHorizontal, Pencil, Trash2, ShoppingCart, CheckCheck, X } from "lucide-react"
+import { ListItemRow } from "./ListItemRow"
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -80,12 +81,34 @@ export function ListEditor({ list }: ListEditorProps) {
     const [isPending, startTransition] = useTransition()
 
     // Optimistic UI
+    type OptimisticAction =
+        | { type: "TOGGLE"; itemId: string; isChecked: boolean }
+        | { type: "UPDATE_QTY"; itemId: string; quantity: number; unit?: string }
+        | { type: "REMOVE"; itemId: string }
+
+    // Optimistic UI
     const [optimisticItems, setOptimisticItems] = useOptimistic(
         list.items,
-        (state, { itemId, isChecked }: { itemId: string; isChecked: boolean }) =>
-            state.map((item) =>
-                item.id === itemId ? { ...item, isChecked } : item
-            )
+        (state, action: OptimisticAction) => {
+            switch (action.type) {
+                case "TOGGLE":
+                    return state.map((item) =>
+                        item.id === action.itemId ? { ...item, isChecked: action.isChecked } : item
+                    )
+                case "UPDATE_QTY":
+                    return state.map((item) =>
+                        item.id === action.itemId ? {
+                            ...item,
+                            quantity: action.quantity,
+                            unit: action.unit !== undefined ? action.unit : item.unit
+                        } : item
+                    )
+                case "REMOVE":
+                    return state.filter((item) => item.id !== action.itemId)
+                default:
+                    return state
+            }
+        }
     )
 
     // Refs for auto-scroll
@@ -220,38 +243,22 @@ export function ListEditor({ list }: ListEditorProps) {
 
     const handleToggle = (itemId: string, checked: boolean) => {
         // Capture prior state for rollback if the server update fails
-        const previousChecked = optimisticItems.find(i => i.id === itemId)?.isChecked ?? false
+        // We can't easily strict-rollback with just one variable for all actions, 
+        // but for toggle we know the opposite.
 
         startTransition(async () => {
             // 1. Optimistic Update
-            setOptimisticItems({ itemId, isChecked: checked })
+            setOptimisticItems({ type: "TOGGLE", itemId, isChecked: checked })
 
             // 2. Auto-scroll Logic (only when checking off)
             if (checked) {
-                // Calculate flat list based on CURRENT optimistic state (before this toggle applied? No, inside transition it's tricky)
-                // We use the derived 'itemsBySection' from the NEXT render usually, but here we need to calculate it manually or wait.
-                // Simpler: Calculate from 'optimisticItems' but manually applying the change for the logic check
-
-                // Actually, let's just find the next item in the current 'optimisticItems' list 
-                // assuming the toggle has "happened" for the logic search.
-
-                // We need the visual order.
-
-
-                // Note: logic above for uncategorized might duplicate if sectionId is null vs "uncategorized" string. 
-                // Let's stick to the render logic below for consistency.
-
                 // Re-deriving render logic for safety:
                 const itemsBySection: Record<string, ListItem[]> = {}
                 list.store.sections.forEach(s => itemsBySection[s.id] = [])
                 itemsBySection["uncategorized"] = []
 
                 optimisticItems.forEach(item => {
-                    // Apply the toggle strictly for this calculation if it wasn't already (optimistic state updates are batched/async in React logic sometimes)
-                    // But 'optimisticItems' here is the OLD state until next render.
-                    // So we must manually map it.
                     const isItemChecked = item.id === itemId ? checked : item.isChecked
-
                     const sectionId = item.item.sectionId || "uncategorized"
                     if (!itemsBySection[sectionId]) itemsBySection[sectionId] = []
                     itemsBySection[sectionId].push({ ...item, isChecked: isItemChecked })
@@ -261,10 +268,8 @@ export function ListEditor({ list }: ListEditorProps) {
                 list.store.sections.forEach(s => visualOrder.push(...(itemsBySection[s.id] || [])))
                 visualOrder.push(...(itemsBySection["uncategorized"] || []))
 
-                // Find index of current item
                 const currentIndex = visualOrder.findIndex(i => i.id === itemId)
 
-                // Find next UNCHECKED item after this one
                 let nextItem: ListItem | undefined
                 for (let i = currentIndex + 1; i < visualOrder.length; i++) {
                     if (!visualOrder[i].isChecked) {
@@ -273,16 +278,11 @@ export function ListEditor({ list }: ListEditorProps) {
                     }
                 }
 
-                // If no unchecked item found after, wrap around or stop? 
-                // Let's stop. Or maybe look from beginning?
-                // User said "next item in the list".
-
                 if (nextItem) {
                     const el = itemRefs.current[nextItem.id]
                     if (el) {
                         el.scrollIntoView({ behavior: "smooth", block: "center" })
                         setHighlightedItemId(nextItem.id)
-                        // Remove highlight after animation
                         setTimeout(() => setHighlightedItemId(null), 2000)
                     }
                 }
@@ -291,9 +291,47 @@ export function ListEditor({ list }: ListEditorProps) {
             // 3. Server Action
             const result = await toggleListItem({ itemId, isChecked: checked })
             if (!result.success) {
-                // Roll back optimistic change on failure
-                setOptimisticItems({ itemId, isChecked: previousChecked })
+                // Rollback
+                setOptimisticItems({ type: "TOGGLE", itemId, isChecked: !checked })
                 toast.error(result.error || "Failed to update item")
+            }
+        })
+    }
+
+    const handleUpdateQuantity = async (itemId: string, quantity: number, unit?: string) => {
+        startTransition(async () => {
+            // We need previous state for rollback, but let's just use router.refresh on error for non-toggle actions for simplicity
+            // or assume success.
+            const item = optimisticItems.find(i => i.id === itemId)
+            const oldQty = item?.quantity ?? 1
+            const oldUnit = item?.unit
+
+            setOptimisticItems({ type: "UPDATE_QTY", itemId, quantity, unit })
+
+            const result = await updateListItemQuantity({ listItemId: itemId, quantity, unit })
+            if (!result.success) {
+                toast.error(result.error || "Failed to update quantity")
+                // Rollback
+                setOptimisticItems({ type: "UPDATE_QTY", itemId, quantity: oldQty, unit: oldUnit || undefined })
+            }
+        })
+    }
+
+    const handleRemoveItem = async (itemId: string) => {
+        startTransition(async () => {
+            // Simplification: Not full optimistic rollback support for add/remove yet without more complex state
+            // But we can remove it optimistically.
+            setOptimisticItems({ type: "REMOVE", itemId })
+
+            const result = await removeItemFromList({ listItemId: itemId })
+            if (result.success) {
+                toast.success("Item removed")
+            } else {
+                toast.error(result.error || "Failed to remove item")
+                // Rollback: Hard to rollback a removal without re-adding. 
+                // We'd need to keep the deleted item in memory.
+                // For now, trigger refresh to get it back.
+                router.refresh()
             }
         })
     }
@@ -340,6 +378,8 @@ export function ListEditor({ list }: ListEditorProps) {
         }))
 
     const isReadOnly = list.status === "COMPLETED"
+    const isPlanningMode = list.status === "PLANNING"
+    const isShoppingMode = list.status === "SHOPPING"
 
     return (
         <div className="space-y-8 pb-32">
@@ -405,67 +445,23 @@ export function ListEditor({ list }: ListEditorProps) {
                             <h3 className="font-bold text-sm text-primary uppercase tracking-wider sticky top-20 bg-background/95 backdrop-blur py-2 z-10 border-b border-border/40">
                                 {section.name}
                             </h3>
-                            <div className="space-y-2">
+                            <div className="space-y-0">
                                 {items.map((listItem) => (
-                                    <div
+                                    <ListItemRow
                                         key={listItem.id}
-                                        ref={(el) => { itemRefs.current[listItem.id] = el }}
-                                        className={`group flex items-center gap-3 p-3 border-b last:border-0 hover:bg-muted/30 transition-all duration-200 ${listItem.isChecked ? "opacity-50" : ""
-                                            } ${highlightedItemId === listItem.id ? "bg-primary/10" : ""
-                                            }`}
-                                        onClick={() => !isReadOnly && handleToggle(listItem.id, !listItem.isChecked)}
-                                    >
-                                        <Checkbox
-                                            checked={listItem.isChecked}
-                                            onCheckedChange={() => { }} // Handled by div click
-                                            disabled={isReadOnly}
-                                            className="h-5 w-5 rounded-[4px] border-muted-foreground/30 data-[state=checked]:bg-primary data-[state=checked]:border-primary transition-all"
-                                        />
-                                        <div className="flex-1 flex items-center justify-between gap-2 min-w-0">
-                                            <span className={`text-base font-medium truncate transition-colors ${listItem.isChecked ? "line-through text-muted-foreground" : "text-foreground"
-                                                }`}>
-                                                {listItem.item.name}
-                                            </span>
-                                            <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-muted text-muted-foreground whitespace-nowrap">
-                                                {listItem.quantity}{listItem.unit ? ` ${listItem.unit}` : "×"}
-                                            </span>
-                                        </div>
-                                        {!isReadOnly && (
-                                            <DropdownMenu>
-                                                <DropdownMenuTrigger asChild>
-                                                    <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
-                                                        <MoreHorizontal className="h-4 w-4" />
-                                                        <span className="sr-only">More</span>
-                                                    </Button>
-                                                </DropdownMenuTrigger>
-                                                <DropdownMenuContent align="end">
-                                                    <DropdownMenuItem onClick={(e) => {
-                                                        e.stopPropagation()
-                                                        setEditingItem(listItem.item)
-                                                        setIsEditOpen(true)
-                                                    }}>
-                                                        <Pencil className="mr-2 h-4 w-4" />
-                                                        Edit Item
-                                                    </DropdownMenuItem>
-                                                    <DropdownMenuItem
-                                                        className="text-destructive focus:text-destructive"
-                                                        onClick={async (e) => {
-                                                            e.stopPropagation()
-                                                            const result = await removeItemFromList({ listItemId: listItem.id })
-                                                            if (result.success) {
-                                                                toast.success("Item removed")
-                                                            } else {
-                                                                toast.error(result.error || "Failed to remove item")
-                                                            }
-                                                        }}
-                                                    >
-                                                        <Trash2 className="mr-2 h-4 w-4" />
-                                                        Remove
-                                                    </DropdownMenuItem>
-                                                </DropdownMenuContent>
-                                            </DropdownMenu>
-                                        )}
-                                    </div>
+                                        listItem={listItem}
+                                        isReadOnly={isReadOnly}
+                                        isHighlighted={highlightedItemId === listItem.id}
+                                        isPlanningMode={isPlanningMode}
+                                        onToggle={handleToggle}
+                                        onEdit={(item) => {
+                                            setEditingItem(item)
+                                            setIsEditOpen(true)
+                                        }}
+                                        onRemove={handleRemoveItem}
+                                        onUpdateQuantity={handleUpdateQuantity}
+                                        itemRef={(el) => { itemRefs.current[listItem.id] = el }}
+                                    />
                                 ))}
                             </div>
                         </div>
@@ -478,67 +474,23 @@ export function ListEditor({ list }: ListEditorProps) {
                         <h3 className="font-bold text-sm text-primary uppercase tracking-wider sticky top-20 bg-background/95 backdrop-blur py-2 z-10 border-b border-border/40">
                             Uncategorized
                         </h3>
-                        <div className="space-y-2">
+                        <div className="space-y-0">
                             {itemsBySection["uncategorized"].map((listItem) => (
-                                <div
+                                <ListItemRow
                                     key={listItem.id}
-                                    ref={(el) => { itemRefs.current[listItem.id] = el }}
-                                    className={`group flex items-center gap-3 p-3 border-b last:border-0 hover:bg-muted/30 transition-all duration-200 ${listItem.isChecked ? "opacity-50" : ""
-                                        } ${highlightedItemId === listItem.id ? "bg-primary/10" : ""
-                                        }`}
-                                    onClick={() => !isReadOnly && handleToggle(listItem.id, !listItem.isChecked)}
-                                >
-                                    <Checkbox
-                                        checked={listItem.isChecked}
-                                        onCheckedChange={() => { }}
-                                        disabled={isReadOnly}
-                                        className="h-5 w-5 rounded-[4px] border-muted-foreground/30 data-[state=checked]:bg-primary data-[state=checked]:border-primary transition-all"
-                                    />
-                                    <div className="flex-1 flex items-center justify-between gap-2 min-w-0">
-                                        <span className={`text-base font-medium truncate transition-colors ${listItem.isChecked ? "line-through text-muted-foreground" : "text-foreground"
-                                            }`}>
-                                            {listItem.item.name}
-                                        </span>
-                                        <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-muted text-muted-foreground whitespace-nowrap">
-                                            {listItem.quantity}{listItem.unit ? ` ${listItem.unit}` : "×"}
-                                        </span>
-                                    </div>
-                                    {!isReadOnly && (
-                                        <DropdownMenu>
-                                            <DropdownMenuTrigger asChild>
-                                                <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
-                                                    <MoreHorizontal className="h-4 w-4" />
-                                                    <span className="sr-only">More</span>
-                                                </Button>
-                                            </DropdownMenuTrigger>
-                                            <DropdownMenuContent align="end">
-                                                <DropdownMenuItem onClick={(e) => {
-                                                    e.stopPropagation()
-                                                    setEditingItem(listItem.item)
-                                                    setIsEditOpen(true)
-                                                }}>
-                                                    <Pencil className="mr-2 h-4 w-4" />
-                                                    Edit Item
-                                                </DropdownMenuItem>
-                                                <DropdownMenuItem
-                                                    className="text-destructive focus:text-destructive"
-                                                    onClick={async (e) => {
-                                                        e.stopPropagation()
-                                                        const result = await removeItemFromList({ listItemId: listItem.id })
-                                                        if (result.success) {
-                                                            toast.success("Item removed")
-                                                        } else {
-                                                            toast.error(result.error || "Failed to remove item")
-                                                        }
-                                                    }}
-                                                >
-                                                    <Trash2 className="mr-2 h-4 w-4" />
-                                                    Remove
-                                                </DropdownMenuItem>
-                                            </DropdownMenuContent>
-                                        </DropdownMenu>
-                                    )}
-                                </div>
+                                    listItem={listItem}
+                                    isReadOnly={isReadOnly}
+                                    isHighlighted={highlightedItemId === listItem.id}
+                                    isPlanningMode={isPlanningMode}
+                                    onToggle={handleToggle}
+                                    onEdit={(item) => {
+                                        setEditingItem(item)
+                                        setIsEditOpen(true)
+                                    }}
+                                    onRemove={handleRemoveItem}
+                                    onUpdateQuantity={handleUpdateQuantity}
+                                    itemRef={(el) => { itemRefs.current[listItem.id] = el }}
+                                />
                             ))}
                         </div>
                     </div>
@@ -553,19 +505,20 @@ export function ListEditor({ list }: ListEditorProps) {
                         {list.status === "PLANNING" ? (
                             <Button
                                 size="lg"
-                                className="h-14 rounded-full shadow-xl px-6 bg-primary hover:bg-primary/90 transition-all active:scale-95"
+                                className="h-14 rounded-full shadow-xl px-8 bg-primary hover:bg-primary/90 transition-all active:scale-95 font-semibold"
                                 onClick={async () => {
                                     const result = await startShopping({ listId: list.id })
                                     if (result.success) {
                                         router.refresh()
-                                        toast.success("List is definitely Live! 🛒")
+                                        toast.success("Shopping mode activated! 🛒")
                                     } else {
                                         toast.error(result.error || "Failed to start shopping")
                                     }
                                 }}
+                                disabled={optimisticItems.length === 0}
                             >
                                 <ShoppingCart className="mr-2 h-5 w-5" />
-                                Start Shopping
+                                Go Shopping
                             </Button>
                         ) : (
                             <>
