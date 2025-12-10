@@ -107,6 +107,7 @@ export async function getList(listId: string) {
                 }
             },
             items: {
+                orderBy: { createdAt: "asc" },
                 include: {
                     item: true
                 }
