@@ -4,7 +4,7 @@ import { useState, useOptimistic, useRef, useTransition } from "react"
 import { addItemToList, toggleListItem, removeItemFromList, startShopping, cancelShopping } from "@/actions/list"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { ItemAutocomplete } from "./item-autocomplete"
+import { ItemAutocomplete } from "./ItemAutocomplete"
 import { Checkbox } from "@/components/ui/checkbox"
 import { toast } from "sonner"
 import {
@@ -23,7 +23,7 @@ import {
     SelectValue,
 } from "@/components/ui/select"
 import { Label } from "@/components/ui/label"
-import { TripSummary } from "./trip-summary"
+import { TripSummary } from "./TripSummary"
 import { completeList } from "@/actions/list"
 import { useRouter } from "next/navigation"
 import { MoreHorizontal, Pencil, Trash2, ShoppingCart, CheckCheck, X } from "lucide-react"
@@ -33,7 +33,7 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { EditItemDialog } from "./edit-item-dialog"
+import { EditItemDialog } from "./EditItemDialog"
 
 interface Section {
     id: string

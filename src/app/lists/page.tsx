@@ -1,6 +1,6 @@
 import { auth } from "@/core/auth";
 import { getDashboardData } from "@/actions/dashboard";
-import { HouseholdListGroup } from "@/components/dashboard/HouseholdListGroup";
+import { HouseholdListGroup } from "@/features/lists";
 import { redirect } from "next/navigation";
 
 export default async function ListsPage() {

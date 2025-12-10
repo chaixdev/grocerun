@@ -7,7 +7,7 @@ import { getStore } from "@/actions/store"
 import { getSections } from "@/actions/section"
 import { Button } from "@/components/ui/button"
 import { StoreSettingsForm } from "@/features/stores"
-import { SectionList } from "@/components/section-list"
+import { SectionList } from "@/features/stores"
 import { StoreDeleteSection } from "@/features/stores"
 
 
