@@ -1,6 +1,6 @@
 import { getHouseholds } from "@/actions/household"
-import { HouseholdForm } from "@/components/household-form"
-import { HouseholdList } from "@/components/household-list"
+import { HouseholdForm } from "@/features/households"
+import { HouseholdList } from "@/features/households"
 
 export default async function HouseholdsPage() {
     const households = await getHouseholds()

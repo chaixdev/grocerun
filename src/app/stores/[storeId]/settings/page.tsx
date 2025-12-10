@@ -6,9 +6,9 @@ import { auth } from "@/core/auth"
 import { getStore } from "@/actions/store"
 import { getSections } from "@/actions/section"
 import { Button } from "@/components/ui/button"
-import { StoreSettingsForm } from "@/components/stores/StoreSettingsForm"
+import { StoreSettingsForm } from "@/features/stores"
 import { SectionList } from "@/components/section-list"
-import { StoreDeleteSection } from "@/components/stores/StoreDeleteSection"
+import { StoreDeleteSection } from "@/features/stores"
 
 
 export default async function StoreSettingsPage({ params }: { params: Promise<{ storeId: string }> }) {

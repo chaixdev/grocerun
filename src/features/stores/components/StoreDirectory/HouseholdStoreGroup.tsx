@@ -2,7 +2,7 @@ import { Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { DirectoryHousehold } from "@/actions/store-directory"
 import { StoreCard } from "./StoreCard"
-import { StoreForm } from "@/components/store-form"
+import { StoreForm } from "@/features/stores"
 
 interface HouseholdStoreGroupProps {
     household: DirectoryHousehold

@@ -21,8 +21,8 @@ import { Separator } from "@/components/ui/separator"
 import { toast } from "sonner"
 import { signOut } from "next-auth/react"
 import { LogOut } from "lucide-react"
-import { ProfileSchema, type ProfileFormValues } from "@/lib/schemas/user"
-import { InvitationManager } from "@/components/invitation-manager"
+import { ProfileSchema, type ProfileFormValues } from "@/core/schemas"
+import { InvitationManager } from "@/features/households"
 
 interface SettingsFormProps {
     user: {

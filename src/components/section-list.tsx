@@ -7,7 +7,7 @@ import { GripVertical, Trash2 } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { toast } from "sonner"
 import { SortableList, SortableItem, SortableDragHandle } from "@/components/ui/sortable"
-import { useListNavigation } from "@/hooks/use-list-navigation"
+import { useListNavigation } from "@/features/lists"
 import { cn } from "@/lib/utils"
 
 interface Section {

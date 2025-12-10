@@ -3,7 +3,7 @@
 import { auth } from "@/core/auth"
 import { prisma } from "@/core/db"
 import { revalidatePath } from "next/cache"
-import { ProfileSchema, type ProfileFormValues } from "@/lib/schemas/user"
+import { ProfileSchema, type ProfileFormValues } from "@/core/schemas"
 
 export async function updateProfile(data: ProfileFormValues) {
     const session = await auth()
