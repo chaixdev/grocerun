@@ -351,38 +351,6 @@ export function ListEditor({ list }: ListEditorProps) {
                 </div>
             )}
 
-            {/* Planning Mode Indicator */}
-            {isPlanningMode && (
-                <div className="bg-primary/5 border-l-4 border-l-primary rounded-r-lg p-4 flex items-center gap-3">
-                    <div className="flex-shrink-0 p-2 bg-primary/10 rounded-full">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary">
-                            <path d="M12 20h9" />
-                            <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
-                        </svg>
-                    </div>
-                    <div className="flex-1">
-                        <p className="font-semibold text-sm text-foreground">Planning Mode</p>
-                        <p className="text-xs text-muted-foreground">Add items to your list. Start shopping when ready.</p>
-                    </div>
-                </div>
-            )}
-
-            {/* Shopping Mode Indicator */}
-            {isShoppingMode && (
-                <div className="bg-primary/5 border-l-4 border-l-primary rounded-r-lg p-4 flex items-center gap-3 animate-in fade-in slide-in-from-top-2 duration-300">
-                    <div className="flex-shrink-0 p-2 bg-primary/10 rounded-full">
-                        <ShoppingCart className="h-5 w-5 text-primary" />
-                    </div>
-                    <div className="flex-1">
-                        <p className="font-semibold text-sm text-foreground flex items-center gap-2">
-                            Shopping Mode
-                            <span className="text-[9px] font-bold uppercase tracking-wider text-primary animate-pulse px-2 py-0.5 bg-primary/10 rounded-full">Live</span>
-                        </p>
-                        <p className="text-xs text-muted-foreground">Check off items as you shop.</p>
-                    </div>
-                </div>
-            )}
-
             {!isReadOnly && (
                 <div className="sticky top-0 z-20 bg-background/95 backdrop-blur border-b -mx-4 px-4 py-3 mb-4">
                     <form onSubmit={handleAddItem} className="flex gap-2 items-center">
