@@ -140,9 +140,9 @@ export function ListEditor({ list }: ListEditorProps) {
                 setNewItemName(inputValue.trim())
                 setSelectedSection("") // Default to uncategorized
                 setIsDialogOpen(true)
+            } else if (result.status === "ERROR") {
+                toast.error(result.error || "Failed to add item")
             }
-        } catch {
-            toast.error("Failed to add item")
         } finally {
             setIsSubmitting(false)
         }
@@ -182,9 +182,9 @@ export function ListEditor({ list }: ListEditorProps) {
             } else if (result.status === "ALREADY_EXISTS") {
                 setInputValue("")
                 toast.info(`${item.name} is already in list`)
+            } else if (result.status === "ERROR") {
+                toast.error(result.error || "Failed to add item")
             }
-        } catch {
-            toast.error("Failed to add item")
         } finally {
             setIsSubmitting(false)
         }
@@ -195,7 +195,7 @@ export function ListEditor({ list }: ListEditorProps) {
 
         setIsSubmitting(true)
         try {
-            await addItemToList({
+            const result = await addItemToList({
                 listId: list.id,
                 name: newItemName,
                 sectionId: selectedSection && selectedSection !== "uncategorized" ? selectedSection : null,
@@ -203,14 +203,16 @@ export function ListEditor({ list }: ListEditorProps) {
                 unit: inputUnit.trim() || undefined,
             })
 
-            setInputValue("")
-            setNewItemName(null)
-            setInputQty(1)
-            setInputUnit("")
-            setIsDialogOpen(false)
-            toast.success("Item created and added")
-        } catch {
-            toast.error("Failed to create item")
+            if (result.status === "ERROR") {
+                toast.error(result.error || "Failed to create item")
+            } else {
+                setInputValue("")
+                setNewItemName(null)
+                setInputQty(1)
+                setInputUnit("")
+                setIsDialogOpen(false)
+                toast.success("Item created and added")
+            }
         } finally {
             setIsSubmitting(false)
         }
@@ -287,12 +289,11 @@ export function ListEditor({ list }: ListEditorProps) {
             }
 
             // 3. Server Action
-            try {
-                await toggleListItem(itemId, checked)
-            } catch {
+            const result = await toggleListItem({ itemId, isChecked: checked })
+            if (!result.success) {
                 // Roll back optimistic change on failure
                 setOptimisticItems({ itemId, isChecked: previousChecked })
-                toast.error("Failed to update item")
+                toast.error(result.error || "Failed to update item")
             }
         })
     }
@@ -303,12 +304,12 @@ export function ListEditor({ list }: ListEditorProps) {
 
     const handleCompleteTrip = async () => {
         setIsCompleting(true)
-        try {
-            await completeList(list.id)
+        const result = await completeList({ listId: list.id })
+        if (result.success) {
             toast.success("Trip completed!")
             router.push(`/stores/${list.store.id}`)
-        } catch {
-            toast.error("Failed to complete trip")
+        } else {
+            toast.error(result.error || "Failed to complete trip")
             setIsCompleting(false)
         }
     }
@@ -450,11 +451,11 @@ export function ListEditor({ list }: ListEditorProps) {
                                                         className="text-destructive focus:text-destructive"
                                                         onClick={async (e) => {
                                                             e.stopPropagation()
-                                                            try {
-                                                                await removeItemFromList(listItem.id)
+                                                            const result = await removeItemFromList({ listItemId: listItem.id })
+                                                            if (result.success) {
                                                                 toast.success("Item removed")
-                                                            } catch {
-                                                                toast.error("Failed to remove item")
+                                                            } else {
+                                                                toast.error(result.error || "Failed to remove item")
                                                             }
                                                         }}
                                                     >
@@ -523,11 +524,11 @@ export function ListEditor({ list }: ListEditorProps) {
                                                     className="text-destructive focus:text-destructive"
                                                     onClick={async (e) => {
                                                         e.stopPropagation()
-                                                        try {
-                                                            await removeItemFromList(listItem.id)
+                                                        const result = await removeItemFromList({ listItemId: listItem.id })
+                                                        if (result.success) {
                                                             toast.success("Item removed")
-                                                        } catch {
-                                                            toast.error("Failed to remove item")
+                                                        } else {
+                                                            toast.error(result.error || "Failed to remove item")
                                                         }
                                                     }}
                                                 >
@@ -554,12 +555,12 @@ export function ListEditor({ list }: ListEditorProps) {
                                 size="lg"
                                 className="h-14 rounded-full shadow-xl px-6 bg-primary hover:bg-primary/90 transition-all active:scale-95"
                                 onClick={async () => {
-                                    try {
-                                        await startShopping(list.id)
+                                    const result = await startShopping({ listId: list.id })
+                                    if (result.success) {
                                         router.refresh()
                                         toast.success("List is definitely Live! 🛒")
-                                    } catch {
-                                        toast.error("Failed to start shopping")
+                                    } else {
+                                        toast.error(result.error || "Failed to start shopping")
                                     }
                                 }}
                             >
@@ -573,12 +574,12 @@ export function ListEditor({ list }: ListEditorProps) {
                                     variant="secondary"
                                     className="h-14 w-14 rounded-full shadow-lg bg-background border hover:bg-muted"
                                     onClick={async () => {
-                                        try {
-                                            await cancelShopping(list.id)
+                                        const result = await cancelShopping({ listId: list.id })
+                                        if (result.success) {
                                             router.refresh()
                                             toast("Shopping Cancelled", { description: "List reverted to planning mode." })
-                                        } catch {
-                                            toast.error("Failed to cancel shopping")
+                                        } else {
+                                            toast.error(result.error || "Failed to cancel shopping")
                                         }
                                     }}
                                 >

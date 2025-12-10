@@ -36,14 +36,14 @@ export function StoreForm({ householdId, trigger }: { householdId: string, trigg
     })
 
     async function onSubmit(values: z.infer<typeof formSchema>) {
-        try {
-            await createStore({ ...values, householdId })
+        const result = await createStore({ ...values, householdId })
+        if (result.success) {
             setOpen(false)
             form.reset()
             toast.success("Store created")
-        } catch (error) {
-            console.error("Failed to create store", error)
-            toast.error("Failed to create store")
+        } else {
+            console.error("Failed to create store", result.error)
+            toast.error(result.error || "Failed to create store")
         }
     }
 

@@ -5,10 +5,10 @@ import { prisma } from "@/core/db"
 import { revalidatePath } from "next/cache"
 import { z } from "zod"
 
-import { verifyHouseholdAccess } from "@/core/auth"
-import { verifyStoreAccess } from "@/core/auth"
-
+import { verifyHouseholdAccess, verifyStoreAccess } from "@/core/auth"
 import { StoreSchema } from "@/core/schemas"
+import { type ActionResult, success, failure } from "@/core/types"
+import type { Household } from "@/core/db"
 
 /**
  * Pure query - returns stores for the user's household.
@@ -44,65 +44,82 @@ export async function getStores(householdId?: string) {
  * Creates a default household for a user during onboarding.
  * Should be called explicitly, not as a side effect of reads.
  */
-export async function createDefaultHousehold() {
+export async function createDefaultHousehold(): Promise<ActionResult<Household>> {
     const session = await auth()
-    if (!session?.user?.id) throw new Error("Unauthorized")
+    if (!session?.user?.id) return failure("Unauthorized")
 
-    const user = await prisma.user.findUnique({
-        where: { id: session.user.id },
-        include: { households: true },
-    })
+    try {
+        const user = await prisma.user.findUnique({
+            where: { id: session.user.id },
+            include: { households: true },
+        })
 
-    if (!user) throw new Error("User not found")
+        if (!user) return failure("User not found")
 
-    // Don't create if user already has households
-    if (user.households.length > 0) {
-        return user.households[0]
+        // Don't create if user already has households
+        if (user.households.length > 0) {
+            return success(user.households[0])
+        }
+
+        const household = await prisma.household.create({
+            data: {
+                name: "My Household",
+                users: { connect: { id: session.user.id } },
+                ownerId: session.user.id,
+            },
+        })
+
+        revalidatePath("/stores")
+        revalidatePath("/households")
+        return success(household)
+    } catch (error: unknown) {
+        console.error("Failed to create default household:", error)
+        return failure("Failed to create household")
     }
-
-    const household = await prisma.household.create({
-        data: {
-            name: "My Household",
-            users: { connect: { id: session.user.id } },
-            ownerId: session.user.id,
-        },
-    })
-
-    revalidatePath("/stores")
-    revalidatePath("/households")
-    return household
 }
 
-export async function createStore(data: z.infer<typeof StoreSchema>) {
+export async function createStore(data: z.infer<typeof StoreSchema>): Promise<ActionResult<void>> {
     const session = await auth()
-    if (!session?.user?.id) throw new Error("Unauthorized")
+    if (!session?.user?.id) return failure("Unauthorized")
 
-    const validated = StoreSchema.parse(data)
+    try {
+        const validated = StoreSchema.parse(data)
 
-    // Verify access to household
-    const hasAccess = await verifyHouseholdAccess(session.user.id, validated.householdId)
-    if (!hasAccess) throw new Error("Unauthorized access to household")
+        // Verify access to household
+        const hasAccess = await verifyHouseholdAccess(session.user.id, validated.householdId)
+        if (!hasAccess) return failure("Unauthorized access to household")
 
-    await prisma.store.create({
-        data: {
-            name: validated.name,
-            location: validated.location,
-            householdId: validated.householdId,
-        },
-    })
+        await prisma.store.create({
+            data: {
+                name: validated.name,
+                location: validated.location,
+                householdId: validated.householdId,
+            },
+        })
 
-    revalidatePath("/stores")
+        revalidatePath("/stores")
+        return success(undefined)
+    } catch (error: unknown) {
+        console.error("Failed to create store:", error)
+        return failure("Failed to create store")
+    }
 }
 
-export async function deleteStore(id: string) {
+export async function deleteStore(id: string): Promise<ActionResult<void>> {
     const session = await auth()
-    if (!session?.user?.id) throw new Error("Unauthorized")
+    if (!session?.user?.id) return failure("Unauthorized")
 
-    // Verify ownership via household
-    await verifyStoreAccess(id, session.user.id)
+    try {
+        // Verify ownership via household
+        await verifyStoreAccess(id, session.user.id)
 
-    await prisma.store.delete({ where: { id } })
-    revalidatePath("/stores")
+        await prisma.store.delete({ where: { id } })
+        revalidatePath("/stores")
+        return success(undefined)
+    } catch (error: unknown) {
+        console.error("Failed to delete store:", error)
+        return failure("Failed to delete store")
+    }
 }
 
 export async function getStore(id: string) {
@@ -127,26 +144,30 @@ export async function getStore(id: string) {
     })
 }
 
-export async function updateStore(id: string, data: z.infer<typeof StoreSchema>) {
+export async function updateStore(id: string, data: z.infer<typeof StoreSchema>): Promise<ActionResult<void>> {
     const session = await auth()
-    if (!session?.user?.id) throw new Error("Unauthorized")
+    if (!session?.user?.id) return failure("Unauthorized")
 
-    // Zod validation is partial for updates usually, but here we expect full form data or partial?
-    // Let's use the same schema but maybe allow partial if needed. 
-    // For now, let's assume the form sends all fields.
-    const validated = StoreSchema.parse(data)
+    try {
+        const validated = StoreSchema.parse(data)
 
-    await verifyStoreAccess(id, session.user.id)
+        await verifyStoreAccess(id, session.user.id)
 
-    await prisma.store.update({
-        where: { id },
-        data: {
-            name: validated.name,
-            location: validated.location,
-            imageUrl: validated.imageUrl,
-        }
-    })
+        await prisma.store.update({
+            where: { id },
+            data: {
+                name: validated.name,
+                location: validated.location,
+                imageUrl: validated.imageUrl,
+            }
+        })
 
-    revalidatePath("/stores")
-    revalidatePath(`/stores/${id}/settings`)
+        revalidatePath("/stores")
+        revalidatePath(`/stores/${id}/settings`)
+        return success(undefined)
+    } catch (error: unknown) {
+        console.error("Failed to update store:", error)
+        return failure("Failed to update store")
+    }
 }
+

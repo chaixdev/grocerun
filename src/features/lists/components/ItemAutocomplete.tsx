@@ -54,14 +54,14 @@ export function ItemAutocomplete({
         setIsLoading(true)
         try {
             if (query.trim()) {
-                const items = await searchItems({ storeId, query: query.trim() })
+                const result = await searchItems({ storeId, query: query.trim() })
                 if (lastQueryRef.current !== query) return
-                setSuggestions(items)
+                setSuggestions(result.success ? result.data : [])
             } else {
                 // Empty query: show top items
-                const items = await getTopItemsForStore({ storeId, limit: 5, threshold: 1 })
+                const result = await getTopItemsForStore({ storeId, limit: 5, threshold: 1 })
                 if (lastQueryRef.current !== query) return
-                setSuggestions(items)
+                setSuggestions(result.success ? result.data : [])
             }
         } catch (error) {
             if (lastQueryRef.current !== query) return

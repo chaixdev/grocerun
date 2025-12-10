@@ -51,21 +51,21 @@ export function EditItemDialog({ item, sections, open, onOpenChange, onSuccess }
         if (!name.trim()) return
 
         setIsSubmitting(true)
-        try {
-            await updateItem({
-                itemId: item.id,
-                name: name.trim(),
-                sectionId: sectionId === "uncategorized" ? undefined : sectionId,
-                defaultUnit: defaultUnit.trim() || undefined,
-            })
+        const result = await updateItem({
+            itemId: item.id,
+            name: name.trim(),
+            sectionId: sectionId === "uncategorized" ? undefined : sectionId,
+            defaultUnit: defaultUnit.trim() || undefined,
+        })
+
+        if (result.success) {
             toast.success("Item updated")
             onOpenChange(false)
             onSuccess?.()
-        } catch {
-            toast.error("Failed to update item")
-        } finally {
-            setIsSubmitting(false)
+        } else {
+            toast.error(result.error || "Failed to update item")
         }
+        setIsSubmitting(false)
     }
 
     return (

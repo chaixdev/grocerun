@@ -37,21 +37,19 @@ export function SectionList({ sections: initialSections, storeId }: SectionListP
 
     const handleReorder = async (newSections: Section[]) => {
         setSections(newSections)
-        try {
-            await reorderSections(storeId, newSections.map(s => s.id))
-        } catch {
-            toast.error("Failed to save order")
+        const result = await reorderSections({ storeId, orderedIds: newSections.map(s => s.id) })
+        if (!result.success) {
+            toast.error(result.error || "Failed to save order")
             setSections(sections) // Revert
         }
     }
 
-    // Debounced update ONLY for existing items
     const debouncedUpdate = useMemo(
         () => debounce(async (id: string, name: string) => {
-            try {
-                await updateSection(id, name)
-            } catch {
-                // silent fail
+            const result = await updateSection({ id, name })
+            if (!result.success) {
+                // silent fail but log
+                console.error("Failed to update section:", result.error)
             }
         }, 500),
         []
@@ -64,16 +62,16 @@ export function SectionList({ sections: initialSections, storeId }: SectionListP
 
     const saveTempSection = useCallback(async (section: Section) => {
         if (!section.name.trim()) return
-        try {
-            const newSection = await createSection({
-                name: section.name,
-                storeId,
-                order: section.order
-            })
+        const result = await createSection({
+            name: section.name,
+            storeId,
+            order: section.order
+        })
 
-            setSections(prev => prev.map(s => s.id === section.id ? newSection : s))
-        } catch {
-            toast.error("Failed to create section")
+        if (result.success) {
+            setSections(prev => prev.map(s => s.id === section.id ? result.data : s))
+        } else {
+            toast.error(result.error || "Failed to create section")
         }
     }, [storeId])
 
@@ -120,11 +118,11 @@ export function SectionList({ sections: initialSections, storeId }: SectionListP
         // If it's a temp section, just remove it locally
         if (section.id.startsWith("temp-")) return
 
-        try {
-            await deleteSection(section.id)
+        const result = await deleteSection({ id: section.id })
+        if (result.success) {
             toast.success("Section deleted")
-        } catch {
-            toast.error("Failed to delete section")
+        } else {
+            toast.error(result.error || "Failed to delete section")
             setSections(sections) // Revert
         }
     }, [sections])
