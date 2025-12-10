@@ -3,7 +3,7 @@ import { getList } from "@/actions/list"
 import { notFound, redirect } from "next/navigation"
 import { ListEditor } from "@/features/lists"
 import { Button } from "@/components/ui/button"
-import { ArrowLeft, Pencil, ShoppingCart, CheckCircle2 } from "lucide-react"
+import { ArrowLeft, Pencil, ShoppingCart, CheckCircle2, ScrollText } from "lucide-react"
 import Link from "next/link"
 
 export default async function ListDetailsPage({
@@ -27,10 +27,13 @@ export default async function ListDetailsPage({
                     </Link>
                 </Button>
                 <div className="flex-1">
-                    <h1 className="text-2xl font-bold tracking-tight leading-tight">
-                        {list.store.name}
-                    </h1>
-                    <div className="flex items-center gap-1.5 mt-1">
+                    <div className="flex items-center gap-2">
+                        <ScrollText className="h-5 w-5 text-muted-foreground" />
+                        <h1 className="text-2xl font-bold tracking-tight leading-tight">
+                            {list.store.name}
+                        </h1>
+                    </div>
+                    <div className="flex items-center gap-1.5 mt-1 ml-7">
                         {list.status === "PLANNING" && (
                             <>
                                 <Pencil className="h-3.5 w-3.5 text-primary" />
