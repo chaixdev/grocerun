@@ -24,7 +24,7 @@
 ## 🟠 Phase 3: Planning Mode (List Creation)
 *Goal: Frictionless list creation and item entry.*
 - [x] [GRO-13: Intelligent Autocomplete](./tickets/done/GRO-13-autocomplete.md) ([US-1](./user-stories/US-1-autocomplete.md))
-- [ ] [GRO-52: Fix "Start Shopping List" Logic](./tickets/backlog/GRO-52-fix-active-list-logic.md) ([US-9](./user-stories/US-9-shopping-state-machine.md))
+- [x] [GRO-52: Fix "Start Shopping List" Logic](./tickets/done/GRO-52-fix-active-list-logic.md) ([US-9](./user-stories/US-9-shopping-state-machine.md))
 - [ ] [GRO-46: Planning Mode UI](./tickets/backlog/GRO-46-planning-mode.md) ([US-9](./user-stories/US-9-shopping-state-machine.md))
 - [ ] [GRO-51: Planning Mode Quantity Editing](./tickets/backlog/GRO-51-planning-quantity.md) ([US-5](./user-stories/US-5-mobile-quantity-editing.md))
 - [ ] [GRO-14: Fuzzy Matching (FTS5)](./tickets/backlog/GRO-14-fuzzy-matching.md) ([US-1](./user-stories/US-1-autocomplete.md))
