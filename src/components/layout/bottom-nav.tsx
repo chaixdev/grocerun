@@ -2,33 +2,15 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Store, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
-
-const items = [
-    {
-        title: "Lists",
-        href: "/lists",
-        icon: Home,
-    },
-    {
-        title: "Stores",
-        href: "/stores",
-        icon: Store,
-    },
-    {
-        title: "Settings",
-        href: "/settings",
-        icon: Settings,
-    },
-];
+import { navigationItems } from "@/core/config";
 
 export function BottomNav() {
     const pathname = usePathname();
 
     return (
         <nav className="fixed bottom-0 left-0 right-0 z-50 flex h-16 items-center justify-around border-t bg-background px-4 md:hidden">
-            {items.map((item) => (
+            {navigationItems.map((item) => (
                 <Link
                     key={item.href}
                     href={item.href}

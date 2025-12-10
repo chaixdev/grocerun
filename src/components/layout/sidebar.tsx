@@ -2,28 +2,10 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Store, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { UserNav } from "@/components/user-nav";
 import { ModeToggle } from "@/components/mode-toggle";
-
-const items = [
-    {
-        title: "Lists",
-        href: "/lists",
-        icon: Home,
-    },
-    {
-        title: "Stores",
-        href: "/stores",
-        icon: Store,
-    },
-    {
-        title: "Settings",
-        href: "/settings",
-        icon: Settings,
-    },
-];
+import { navigationItems } from "@/core/config";
 
 interface SidebarProps {
     user?: {
@@ -42,7 +24,7 @@ export function Sidebar({ user }: SidebarProps) {
                 <span className="text-lg font-semibold text-primary">Grocerun</span>
             </div>
             <nav className="flex-1 space-y-1 p-4">
-                {items.map((item) => (
+                {navigationItems.map((item) => (
                     <Link
                         key={item.href}
                         href={item.href}
