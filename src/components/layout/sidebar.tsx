@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { UserNav } from "@/components/user-nav";
 import { ModeToggle } from "@/components/mode-toggle";
-import { navigationItems } from "@/core/config";
+import { navigationItems } from "@/core/config/navigation";
 
 interface SidebarProps {
     user?: {
