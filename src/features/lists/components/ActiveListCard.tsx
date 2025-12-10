@@ -56,11 +56,7 @@ export function ActiveListCard({ list, storeName }: ActiveListCardProps) {
                                     <CalendarDays size={12} />
                                     <span suppressHydrationWarning>{new Date(list.updatedAt).toLocaleDateString()}</span>
                                 </div>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <h3 className="font-bold text-lg leading-tight group-hover:text-primary transition-colors">
-                                    {storeName}
-                                </h3>
+                                <span className="text-muted-foreground/40">•</span>
                                 {isShopping && (
                                     <Badge variant="default" className="text-[9px] font-bold uppercase tracking-wider animate-pulse">
                                         Shopping
@@ -72,6 +68,9 @@ export function ActiveListCard({ list, storeName }: ActiveListCardProps) {
                                     </Badge>
                                 )}
                             </div>
+                            <h3 className="font-bold text-lg leading-tight group-hover:text-primary transition-colors">
+                                {storeName}
+                            </h3>
                         </div>
                         <div className={cn(
                             "flex items-center gap-1.5 px-2.5 py-1.5 rounded-full border text-xs font-semibold",

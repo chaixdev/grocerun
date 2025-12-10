@@ -27,26 +27,34 @@ export default async function ListDetailsPage({
                         <ArrowLeft className="h-4 w-4" />
                     </Link>
                 </Button>
-                <div className="flex-1 flex items-center gap-2">
-                    <ScrollText className="h-5 w-5 text-muted-foreground" />
+                <div className="flex-1">
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
+                        <span className="font-semibold uppercase tracking-wider flex items-center gap-1">
+                            <ScrollText className="h-3 w-3" />
+                            <span>List</span>
+                        </span>
+                        <span className="text-muted-foreground/40">•</span>
+                        <span suppressHydrationWarning>{new Date(list.updatedAt).toLocaleDateString()}</span>
+                        <span className="text-muted-foreground/40">•</span>
+                        {list.status === "PLANNING" && (
+                            <Badge variant="outline" className="text-[9px] font-bold uppercase tracking-wider border-primary/20 text-primary">
+                                Planning
+                            </Badge>
+                        )}
+                        {list.status === "SHOPPING" && (
+                            <Badge variant="default" className="text-[9px] font-bold uppercase tracking-wider animate-pulse">
+                                Shopping
+                            </Badge>
+                        )}
+                        {list.status === "COMPLETED" && (
+                            <Badge variant="secondary" className="text-[9px] font-bold uppercase tracking-wider">
+                                Completed
+                            </Badge>
+                        )}
+                    </div>
                     <h1 className="text-2xl font-bold tracking-tight leading-tight">
                         {list.store.name}
                     </h1>
-                    {list.status === "PLANNING" && (
-                        <Badge variant="outline" className="text-[9px] font-bold uppercase tracking-wider border-primary/20 text-primary">
-                            Planning
-                        </Badge>
-                    )}
-                    {list.status === "SHOPPING" && (
-                        <Badge variant="default" className="text-[9px] font-bold uppercase tracking-wider animate-pulse">
-                            Shopping
-                        </Badge>
-                    )}
-                    {list.status === "COMPLETED" && (
-                        <Badge variant="secondary" className="text-[9px] font-bold uppercase tracking-wider">
-                            Completed
-                        </Badge>
-                    )}
                 </div>
             </div>
 
