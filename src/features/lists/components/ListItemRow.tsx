@@ -88,11 +88,11 @@ export function ListItemRow({
                             className="text-destructive focus:text-destructive"
                             onClick={async (e) => {
                                 e.stopPropagation()
-                                try {
-                                    await removeItemFromList(listItem.id)
+                                const result = await removeItemFromList({ listItemId: listItem.id })
+                                if (result.success) {
                                     toast.success("Item removed")
-                                } catch {
-                                    toast.error("Failed to remove item")
+                                } else {
+                                    toast.error(result.error || "Failed to remove item")
                                 }
                             }}
                         >

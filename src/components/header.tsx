@@ -15,13 +15,7 @@ export function Header({ user }: HeaderProps) {
                     <Link href="/" className="flex items-center gap-2 hover:no-underline">
                         <span className="text-primary">Grocerun</span>
                     </Link>
-                    {user && (
-                        <nav className="flex items-center gap-4 text-sm font-medium">
-                            <Link href="/stores" className="transition-colors hover:text-primary">
-                                Stores
-                            </Link>
-                        </nav>
-                    )}
+
                 </div>
 
                 <div className="flex items-center gap-4">

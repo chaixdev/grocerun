@@ -88,13 +88,13 @@ export function StoreCard({ store }: StoreCardProps) {
                             onClick={async (e) => {
                                 e.stopPropagation()
                                 setIsCreating(true)
-                                try {
-                                    const newList = await createList({ storeId: store.id })
-                                    router.push(`/lists/${newList.id}`)
-                                } catch (error) {
+                                const result = await createList({ storeId: store.id })
+                                if (result.success) {
+                                    router.push(`/lists/${result.data.id}`)
+                                } else {
                                     setIsCreating(false)
-                                    console.error("Failed to create list:", error)
-                                    toast.error("Failed to start shopping list")
+                                    console.error("Failed to create list:", result.error)
+                                    toast.error(result.error || "Failed to start shopping list")
                                 }
                             }}
                         >

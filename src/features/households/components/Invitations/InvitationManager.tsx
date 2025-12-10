@@ -69,9 +69,13 @@ export function InvitationManager({ userId, households, invitationTimeoutMinutes
     async function handleGenerateInvite(householdId: string) {
         setIsGenerating(true)
         try {
-            const result = await createInvitation(householdId)
-            if (result.success && result.token) {
-                setInviteToken(result.token)
+            const result = await createInvitation({ householdId })
+            if (result.success) {
+                if (result.data.token) {
+                    setInviteToken(result.data.token)
+                } else {
+                    toast.error("Error", { description: "No invitation token received" })
+                }
             } else {
                 toast.error("Error", { description: result.error || "Failed to create invitation" })
             }
@@ -87,13 +91,17 @@ export function InvitationManager({ userId, households, invitationTimeoutMinutes
 
         setIsFetchingDetails(true)
         try {
-            const details = await getInvitationDetails(joinToken)
-            if (details.success && details.householdName) {
-                setJoinDetails({
-                    householdName: details.householdName,
-                    ownerName: details.ownerName || "Unknown"
-                })
-                setShowJoinDialog(true)
+            const details = await getInvitationDetails({ token: joinToken })
+            if (details.success) {
+                if (details.data.householdName) {
+                    setJoinDetails({
+                        householdName: details.data.householdName,
+                        ownerName: details.data.ownerName || "Unknown"
+                    })
+                    setShowJoinDialog(true)
+                } else {
+                    toast.error("Error", { description: "Invitation details incomplete" })
+                }
             } else {
                 toast.error("Error", { description: details.error || "Invalid invitation code" })
             }
@@ -107,10 +115,10 @@ export function InvitationManager({ userId, households, invitationTimeoutMinutes
     async function handleConfirmJoin() {
         setIsJoining(true)
         try {
-            const result = await joinHousehold(joinToken)
+            const result = await joinHousehold({ token: joinToken })
             if (result.success) {
                 toast.success("Joined Household", {
-                    description: `You have successfully joined ${result.householdName} `
+                    description: `You have successfully joined ${result.data.householdName} `
                 })
                 setJoinToken("")
                 setShowJoinDialog(false)
@@ -128,16 +136,15 @@ export function InvitationManager({ userId, households, invitationTimeoutMinutes
     async function handleCreateHousehold() {
         if (!newHouseholdName.trim()) return
         setIsCreating(true)
-        try {
-            await createHousehold({ name: newHouseholdName })
+        const result = await createHousehold({ name: newHouseholdName })
+        if (result.success) {
             toast.success("Household Created")
             setShowCreateDialog(false)
             setNewHouseholdName("")
-        } catch (error) {
-            toast.error("Error", { description: "Failed to create household" })
-        } finally {
-            setIsCreating(false)
+        } else {
+            toast.error("Error", { description: result.error || "Failed to create household" })
         }
+        setIsCreating(false)
     }
 
     async function handleRenameHousehold() {

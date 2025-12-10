@@ -32,13 +32,13 @@ export function StoreLists({ lists, storeId }: { lists: List[], storeId: string 
     const completedLists = lists.filter(l => l.status === "COMPLETED")
 
     const handleCreate = async () => {
-        try {
-            setIsCreating(true)
-            const list = await createList({ storeId })
+        setIsCreating(true)
+        const result = await createList({ storeId })
+        if (result.success) {
             // toast.success("List created") - Removed to speed up perceived navigation
-            router.push(`/lists/${list.id}`)
-        } catch {
-            toast.error("Failed to create list")
+            router.push(`/lists/${result.data.id}`)
+        } else {
+            toast.error(result.error || "Failed to create list")
             setIsCreating(false)
         }
     }
