@@ -32,12 +32,21 @@ function validateEnv() {
         // Don't throw during build time if we want to allow 'next build' without secrets?
         // Usually 'next build' requires database url for prisma generation maybe?
         // Let's throw.
-        if (process.env.NODE_ENV !== 'test') { // Prevent test runner crash if we mock differently?
+        if (process.env.NODE_ENV !== 'test') {
             throw new Error('Invalid environment variables')
         }
+
+        // Return mock values for test environment if actual env vars are missing
+        return {
+            DATABASE_URL: 'file:./test.db',
+            AUTH_SECRET: 'test-secret',
+            AUTH_GOOGLE_ID: 'test-client-id',
+            AUTH_GOOGLE_SECRET: 'test-client-secret',
+            NODE_ENV: 'test'
+        } as z.infer<typeof envSchema>
     }
 
-    return result.data || process.env as any // Fallback for tests if needed
+    return result.data
 }
 
 export const env = validateEnv()
