@@ -45,7 +45,7 @@ export function ActiveListCard({ list, storeName }: ActiveListCardProps) {
 
                 <CardHeader className="pb-2 space-y-0">
                     <div className="flex justify-between items-start">
-                        <div className="space-y-1">
+                        <div className="space-y-1.5 flex-1">
                             <div className="flex items-center gap-2 text-xs text-muted-foreground">
                                 <span className="font-semibold uppercase tracking-wider flex items-center gap-1">
                                     <ScrollText className="h-3 w-3" />
@@ -57,9 +57,21 @@ export function ActiveListCard({ list, storeName }: ActiveListCardProps) {
                                     <span suppressHydrationWarning>{new Date(list.updatedAt).toLocaleDateString()}</span>
                                 </div>
                             </div>
-                            <h3 className="font-bold text-lg leading-tight group-hover:text-primary transition-colors">
-                                {storeName}
-                            </h3>
+                            <div className="flex items-center gap-2">
+                                <h3 className="font-bold text-lg leading-tight group-hover:text-primary transition-colors">
+                                    {storeName}
+                                </h3>
+                                {isShopping && (
+                                    <Badge variant="default" className="text-[9px] font-bold uppercase tracking-wider animate-pulse">
+                                        Shopping
+                                    </Badge>
+                                )}
+                                {isPlanningMode && (
+                                    <Badge variant="outline" className="text-[9px] font-bold uppercase tracking-wider border-primary/20 text-primary">
+                                        Planning
+                                    </Badge>
+                                )}
+                            </div>
                         </div>
                         <div className={cn(
                             "flex items-center gap-1.5 px-2.5 py-1.5 rounded-full border text-xs font-semibold",
@@ -73,20 +85,7 @@ export function ActiveListCard({ list, storeName }: ActiveListCardProps) {
                     </div>
                 </CardHeader>
 
-                <CardContent className="pb-2">
-                    <div className="flex items-center gap-2">
-                        {isShopping && (
-                            <Badge variant="default" className="text-[9px] font-bold uppercase tracking-wider animate-pulse">
-                                Shopping
-                            </Badge>
-                        )}
-                        {isPlanningMode && (
-                            <Badge variant="outline" className="text-[9px] font-bold uppercase tracking-wider border-primary/20 text-primary">
-                                Planning
-                            </Badge>
-                        )}
-                    </div>
-                </CardContent>
+
 
 
             </Card >
