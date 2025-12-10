@@ -26,4 +26,4 @@ ALTER TABLE "Household" ADD COLUMN "ownerId" TEXT REFERENCES "User"("id") ON DEL
 CREATE UNIQUE INDEX IF NOT EXISTS "Invitation_token_key" ON "Invitation"("token");
 
 -- CreateIndex
-CREATE INDEX IF NOT EXISTS "Invitation_token_idx" ON "Invitation"("token");
+

@@ -155,7 +155,7 @@ export async function getHouseholds(
 Create `src/hooks/use-paginated-query.ts`:
 
 ```typescript
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { PaginatedResult, PaginationParams } from '@/core/types/pagination'
 import { ActionResult } from '@/core/types/action-result'
 
@@ -166,6 +166,7 @@ export function usePaginatedQuery<T>(
   const [cursor, setCursor] = useState<string | null>(null)
   const [hasMore, setHasMore] = useState(true)
   const [isLoading, setIsLoading] = useState(false)
+  const [isInitialized, setIsInitialized] = useState(false)
   
   const loadMore = useCallback(async () => {
     if (isLoading || !hasMore) return
@@ -182,10 +183,19 @@ export function usePaginatedQuery<T>(
     setIsLoading(false)
   }, [fetcher, cursor, hasMore, isLoading])
   
+  // Initial load
+  useEffect(() => {
+    if (!isInitialized) {
+      loadMore()
+      setIsInitialized(true)
+    }
+  }, [loadMore, isInitialized])
+  
   const reset = useCallback(() => {
     setItems([])
     setCursor(null)
     setHasMore(true)
+    setIsInitialized(false)
   }, [])
   
   return { items, loadMore, hasMore, isLoading, reset }

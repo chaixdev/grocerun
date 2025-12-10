@@ -234,11 +234,7 @@ export function ListEditor({ list }: ListEditorProps) {
                 // assuming the toggle has "happened" for the logic search.
 
                 // We need the visual order.
-                const flatItems: ListItem[] = []
-                list.store.sections.forEach((s) => {
-                    const items = optimisticItems.filter(i => (i.item.sectionId || "uncategorized") === s.id)
-                    flatItems.push(...items)
-                })
+
 
                 // Note: logic above for uncategorized might duplicate if sectionId is null vs "uncategorized" string. 
                 // Let's stick to the render logic below for consistency.
