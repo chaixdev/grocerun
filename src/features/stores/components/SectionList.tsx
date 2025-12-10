@@ -159,8 +159,8 @@ export function SectionList({ sections: initialSections, storeId }: SectionListP
             <SortableList items={sections} onReorder={handleReorder}>
                 {sections.map((section, index) => (
                     <SortableItem key={section.id} id={section.id} className="flex items-center gap-2 group">
-                        <SortableDragHandle className="opacity-0 group-hover:opacity-100 transition-opacity p-2 hover:bg-muted rounded">
-                            <GripVertical className="h-4 w-4 text-muted-foreground" />
+                        <SortableDragHandle className="p-2 text-muted-foreground/50 hover:text-foreground transition-colors rounded">
+                            <GripVertical className="h-4 w-4" />
                         </SortableDragHandle>
 
                         <Input
@@ -178,7 +178,7 @@ export function SectionList({ sections: initialSections, storeId }: SectionListP
                         <Button
                             size="icon"
                             variant="ghost"
-                            className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity hover:text-destructive"
+                            className="h-8 w-8 text-muted-foreground/50 hover:text-destructive transition-colors"
                             onClick={() => handleRemove(index)}
                         >
                             <Trash2 className="h-4 w-4" />
