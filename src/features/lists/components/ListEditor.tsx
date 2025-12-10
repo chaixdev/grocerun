@@ -28,6 +28,7 @@ import { completeList } from "@/actions/list"
 import { useRouter } from "next/navigation"
 import { MoreHorizontal, Pencil, Trash2, ShoppingCart, CheckCheck, X } from "lucide-react"
 import { ListItemRow } from "./ListItemRow"
+import { useScreenWakeLock } from "@/hooks/use-screen-wake-lock"
 import { QuantityStepper } from "./QuantityStepper"
 import {
     DropdownMenu,
@@ -133,6 +134,13 @@ export function ListEditor({ list }: ListEditorProps) {
     // Edit Item State
     const [editingItem, setEditingItem] = useState<Item | null>(null)
     const [isEditOpen, setIsEditOpen] = useState(false)
+
+    // Screen Wake Lock for Shopping Mode
+    const isReadOnly = list.status === "COMPLETED"
+    const isPlanningMode = list.status === "PLANNING"
+    const isShoppingMode = list.status === "SHOPPING"
+
+    useScreenWakeLock(isShoppingMode)
 
     const handleAddItem = async (e?: React.FormEvent) => {
         e?.preventDefault()
@@ -418,9 +426,7 @@ export function ListEditor({ list }: ListEditorProps) {
             unit: i.unit
         }))
 
-    const isReadOnly = list.status === "COMPLETED"
-    const isPlanningMode = list.status === "PLANNING"
-    const isShoppingMode = list.status === "SHOPPING"
+
 
     return (
         <div className="space-y-8 pb-32">
