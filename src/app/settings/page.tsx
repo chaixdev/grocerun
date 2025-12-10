@@ -25,6 +25,9 @@ export default async function SettingsPage() {
         redirect("/login");
     }
 
+    // Settings page is accessible even without households
+    // Users can update profile and will see household invitation section
+
     return (
         <div className="container max-w-2xl py-10 space-y-8">
             <div>

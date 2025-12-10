@@ -14,9 +14,14 @@ export function CreateFirstHousehold() {
     const handleCreate = async () => {
         setIsCreating(true)
         try {
-            await createDefaultHousehold()
-            toast.success("Household created!")
-            router.refresh()
+            const result = await createDefaultHousehold()
+            if (result.success) {
+                toast.success("Household created!")
+                router.refresh()
+            } else {
+                toast.error(result.error || "Failed to create household")
+                setIsCreating(false)
+            }
         } catch (error) {
             toast.error("Failed to create household")
             setIsCreating(false)
