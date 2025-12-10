@@ -130,11 +130,42 @@ export async function getStores(
 Update `src/actions/list.ts`:
 
 ```typescript
+import { PaginationParams, PaginatedResult } from '@/core/types/pagination'
+import { buildPrismaArgs, processPaginatedResult, normalizePagination } from '@/core/utils/paginate'
+import { List } from '@/generated/prisma/client'
+
 export async function getLists(
   storeId: string,
   pagination: PaginationParams = {}
 ): Promise<ActionResult<PaginatedResult<List>>> {
-  // Similar implementation
+  const session = await auth()
+  if (!session?.user?.id) {
+    return { success: false, error: 'Unauthorized' }
+  }
+  
+  // Verify store access
+  try {
+    await verifyStoreAccess(storeId, session.user.id)
+  } catch {
+    return { success: false, error: 'Access denied to store' }
+  }
+  
+  const { limit } = normalizePagination(pagination)
+  
+  try {
+    const lists = await prisma.list.findMany({
+      where: { storeId },
+      orderBy: { createdAt: 'desc' },
+      ...buildPrismaArgs(pagination),
+    })
+    
+    return {
+      success: true,
+      data: processPaginatedResult(lists, limit),
+    }
+  } catch (error: unknown) {
+    return { success: false, error: handleActionError(error, 'getLists') }
+  }
 }
 ```
 
@@ -143,12 +174,47 @@ export async function getLists(
 Update `src/actions/household.ts`:
 
 ```typescript
+import { PaginationParams, PaginatedResult } from '@/core/types/pagination'
+import { buildPrismaArgs, processPaginatedResult, normalizePagination } from '@/core/utils/paginate'
+import { Household } from '@/generated/prisma/client'
+
 export async function getHouseholds(
   pagination: PaginationParams = {}
 ): Promise<ActionResult<PaginatedResult<Household>>> {
-  // Similar implementation
+  const session = await auth()
+  if (!session?.user?.id) {
+    return { success: false, error: 'Unauthorized' }
+  }
+  
+  const { limit } = normalizePagination(pagination)
+  
+  try {
+    // Get households user is a member of
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      include: {
+        households: {
+          orderBy: { createdAt: 'desc' },
+          ...buildPrismaArgs(pagination),
+          include: { _count: { select: { users: true } } }
+        }
+      },
+    })
+    
+    if (!user) {
+      return { success: false, error: 'User not found' }
+    }
+    
+    return {
+      success: true,
+      data: processPaginatedResult(user.households, limit),
+    }
+  } catch (error: unknown) {
+    return { success: false, error: handleActionError(error, 'getHouseholds') }
+  }
 }
 ```
+
 
 ### 6. Create usePaginatedQuery Hook
 
