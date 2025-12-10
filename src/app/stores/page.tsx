@@ -1,8 +1,8 @@
 import { auth } from "@/core/auth"
 import { getStoreDirectoryData } from "@/actions/store-directory"
-import { HouseholdStoreGroup } from "@/components/store-directory/HouseholdStoreGroup"
+import { HouseholdStoreGroup } from "@/features/stores"
 import { redirect } from "next/navigation"
-import { CreateFirstHousehold } from "@/components/create-first-household"
+import { CreateFirstHousehold } from "@/features/households"
 
 export default async function StoresPage() {
     const session = await auth()
