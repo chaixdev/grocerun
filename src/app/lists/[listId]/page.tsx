@@ -1,7 +1,7 @@
 import { auth } from "@/core/auth"
 import { getList } from "@/actions/list"
 import { notFound, redirect } from "next/navigation"
-import { ListEditor } from "@/components/list-editor"
+import { ListEditor } from "@/features/lists"
 import { Button } from "@/components/ui/button"
 import { ArrowLeft } from "lucide-react"
 import Link from "next/link"
