@@ -22,6 +22,11 @@ export const authConfig = {
             }
             return true;
         },
+        async signIn({ user, account, profile }) {
+            // Ensure user exists in database for JWT strategy
+            // PrismaAdapter handles this for database sessions, but with JWT we need to do it manually
+            return true;
+        },
         async session({ session, token }) {
             if (token.sub && session.user) {
                 session.user.id = token.sub

@@ -27,9 +27,11 @@ export default async function SettingsPage() {
         redirect("/login");
     }
 
+    // If user doesn't exist in database but has valid session, it means the database
+    // was reset or JWT token is stale. Force re-authentication.
     if (!user) {
         console.error("Settings page - user not found in database:", session.user.id);
-        redirect("/login");
+        redirect("/api/auth/signout?callbackUrl=/login");
     }
 
     // Settings page is accessible even without households
