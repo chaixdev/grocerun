@@ -1,4 +1,4 @@
-import { auth } from "@/auth"
+import { auth } from "@/core/auth"
 import { getList } from "@/actions/list"
 import { notFound, redirect } from "next/navigation"
 import { ListEditor } from "@/components/list-editor"

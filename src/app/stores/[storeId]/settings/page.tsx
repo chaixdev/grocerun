@@ -2,7 +2,7 @@ import { notFound, redirect } from "next/navigation"
 import { ChevronLeft } from "lucide-react"
 import Link from "next/link"
 
-import { auth } from "@/auth"
+import { auth } from "@/core/auth"
 import { getStore } from "@/actions/store"
 import { getSections } from "@/actions/section"
 import { Button } from "@/components/ui/button"
