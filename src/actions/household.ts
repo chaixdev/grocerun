@@ -1,11 +1,11 @@
 "use server"
 
-import { auth } from "@/auth"
-import { prisma } from "@/lib/prisma"
+import { auth } from "@/core/auth"
+import { prisma } from "@/core/db"
 import { revalidatePath } from "next/cache"
 import { z } from "zod"
 
-import { verifyHouseholdAccess } from "@/lib/auth-helpers"
+import { verifyHouseholdAccess } from "@/core/auth"
 
 const HouseholdSchema = z.object({
     name: z.string().min(1, "Name is required"),

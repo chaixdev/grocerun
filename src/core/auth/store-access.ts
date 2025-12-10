@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/prisma"
+import { prisma } from "@/core/db"
 
 /**
  * Verifies that a user has access to a store via household membership.

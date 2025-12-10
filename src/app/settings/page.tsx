@@ -1,5 +1,5 @@
-import { auth } from "@/auth";
-import { prisma } from "@/lib/prisma";
+import { auth } from "@/core/auth";
+import { prisma } from "@/core/db";
 import { SettingsForm } from "@/components/settings-form";
 import { redirect } from "next/navigation";
 

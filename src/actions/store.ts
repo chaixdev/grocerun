@@ -1,14 +1,14 @@
 "use server"
 
-import { auth } from "@/auth"
-import { prisma } from "@/lib/prisma"
+import { auth } from "@/core/auth"
+import { prisma } from "@/core/db"
 import { revalidatePath } from "next/cache"
 import { z } from "zod"
 
-import { verifyHouseholdAccess } from "@/lib/auth-helpers"
-import { verifyStoreAccess } from "@/lib/store-access"
+import { verifyHouseholdAccess } from "@/core/auth"
+import { verifyStoreAccess } from "@/core/auth"
 
-import { StoreSchema } from "@/schemas/store"
+import { StoreSchema } from "@/core/schemas"
 
 /**
  * Pure query - returns stores for the user's household.
