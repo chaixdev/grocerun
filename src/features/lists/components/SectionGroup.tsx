@@ -15,6 +15,7 @@ interface ListItem {
     isChecked: boolean
     quantity: number
     unit: string | null
+    purchasedQuantity: number | null
     item: Item
 }
 
@@ -29,7 +30,7 @@ interface SectionGroupProps {
     isReadOnly: boolean
     highlightedItemId: string | null
     isPlanningMode: boolean
-    onToggle: (id: string, checked: boolean) => void
+    onToggle: (id: string, checked: boolean, purchasedQuantity?: number) => void
     onEdit: (item: Item) => void
     onRemove: (id: string) => void
     onUpdateQuantity?: (id: string, quantity: number, unit?: string) => void

@@ -269,11 +269,26 @@ export async function toggleListItem(data: z.infer<typeof ToggleItemSchema>): Pr
         await verifyStoreAccess(listItem.list.storeId, session.user.id)
 
         // Logic:
-        // If checking (true): use provided purchasedQuantity OR default to requested quantity
-        // If unchecking (false): reset purchasedQuantity to null
-        const finalPurchasedQuantity = isChecked
-            ? (purchasedQuantity ?? listItem.quantity)
-            : null
+        // Use provided purchasedQuantity if available.
+        // If checking (true) and no purchasedQuantity exists/provided, default to planned quantity.
+        // If unchecking (false), we PRESERVE the purchasedQuantity (User Request).
+
+        // Explicitly type to allow nulls from database
+        let finalPurchasedQuantity: number | null | undefined = purchasedQuantity;
+
+        if (finalPurchasedQuantity === undefined) {
+            // Not provided in request.
+            if (isChecked && listItem.purchasedQuantity === null) {
+                // Checking, and no previous bought record -> Default to Planned
+                finalPurchasedQuantity = listItem.quantity;
+            } else {
+                // Unchecking OR Checking-with-existing -> Keep existing
+                finalPurchasedQuantity = listItem.purchasedQuantity;
+            }
+        }
+        // Note: functionality to "Clear" purchasedQuantity is now explicit (passing null) or requires a separate action?
+        // For now, checks merely confirm the status.
+
 
         await prisma.listItem.update({
             where: { id: itemId },

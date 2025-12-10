@@ -12,7 +12,7 @@ export function HouseholdStoreGroup({ household }: HouseholdStoreGroupProps) {
     return (
         <div className="space-y-4">
             <div className="flex items-center justify-between">
-                <h2 className="text-xl font-semibold tracking-tight">{household.name}</h2>
+                <h2 className="text-sm font-semibold tracking-tight">{household.name}</h2>
                 <StoreForm
                     householdId={household.id}
                     trigger={

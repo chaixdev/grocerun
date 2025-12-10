@@ -166,7 +166,7 @@ export function ItemAutocomplete({
                 onKeyDown={handleKeyDown}
                 placeholder={placeholder}
                 disabled={disabled}
-                className="w-full h-11 text-base border-transparent bg-muted/50 focus:bg-background transition-colors"
+                className="w-full h-8 text-sm border-transparent bg-muted/50 focus:bg-background transition-colors"
                 autoComplete="off"
             />
 

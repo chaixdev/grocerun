@@ -1,4 +1,4 @@
-import { Home, Store, Settings, LucideIcon } from 'lucide-react'
+import { Store, Settings, LucideIcon, ScrollText } from 'lucide-react'
 
 export interface NavigationItem {
     title: string
@@ -10,7 +10,7 @@ export const navigationItems: NavigationItem[] = [
     {
         title: 'Lists',
         href: '/lists',
-        icon: Home,
+        icon: ScrollText,
     },
     {
         title: 'Stores',

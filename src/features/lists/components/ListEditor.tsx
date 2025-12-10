@@ -28,6 +28,7 @@ import { completeList } from "@/actions/list"
 import { useRouter } from "next/navigation"
 import { MoreHorizontal, Pencil, Trash2, ShoppingCart, CheckCheck, X } from "lucide-react"
 import { ListItemRow } from "./ListItemRow"
+import { QuantityStepper } from "./QuantityStepper"
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -54,6 +55,7 @@ interface ListItem {
     isChecked: boolean
     quantity: number
     unit: string | null
+    purchasedQuantity: number | null
     item: Item
 }
 
@@ -82,7 +84,7 @@ export function ListEditor({ list }: ListEditorProps) {
 
     // Optimistic UI
     type OptimisticAction =
-        | { type: "TOGGLE"; itemId: string; isChecked: boolean }
+        | { type: "TOGGLE"; itemId: string; isChecked: boolean; purchasedQuantity?: number | null }
         | { type: "UPDATE_QTY"; itemId: string; quantity: number; unit?: string }
         | { type: "REMOVE"; itemId: string }
 
@@ -93,7 +95,11 @@ export function ListEditor({ list }: ListEditorProps) {
             switch (action.type) {
                 case "TOGGLE":
                     return state.map((item) =>
-                        item.id === action.itemId ? { ...item, isChecked: action.isChecked } : item
+                        item.id === action.itemId ? {
+                            ...item,
+                            isChecked: action.isChecked,
+                            purchasedQuantity: action.purchasedQuantity !== undefined ? action.purchasedQuantity : item.purchasedQuantity
+                        } : item
                     )
                 case "UPDATE_QTY":
                     return state.map((item) =>
@@ -241,14 +247,49 @@ export function ListEditor({ list }: ListEditorProps) {
         }
     }
 
-    const handleToggle = (itemId: string, checked: boolean) => {
+    const handleToggle = (itemId: string, checked: boolean, purchasedQuantity?: number) => {
         // Capture prior state for rollback if the server update fails
         // We can't easily strict-rollback with just one variable for all actions, 
         // but for toggle we know the opposite.
 
         startTransition(async () => {
             // 1. Optimistic Update
-            setOptimisticItems({ type: "TOGGLE", itemId, isChecked: checked })
+            // If checking, we use the provided purchasedQuantity or default to null? 
+            // Actually, if purchasedQuantity is undefined, it implies generic toggle.
+            // If checking: purchasedQuantity = provided ?? item.quantity.
+            // If unchecking: purchasedQuantity = null.
+            // But here we just pass what we know to the reducer.
+            // Wait, the reducer needs to know if we should set it to null or not.
+            // If checked=false, we should set purchasedQuantity=null.
+            // If checked=true, we set it to valid number if provided.
+
+            // The reducer logic above preserves it if undefined. We need to be specific.
+            const newPurchasedQuantity = checked ? (purchasedQuantity ?? null) : null
+            // Note: If checking and no specific qty provided, backend defaults to planned.
+            // Ideally optimistic UI should too?
+            // If checking and purchasedQuantity is undefined, we assume Bought=Planned.
+            const optimisticPurchasedQty = checked
+                ? (purchasedQuantity !== undefined ? purchasedQuantity : optimisticItems.find(i => i.id === itemId)?.quantity ?? null) // Default to planned quantity visually?
+                // Actually the backend sets purchasedQuantity = quantity if not provided.
+                // So optimistic UI should too if we want to be accurate.
+                // However, ListItemRow logic: `const hasDeviation = listItem.purchasedQuantity !== null`
+                // If purchasedQuantity == quantity, hasDeviation is false (Wait, `!= null` logic).
+                // Actually, if purchasedQuantity is set equal to quantity, hasDeviation is true by that check?
+                // Let's check ListItemRow again:
+                // `const hasDeviation = listItem.purchasedQuantity !== null`
+                // Yes. So if we save 2 (when plan is 2), it shows as deviation?
+                // Backend logic: `purchasedQuantity: isChecked ? (purchasedQuantity ?? listItem.quantity) : null`
+                // So it ALWAYS saves a purchasedQuantity when checked.
+                // So `listItem.purchasedQuantity` will always be non-null for checked items (except for legacy data).
+                // So "hasDeviation" logic in Row might need tuning: `purchasedQuantity != quantity`.
+                : null
+
+            setOptimisticItems({
+                type: "TOGGLE",
+                itemId,
+                isChecked: checked,
+                purchasedQuantity: optimisticPurchasedQty
+            })
 
             // 2. Auto-scroll Logic (only when checking off)
             if (checked) {
@@ -289,7 +330,7 @@ export function ListEditor({ list }: ListEditorProps) {
             }
 
             // 3. Server Action
-            const result = await toggleListItem({ itemId, isChecked: checked })
+            const result = await toggleListItem({ itemId, isChecked: checked, purchasedQuantity })
             if (!result.success) {
                 // Rollback
                 setOptimisticItems({ type: "TOGGLE", itemId, isChecked: !checked })
@@ -404,32 +445,18 @@ export function ListEditor({ list }: ListEditorProps) {
                                 disabled={isSubmitting}
                             />
                         </div>
-                        <div className="w-20">
-                            <Label htmlFor="item-qty" className="sr-only">Qty</Label>
-                            <Input
-                                id="item-qty"
-                                type="number"
-                                min="0.1"
-                                step="0.1"
+                        <div className="shrink-0">
+                            <QuantityStepper
                                 value={inputQty}
-                                onChange={(e) => setInputQty(parseFloat(e.target.value))}
-                                placeholder="1"
-                                className="w-full h-11 text-center text-base border-transparent bg-muted/50 focus:bg-background transition-colors"
+                                unit={inputUnit}
+                                onChange={(qty, unit) => {
+                                    setInputQty(qty)
+                                    setInputUnit(unit || "")
+                                }}
                             />
                         </div>
-                        <div className="w-24">
-                            <Label htmlFor="item-unit" className="sr-only">Unit</Label>
-                            <Input
-                                id="item-unit"
-                                value={inputUnit}
-                                onChange={(e) => setInputUnit(e.target.value)}
-                                placeholder="Unit"
-                                className="w-full h-11 text-base border-transparent bg-muted/50 focus:bg-background transition-colors"
-                            />
-                        </div>
-                        <Button type="submit" disabled={isSubmitting} size="icon" className="h-11 w-11 shrink-0 rounded-lg">
-                            <span className="sr-only">Add</span>
-                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14" /><path d="M12 5v14" /></svg>
+                        <Button type="submit" disabled={isSubmitting} className="h-8 px-3 shrink-0 rounded-lg text-sm font-medium">
+                            Add
                         </Button>
                     </form>
                 </div>

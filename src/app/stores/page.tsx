@@ -29,7 +29,7 @@ export default async function StoresPage() {
     return (
         <div className="container max-w-4xl mx-auto py-8 px-4 space-y-8">
             <div className="flex flex-col gap-2">
-                <h1 className="text-3xl font-bold tracking-tight">My Stores</h1>
+                <h1 className="text-xl font-bold tracking-tight">Stores</h1>
                 <p className="text-muted-foreground">
                     Manage your stores and start shopping lists.
                 </p>
