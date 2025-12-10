@@ -340,12 +340,46 @@ export function ListEditor({ list }: ListEditorProps) {
         }))
 
     const isReadOnly = list.status === "COMPLETED"
+    const isPlanningMode = list.status === "PLANNING"
+    const isShoppingMode = list.status === "SHOPPING"
 
     return (
         <div className="space-y-8 pb-32">
             {isReadOnly && (
                 <div className="bg-muted/50 border rounded-lg p-4 text-center text-muted-foreground">
                     This trip was completed on {new Date(list.updatedAt).toLocaleDateString()}.
+                </div>
+            )}
+
+            {/* Planning Mode Indicator */}
+            {isPlanningMode && (
+                <div className="bg-primary/5 border-l-4 border-l-primary rounded-r-lg p-4 flex items-center gap-3">
+                    <div className="flex-shrink-0 p-2 bg-primary/10 rounded-full">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary">
+                            <path d="M12 20h9" />
+                            <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
+                        </svg>
+                    </div>
+                    <div className="flex-1">
+                        <p className="font-semibold text-sm text-foreground">Planning Mode</p>
+                        <p className="text-xs text-muted-foreground">Add items to your list. Start shopping when ready.</p>
+                    </div>
+                </div>
+            )}
+
+            {/* Shopping Mode Indicator */}
+            {isShoppingMode && (
+                <div className="bg-primary/5 border-l-4 border-l-primary rounded-r-lg p-4 flex items-center gap-3 animate-in fade-in slide-in-from-top-2 duration-300">
+                    <div className="flex-shrink-0 p-2 bg-primary/10 rounded-full">
+                        <ShoppingCart className="h-5 w-5 text-primary" />
+                    </div>
+                    <div className="flex-1">
+                        <p className="font-semibold text-sm text-foreground flex items-center gap-2">
+                            Shopping Mode
+                            <span className="text-[9px] font-bold uppercase tracking-wider text-primary animate-pulse px-2 py-0.5 bg-primary/10 rounded-full">Live</span>
+                        </p>
+                        <p className="text-xs text-muted-foreground">Check off items as you shop.</p>
+                    </div>
                 </div>
             )}
 
@@ -410,17 +444,20 @@ export function ListEditor({ list }: ListEditorProps) {
                                     <div
                                         key={listItem.id}
                                         ref={(el) => { itemRefs.current[listItem.id] = el }}
-                                        className={`group flex items-center gap-3 p-3 border-b last:border-0 hover:bg-muted/30 transition-all duration-200 ${listItem.isChecked ? "opacity-50" : ""
+                                        className={`group flex items-center gap-3 p-3 border-b last:border-0 transition-all duration-200 ${isPlanningMode ? "" : "hover:bg-muted/30 cursor-pointer"
+                                            } ${listItem.isChecked ? "opacity-50" : ""
                                             } ${highlightedItemId === listItem.id ? "bg-primary/10" : ""
                                             }`}
-                                        onClick={() => !isReadOnly && handleToggle(listItem.id, !listItem.isChecked)}
+                                        onClick={() => !isReadOnly && !isPlanningMode && handleToggle(listItem.id, !listItem.isChecked)}
                                     >
-                                        <Checkbox
-                                            checked={listItem.isChecked}
-                                            onCheckedChange={() => { }} // Handled by div click
-                                            disabled={isReadOnly}
-                                            className="h-5 w-5 rounded-[4px] border-muted-foreground/30 data-[state=checked]:bg-primary data-[state=checked]:border-primary transition-all"
-                                        />
+                                        {!isPlanningMode && (
+                                            <Checkbox
+                                                checked={listItem.isChecked}
+                                                onCheckedChange={() => { }} // Handled by div click
+                                                disabled={isReadOnly}
+                                                className="h-5 w-5 rounded-[4px] border-muted-foreground/30 data-[state=checked]:bg-primary data-[state=checked]:border-primary transition-all"
+                                            />
+                                        )}
                                         <div className="flex-1 flex items-center justify-between gap-2 min-w-0">
                                             <span className={`text-base font-medium truncate transition-colors ${listItem.isChecked ? "line-through text-muted-foreground" : "text-foreground"
                                                 }`}>
@@ -483,17 +520,20 @@ export function ListEditor({ list }: ListEditorProps) {
                                 <div
                                     key={listItem.id}
                                     ref={(el) => { itemRefs.current[listItem.id] = el }}
-                                    className={`group flex items-center gap-3 p-3 border-b last:border-0 hover:bg-muted/30 transition-all duration-200 ${listItem.isChecked ? "opacity-50" : ""
+                                    className={`group flex items-center gap-3 p-3 border-b last:border-0 transition-all duration-200 ${isPlanningMode ? "" : "hover:bg-muted/30 cursor-pointer"
+                                        } ${listItem.isChecked ? "opacity-50" : ""
                                         } ${highlightedItemId === listItem.id ? "bg-primary/10" : ""
                                         }`}
-                                    onClick={() => !isReadOnly && handleToggle(listItem.id, !listItem.isChecked)}
+                                    onClick={() => !isReadOnly && !isPlanningMode && handleToggle(listItem.id, !listItem.isChecked)}
                                 >
-                                    <Checkbox
-                                        checked={listItem.isChecked}
-                                        onCheckedChange={() => { }}
-                                        disabled={isReadOnly}
-                                        className="h-5 w-5 rounded-[4px] border-muted-foreground/30 data-[state=checked]:bg-primary data-[state=checked]:border-primary transition-all"
-                                    />
+                                    {!isPlanningMode && (
+                                        <Checkbox
+                                            checked={listItem.isChecked}
+                                            onCheckedChange={() => { }}
+                                            disabled={isReadOnly}
+                                            className="h-5 w-5 rounded-[4px] border-muted-foreground/30 data-[state=checked]:bg-primary data-[state=checked]:border-primary transition-all"
+                                        />
+                                    )}
                                     <div className="flex-1 flex items-center justify-between gap-2 min-w-0">
                                         <span className={`text-base font-medium truncate transition-colors ${listItem.isChecked ? "line-through text-muted-foreground" : "text-foreground"
                                             }`}>
@@ -553,19 +593,20 @@ export function ListEditor({ list }: ListEditorProps) {
                         {list.status === "PLANNING" ? (
                             <Button
                                 size="lg"
-                                className="h-14 rounded-full shadow-xl px-6 bg-primary hover:bg-primary/90 transition-all active:scale-95"
+                                className="h-14 rounded-full shadow-xl px-8 bg-primary hover:bg-primary/90 transition-all active:scale-95 font-semibold"
                                 onClick={async () => {
                                     const result = await startShopping({ listId: list.id })
                                     if (result.success) {
                                         router.refresh()
-                                        toast.success("List is definitely Live! 🛒")
+                                        toast.success("Shopping mode activated! 🛒")
                                     } else {
                                         toast.error(result.error || "Failed to start shopping")
                                     }
                                 }}
+                                disabled={optimisticItems.length === 0}
                             >
                                 <ShoppingCart className="mr-2 h-5 w-5" />
-                                Start Shopping
+                                Go Shopping
                             </Button>
                         ) : (
                             <>

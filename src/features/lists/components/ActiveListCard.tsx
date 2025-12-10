@@ -17,6 +17,7 @@ interface ActiveListCardProps {
 
 export function ActiveListCard({ list, storeName }: ActiveListCardProps) {
     const isShopping = list.status === "SHOPPING"
+    const isPlanningMode = list.status === "PLANNING"
     const isGeneral = storeName.toLowerCase() === "general"
 
     return (
@@ -29,6 +30,16 @@ export function ActiveListCard({ list, storeName }: ActiveListCardProps) {
                 {isShopping && (
                     <div className="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-20 transition-opacity">
                         <ShoppingBasket className="w-24 h-24 text-primary -mr-4 -mt-4 rotate-12" />
+                    </div>
+                )}
+                
+                {/* Planning Mode Background Indicator */}
+                {isPlanningMode && (
+                    <div className="absolute top-0 right-0 p-2 opacity-5 group-hover:opacity-10 transition-opacity">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary -mr-4 -mt-4 rotate-12">
+                            <path d="M12 20h9" />
+                            <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
+                        </svg>
                     </div>
                 )}
 
@@ -65,9 +76,14 @@ export function ActiveListCard({ list, storeName }: ActiveListCardProps) {
                 <CardContent className="pb-2">
                     <div className="flex items-center gap-2">
                         {isShopping && (
-                            <span className="text-[9px] font-bold uppercase tracking-wider text-primary animate-pulse px-1">
-                                Live
-                            </span>
+                            <Badge variant="default" className="text-[9px] font-bold uppercase tracking-wider animate-pulse">
+                                Shopping
+                            </Badge>
+                        )}
+                        {isPlanningMode && (
+                            <Badge variant="outline" className="text-[9px] font-bold uppercase tracking-wider border-primary/20 text-primary">
+                                Planning
+                            </Badge>
                         )}
                     </div>
                 </CardContent>
