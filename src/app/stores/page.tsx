@@ -1,4 +1,4 @@
-import { auth } from "@/auth"
+import { auth } from "@/core/auth"
 import { getStoreDirectoryData } from "@/actions/store-directory"
 import { HouseholdStoreGroup } from "@/components/store-directory/HouseholdStoreGroup"
 import { redirect } from "next/navigation"

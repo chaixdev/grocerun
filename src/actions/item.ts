@@ -1,7 +1,7 @@
 "use server"
 
-import { auth } from "@/auth"
-import { prisma } from "@/lib/prisma"
+import { auth } from "@/core/auth"
+import { prisma } from "@/core/db"
 import { revalidatePath } from "next/cache"
 import { z } from "zod"
 
@@ -12,7 +12,7 @@ const UpdateItemSchema = z.object({
     defaultUnit: z.string().optional(),
 })
 
-import { verifyStoreAccess } from "@/lib/store-access"
+import { verifyStoreAccess } from "@/core/auth"
 
 // ...
 

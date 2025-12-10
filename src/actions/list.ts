@@ -1,8 +1,8 @@
 "use server"
 
-import { auth } from "@/auth"
-import { prisma } from "@/lib/prisma"
-import { verifyStoreAccess } from "@/lib/store-access"
+import { auth } from "@/core/auth"
+import { prisma } from "@/core/db"
+import { verifyStoreAccess } from "@/core/auth"
 import { revalidatePath } from "next/cache"
 import { z } from "zod"
 

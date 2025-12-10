@@ -1,7 +1,7 @@
 "use server"
 
-import { auth } from "@/auth"
-import { prisma } from "@/lib/prisma"
+import { auth } from "@/core/auth"
+import { prisma } from "@/core/db"
 // Define the return type based on inferred return from the function
 // We will rely on simple type inference for the action return
 

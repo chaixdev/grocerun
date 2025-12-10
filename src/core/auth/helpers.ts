@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/prisma"
+import { prisma } from "@/core/db"
 
 export async function verifyHouseholdAccess(userId: string, householdId: string) {
     const user = await prisma.user.findUnique({
@@ -8,4 +8,3 @@ export async function verifyHouseholdAccess(userId: string, householdId: string)
 
     return user?.households.length === 1
 }
-

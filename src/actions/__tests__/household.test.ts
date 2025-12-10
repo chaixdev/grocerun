@@ -2,11 +2,11 @@ import { describe, it, expect, vi } from 'vitest'
 import { getHouseholds } from '../household'
 
 // Mock dependencies to prevent DB/Auth side effects during smoke test
-vi.mock('@/auth', () => ({
+vi.mock('@/core/auth', () => ({
     auth: vi.fn(),
 }))
 
-vi.mock('@/lib/prisma', () => ({
+vi.mock('@/core/db', () => ({
     prisma: {
         user: {
             findUnique: vi.fn(),

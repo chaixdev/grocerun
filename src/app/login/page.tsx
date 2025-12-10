@@ -1,4 +1,4 @@
-import { signIn } from "@/auth"
+import { signIn } from "@/core/auth"
 import { cn } from "@/lib/utils"
 
 export default function LoginPage() {

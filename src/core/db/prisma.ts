@@ -1,5 +1,5 @@
-import { env } from "@/lib/env";
-import { PrismaClient } from "../generated/prisma/client";
+import { env } from "@/core/config";
+import { PrismaClient } from "../../generated/prisma/client";
 import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
 
 const adapter = new PrismaBetterSqlite3({

@@ -1,7 +1,7 @@
 "use server"
 
-import { auth } from "@/auth"
-import { prisma } from "@/lib/prisma"
+import { auth } from "@/core/auth"
+import { prisma } from "@/core/db"
 
 import { Prisma } from "../generated/prisma/client"
 

@@ -1,4 +1,4 @@
-import { auth } from "@/auth";
+import { auth } from "@/core/auth";
 import { getDashboardData } from "@/actions/dashboard";
 import { HouseholdListGroup } from "@/components/dashboard/HouseholdListGroup";
 import { redirect } from "next/navigation";

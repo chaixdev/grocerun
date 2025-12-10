@@ -1,10 +1,10 @@
 "use server"
 
-import { auth } from "@/auth"
-import { prisma } from "@/lib/prisma"
+import { auth } from "@/core/auth"
+import { prisma } from "@/core/db"
 import { revalidatePath } from "next/cache"
 import { nanoid, customAlphabet } from "nanoid"
-import { appConfig } from "@/lib/app-config"
+import { appConfig } from "@/core/config"
 
 // Use a readable alphabet for tokens (no confusing chars like 0/O, 1/l)
 const generateToken = customAlphabet("23456789ABCDEFGHJKLMNPQRSTUVWXYZ", 8)
