@@ -12,7 +12,6 @@ export const metadata: Metadata = {
 import { ThemeProvider } from "@/components/theme-provider"
 import { Header } from "@/components/header"
 import { Toaster } from "@/components/ui/sonner"
-import { AppVersion } from "@/components/app-version"
 import { ResponsiveShell } from "@/components/layout/responsive-shell"
 import { auth } from "@/core/auth"
 
@@ -37,7 +36,6 @@ export default async function RootLayout({
             {children}
           </ResponsiveShell>
           <Toaster />
-          <AppVersion />
         </ThemeProvider>
       </body>
     </html>

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { updateProfile } from "@/actions/user"
@@ -42,6 +42,11 @@ interface SettingsFormProps {
 
 export function SettingsForm({ user, households, invitationTimeoutMinutes }: SettingsFormProps) {
     const [isLoading, setIsLoading] = useState(false)
+    const [mounted, setMounted] = useState(false)
+
+    useEffect(() => {
+        setMounted(true)
+    }, [])
 
     const form = useForm<ProfileFormValues>({
         resolver: zodResolver(ProfileSchema),
@@ -72,6 +77,10 @@ export function SettingsForm({ user, households, invitationTimeoutMinutes }: Set
         } finally {
             setIsLoading(false)
         }
+    }
+
+    if (!mounted) {
+        return null
     }
 
     return (
