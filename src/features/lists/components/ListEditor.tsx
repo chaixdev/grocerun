@@ -609,7 +609,7 @@ export function ListEditor({ list }: ListEditorProps) {
                                 <SelectTrigger>
                                     <SelectValue placeholder="Select a section" />
                                 </SelectTrigger>
-                                <SelectContent>
+                                <SelectContent className="max-h-60">
                                     <SelectItem value="uncategorized">
                                         Uncategorized
                                     </SelectItem>

@@ -89,7 +89,7 @@ export function EditItemDialog({ item, sections, open, onOpenChange, onSuccess }
                             <SelectTrigger id="edit-section">
                                 <SelectValue placeholder="Select a section" />
                             </SelectTrigger>
-                            <SelectContent>
+                            <SelectContent className="max-h-60">
                                 <SelectItem value="uncategorized">Uncategorized</SelectItem>
                                 {sections.map((s) => (
                                     <SelectItem key={s.id} value={s.id}>
