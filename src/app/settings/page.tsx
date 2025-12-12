@@ -70,6 +70,9 @@ export default async function SettingsPage() {
                 households={user.households}
                 invitationTimeoutMinutes={appConfig.invitation.expiresInMinutes}
             />
+            <div className="text-center text-xs text-muted-foreground pt-8">
+                v{process.env.NEXT_PUBLIC_APP_VERSION}
+            </div>
         </div>
     );
 }
