@@ -30,7 +30,7 @@ export function HouseholdSelect({ households }: { households: Household[] }) {
             <SelectTrigger className="w-[200px]">
                 <SelectValue placeholder="Select household" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="max-h-60">
                 {households.map((h) => (
                     <SelectItem key={h.id} value={h.id}>
                         {h.name}
