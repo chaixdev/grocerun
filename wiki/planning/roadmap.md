@@ -17,9 +17,9 @@ Building the core infrastructure before porting features.
 - [x] [GRO-101: Vite + React Client Scaffold](./tickets/GRO-101-client-scaffold.md)
 - [x] [GRO-102: NestJS Server Scaffold](./tickets/GRO-102-server-scaffold.md)
 - [x] [GRO-103: Prisma + SQLite Setup](./tickets/GRO-103-prisma-setup.md)
-- [ ] [GRO-104: RxDB Integration](./tickets/GRO-104-rxdb-integration.md)
-- [ ] [GRO-105: Sync Protocol Implementation](./tickets/GRO-105-sync-protocol.md)
-- [ ] [GRO-106: Tailwind + Shadcn UI Setup](./tickets/GRO-106-styling-setup.md)
+- [x] [GRO-104: RxDB Integration](./tickets/GRO-104-rxdb-integration.md)
+- [x] [GRO-105: Sync Protocol Implementation](./tickets/GRO-105-sync-protocol.md)
+- [x] [GRO-106: Tailwind + Shadcn UI Setup](./tickets/GRO-106-styling-setup.md)
 
 ## 🟡 Phase 1: Core Data Model
 *Goal: Implement the domain model with local-first sync.*

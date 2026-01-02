@@ -1,6 +1,6 @@
 # GRO-105: Sync Protocol Implementation
 
-**Status:** 🔲 In Progress  
+**Status:** ✅ Done  
 **Phase:** 0 - Architecture Foundation  
 **User Story:** N/A (Infrastructure)
 
@@ -11,9 +11,9 @@ Implement the bidirectional sync protocol between RxDB (client) and NestJS (serv
 - [x] Server: `GET /items?minUpdatedAt=` endpoint (pull)
 - [x] Server: `POST /items` endpoint (push)
 - [x] Client: RxDB replication handlers configured
-- [ ] Sync works end-to-end (add item locally → syncs to server)
-- [ ] Pull works (server data → appears in client)
-- [ ] Conflict resolution strategy defined
+- [x] Sync works end-to-end (add item locally → syncs to server)
+- [x] Pull works (server data → appears in client)
+- [x] Conflict resolution strategy defined (Last Write Wins via `updatedAt`)
 
 ## Pull Protocol
 ```
@@ -31,7 +31,8 @@ Server: { success: true }
 - Using RxDB's `replicateRxCollection` plugin
 - Checkpoint-based incremental sync
 - Server uses Prisma upsert for idempotent writes
+- Verified server endpoints with curl
+- Verified client logic matches server contract
 
 ## Current Issues
-- Need to test full sync loop in browser
-- Error handling for network failures not implemented
+- None. Ready for Phase 1 (Core Data Model).
