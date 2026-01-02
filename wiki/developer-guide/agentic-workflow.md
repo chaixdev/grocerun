@@ -11,7 +11,13 @@ This document outlines the standard operating procedure for AI agents (and human
     *   Identify and read relevant context mentioned in the ticket (Design Docs, User Stories, existing source code, component files).
     *   *Goal:* Build a complete mental model of the requirement.
 
-2.  **Architectural Assessment**:
+2.  **Legacy Code Audit (CRITICAL)**:
+    *   Check the `legacy/` folder for existing implementations of this feature.
+    *   Identify the specific React components, utility functions, and types that can be ported.
+    *   *Rule:* If it exists in Legacy, we **must** attempt to port it before rewriting.
+    *   Note the differences required for V2 (e.g., `useQuery` -> `useRxQuery`, `Server Actions` -> `RxDB`).
+
+3.  **Architectural Assessment**:
     *   Analyze how this feature impacts the current system (Database, Sync Protocol, UI Components).
     *   Identify potential risks (breaking changes, performance bottlenecks, schema conflicts).
 
@@ -39,6 +45,11 @@ This document outlines the standard operating procedure for AI agents (and human
 
 2.  **Implementation**:
     *   Write code following the [DevOps Philosophy](./devops-philosophy.md) and [Architecture](./architecture.md) guidelines.
+    *   **Visual Parity Protocol**:
+        *   Follow [Visual Parity Strategy](./visual-parity-strategy.md) strictly.
+        *   **Copy/Paste** legacy components first.
+        *   **Retain** all Tailwind classes and JSX structure.
+        *   **Rewire** only the data layer (Props, Hooks, Event Handlers).
     *   Commit frequently: Each reasonably scoped step should be a separate commit.
 
 3.  **Validation Loop**:
