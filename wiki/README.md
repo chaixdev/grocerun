@@ -6,9 +6,17 @@ Welcome to the Grocerun documentation.
 
 - **[User Guide](./user-guide/features.md)**: Learn about Grocerun features and how to use them.
 - **[Self-Hosting](./user-guide/self-hosting.md)**: Instructions for deploying Grocerun on your own server.
-- **[Developer Guide](./developer-guide/devops-philosophy.md)**: Architecture, philosophy, and contribution guidelines.
+- **[Developer Guide](./developer-guide/architecture.md)**: Architecture, philosophy, and contribution guidelines.
 
 ## 🛠️ Planning
 
-- **[Roadmap](./planning/roadmap.md)**: Future plans and feature tracking.
-- **[Tickets](./planning/tickets)**: Active and backlog tasks.
+- **[Roadmap](./planning/roadmap.md)**: Current progress and feature tracking.
+- **[Tickets](./planning/tickets/)**: Active and backlog tasks.
+- **[User Stories](./planning/user-stories/)**: Feature requirements from user perspective.
+
+## 🏗️ Architecture
+
+Grocerun v2 uses a **Local-First Architecture**:
+- **Frontend**: React + Vite + RxDB (IndexedDB)
+- **Backend**: NestJS + Prisma + SQLite
+- **Sync**: Background replication between local and server databases

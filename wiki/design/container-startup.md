@@ -1,3 +1,4 @@
+````markdown
 # Container Startup & Data Safety
 
 ## Overview
@@ -57,3 +58,4 @@ sequenceDiagram
     DB-->>C: Schema Updated
     C->>C: Start Next.js App
 ```
+````
