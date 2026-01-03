@@ -22,13 +22,14 @@ This document outlines the standard operating procedure for AI agents (and human
     *   Identify potential risks (breaking changes, performance bottlenecks, schema conflicts).
 
 3.  **Strategy Proposal**:
-    *   Develop **3 Distinct Strategies** to solve the problem.
+    *   Create a **Discussion Document** in `wiki/planning/discussions/` (e.g., `wiki/planning/discussions/GRO-XXX-sync-strategy.md`).
+    *   Investigate **two or three Distinct implementation approaches** to solve the problem.
     *   For each strategy, provide:
-        *   **Description**: High-level approach.
+        *   **Description**: one or two sentences describing the target implementatoin.
         *   **Fit**: How it integrates with the current code and overarching architecture (Local-First).
         *   **Pros**: Benefits of this approach.
         *   **Cons**: Drawbacks or trade-offs.
-    *   *Constraint:* Strategies 2 and 3 must offer meaningful trade-offs (e.g., "Quick & Dirty" vs. "Robust & Complex" vs. "Experimental/Novel"), addressing the cons of the previous proposals.
+    *   *Constraint:* Strategies 2 and 3 must offer meaningful trade-offs, addressing the cons of the previous proposals, but remain fully compliant to the acceptance criteria.
 
 4.  **Recommendation & Consensus**:
     *   State your **Preferred Solution** clearly.
@@ -71,7 +72,8 @@ This document outlines the standard operating procedure for AI agents (and human
 
 2.  **New Design Artifacts**:
     *   Assess if a new mechanism was introduced.
-    *   If yes, create a new design document in `wiki/design/` (e.g., `wiki/design/new-sync-mechanism.md`).
+    *   If yes, create a new **Reference Document** in `wiki/design/` (e.g., `wiki/design/new-sync-mechanism.md`).
+    *   *Note:* `wiki/design/` is for permanent, implemented architecture. `wiki/planning/discussions/` is for transient proposals.
 
 3.  **Finalization**:
     *   Commit the documentation changes.
