@@ -6,8 +6,8 @@ Based on the [Product Vision](../planning/product-evolution-spec.md) and the goa
 
 ```mermaid
 erDiagram
-    User ||--o{ HouseholdMember : "belongs to"
-    Household ||--o{ HouseholdMember : "has"
+    User }o--o{ Household : "member of (M:N)"
+    User ||--o{ Household : "owns (1:N)"
     Household ||--o{ Store : "owns"
     
     Store ||--o{ Section : "defines layout"
@@ -23,11 +23,13 @@ erDiagram
         string id
         string email
         string name
+        string[] householdIds "denormalized for RxDB"
     }
 
     Household {
         string id
         string name "e.g. 'The Smiths'"
+        string ownerId "FK to User"
     }
 
     Store {
@@ -76,6 +78,7 @@ erDiagram
 Instead of sharing individual lists, we group Users into a **Household**.
 - **Why?** Grocery shopping is typically a household activity.
 - **Benefit:** Sharing a Household automatically shares all **Stores**, **History**, and **Lists**. No need to re-invite your partner to every new list.
+- **Implementation:** M:N relationship between User and Household. A user can belong to multiple households (family home, shared apartment, etc.). Each Household has an `ownerId` for permission management.
 
 ### 2. `Store` as the Anchor
 Everything revolves around the Store.

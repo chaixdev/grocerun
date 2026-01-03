@@ -91,6 +91,12 @@ RxDB handles bidirectional sync via pull/push handlers:
 2. Sends batch to server
 3. Server upserts and returns conflicts (if any)
 
+### Multi-Household Sync
+- Server scopes all sync queries to user's households
+- User syncs ALL data for ALL households they're a member of
+- Client filters by active household at the UI layer
+- See [Multi-Household Sync](../design/multi-household-sync.md) for details
+
 ## Key Design Decisions
 
 ### Why RxDB over ElectricSQL?
