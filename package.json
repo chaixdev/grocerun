@@ -7,7 +7,7 @@
     "packages/*"
   ],
   "scripts": {
-    "dev": "concurrently \"npm run dev --workspace=grocerun-server\" \"npm run dev --workspace=grocerun-client\"",
+    "dev": "concurrently \"npm run dev --workspace=grocerun-server\" \"npm run dev --workspace=grocerun-web\"",
     "build": "npm run build --workspaces",
     "test": "npm run test --workspaces",
     "lint": "npm run lint --workspaces"
@@ -15,5 +15,9 @@
   "devDependencies": {
     "concurrently": "^9.0.0",
     "typescript": "^5.3.3"
+  },
+  "dependencies": {
+    "@prisma/client": "^7.2.0",
+    "prisma": "^7.2.0"
   }
 }
