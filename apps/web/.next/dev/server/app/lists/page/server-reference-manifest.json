@@ -1,0 +1,185 @@
+{
+  "node": {
+    "007ec3b90c55022c7acfdfd700ce947c7bffd9d2de": {
+      "workers": {
+        "app/lists/page": {
+          "moduleId": "[project]/apps/web/.next-internal/server/app/lists/page/actions.js { ACTIONS_MODULE0 => \"[project]/apps/web/src/actions/dashboard.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/apps/web/src/actions/list.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE2 => \"[project]/apps/web/src/actions/item.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false,
+          "exportedName": "getDashboardData",
+          "filename": "apps/web/src/actions/dashboard.ts"
+        }
+      },
+      "layer": {
+        "app/lists/page": "rsc"
+      },
+      "exportedName": "getDashboardData",
+      "filename": "apps/web/src/actions/dashboard.ts"
+    },
+    "4041a18e25bc6b0f9e8863cf1e98f0989dfc5a0ce9": {
+      "workers": {
+        "app/lists/page": {
+          "moduleId": "[project]/apps/web/.next-internal/server/app/lists/page/actions.js { ACTIONS_MODULE0 => \"[project]/apps/web/src/actions/dashboard.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/apps/web/src/actions/list.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE2 => \"[project]/apps/web/src/actions/item.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false,
+          "exportedName": "createList",
+          "filename": "apps/web/src/actions/list.ts"
+        }
+      },
+      "layer": {
+        "app/lists/page": "action-browser"
+      },
+      "exportedName": "createList",
+      "filename": "apps/web/src/actions/list.ts"
+    },
+    "40f1e8f092b6f933a0ebced004a73c30eaa05ae561": {
+      "workers": {
+        "app/lists/page": {
+          "moduleId": "[project]/apps/web/.next-internal/server/app/lists/page/actions.js { ACTIONS_MODULE0 => \"[project]/apps/web/src/actions/dashboard.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/apps/web/src/actions/list.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE2 => \"[project]/apps/web/src/actions/item.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false,
+          "exportedName": "addItemToList",
+          "filename": "apps/web/src/actions/list.ts"
+        }
+      },
+      "layer": {
+        "app/lists/page": "action-browser"
+      },
+      "exportedName": "addItemToList",
+      "filename": "apps/web/src/actions/list.ts"
+    },
+    "409f0a8c3eceddcfda5282ccb0a72aa60db2395aab": {
+      "workers": {
+        "app/lists/page": {
+          "moduleId": "[project]/apps/web/.next-internal/server/app/lists/page/actions.js { ACTIONS_MODULE0 => \"[project]/apps/web/src/actions/dashboard.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/apps/web/src/actions/list.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE2 => \"[project]/apps/web/src/actions/item.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false,
+          "exportedName": "toggleListItem",
+          "filename": "apps/web/src/actions/list.ts"
+        }
+      },
+      "layer": {
+        "app/lists/page": "action-browser"
+      },
+      "exportedName": "toggleListItem",
+      "filename": "apps/web/src/actions/list.ts"
+    },
+    "40ed34dd3dfebae265432146f776445f86e9c179f7": {
+      "workers": {
+        "app/lists/page": {
+          "moduleId": "[project]/apps/web/.next-internal/server/app/lists/page/actions.js { ACTIONS_MODULE0 => \"[project]/apps/web/src/actions/dashboard.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/apps/web/src/actions/list.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE2 => \"[project]/apps/web/src/actions/item.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false,
+          "exportedName": "removeItemFromList",
+          "filename": "apps/web/src/actions/list.ts"
+        }
+      },
+      "layer": {
+        "app/lists/page": "action-browser"
+      },
+      "exportedName": "removeItemFromList",
+      "filename": "apps/web/src/actions/list.ts"
+    },
+    "40e8dfaf7efbc9be6051792adc0a499d876ca83b01": {
+      "workers": {
+        "app/lists/page": {
+          "moduleId": "[project]/apps/web/.next-internal/server/app/lists/page/actions.js { ACTIONS_MODULE0 => \"[project]/apps/web/src/actions/dashboard.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/apps/web/src/actions/list.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE2 => \"[project]/apps/web/src/actions/item.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false,
+          "exportedName": "startShopping",
+          "filename": "apps/web/src/actions/list.ts"
+        }
+      },
+      "layer": {
+        "app/lists/page": "action-browser"
+      },
+      "exportedName": "startShopping",
+      "filename": "apps/web/src/actions/list.ts"
+    },
+    "40c2323c53419c89d05c9e55f7b1c4ec42baa8c7b1": {
+      "workers": {
+        "app/lists/page": {
+          "moduleId": "[project]/apps/web/.next-internal/server/app/lists/page/actions.js { ACTIONS_MODULE0 => \"[project]/apps/web/src/actions/dashboard.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/apps/web/src/actions/list.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE2 => \"[project]/apps/web/src/actions/item.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false,
+          "exportedName": "cancelShopping",
+          "filename": "apps/web/src/actions/list.ts"
+        }
+      },
+      "layer": {
+        "app/lists/page": "action-browser"
+      },
+      "exportedName": "cancelShopping",
+      "filename": "apps/web/src/actions/list.ts"
+    },
+    "406c4e9e1a295c95eb754bafe0ca926e1e28c81909": {
+      "workers": {
+        "app/lists/page": {
+          "moduleId": "[project]/apps/web/.next-internal/server/app/lists/page/actions.js { ACTIONS_MODULE0 => \"[project]/apps/web/src/actions/dashboard.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/apps/web/src/actions/list.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE2 => \"[project]/apps/web/src/actions/item.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false,
+          "exportedName": "updateListItemQuantity",
+          "filename": "apps/web/src/actions/list.ts"
+        }
+      },
+      "layer": {
+        "app/lists/page": "action-browser"
+      },
+      "exportedName": "updateListItemQuantity",
+      "filename": "apps/web/src/actions/list.ts"
+    },
+    "407a7473a06fe3491e67c217880dc25231749d384a": {
+      "workers": {
+        "app/lists/page": {
+          "moduleId": "[project]/apps/web/.next-internal/server/app/lists/page/actions.js { ACTIONS_MODULE0 => \"[project]/apps/web/src/actions/dashboard.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/apps/web/src/actions/list.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE2 => \"[project]/apps/web/src/actions/item.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false,
+          "exportedName": "completeList",
+          "filename": "apps/web/src/actions/list.ts"
+        }
+      },
+      "layer": {
+        "app/lists/page": "action-browser"
+      },
+      "exportedName": "completeList",
+      "filename": "apps/web/src/actions/list.ts"
+    },
+    "406cb983a19dac8b15cd9441c0cf320e48546f598b": {
+      "workers": {
+        "app/lists/page": {
+          "moduleId": "[project]/apps/web/.next-internal/server/app/lists/page/actions.js { ACTIONS_MODULE0 => \"[project]/apps/web/src/actions/dashboard.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/apps/web/src/actions/list.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE2 => \"[project]/apps/web/src/actions/item.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false,
+          "exportedName": "updateItem",
+          "filename": "apps/web/src/actions/item.ts"
+        }
+      },
+      "layer": {
+        "app/lists/page": "action-browser"
+      },
+      "exportedName": "updateItem",
+      "filename": "apps/web/src/actions/item.ts"
+    },
+    "403353d488a1e0f7ca3d84111bb07ab6b457478492": {
+      "workers": {
+        "app/lists/page": {
+          "moduleId": "[project]/apps/web/.next-internal/server/app/lists/page/actions.js { ACTIONS_MODULE0 => \"[project]/apps/web/src/actions/dashboard.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/apps/web/src/actions/list.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE2 => \"[project]/apps/web/src/actions/item.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false,
+          "exportedName": "searchItems",
+          "filename": "apps/web/src/actions/item.ts"
+        }
+      },
+      "layer": {
+        "app/lists/page": "action-browser"
+      },
+      "exportedName": "searchItems",
+      "filename": "apps/web/src/actions/item.ts"
+    },
+    "401439751795b4c368562d84c9c503a8910e618b4b": {
+      "workers": {
+        "app/lists/page": {
+          "moduleId": "[project]/apps/web/.next-internal/server/app/lists/page/actions.js { ACTIONS_MODULE0 => \"[project]/apps/web/src/actions/dashboard.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/apps/web/src/actions/list.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE2 => \"[project]/apps/web/src/actions/item.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false,
+          "exportedName": "getTopItemsForStore",
+          "filename": "apps/web/src/actions/item.ts"
+        }
+      },
+      "layer": {
+        "app/lists/page": "action-browser"
+      },
+      "exportedName": "getTopItemsForStore",
+      "filename": "apps/web/src/actions/item.ts"
+    }
+  },
+  "edge": {}
+}

@@ -11,6 +11,14 @@ const nextConfig = {
     env: {
         NEXT_PUBLIC_APP_VERSION: packageJson.version,
     },
+    async rewrites() {
+        return [
+            {
+                source: "/api/v1/:path*",
+                destination: "http://localhost:3001/:path*", // Proxy to NestJS
+            },
+        ];
+    },
 };
 
 export default nextConfig;

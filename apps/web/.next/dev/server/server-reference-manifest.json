@@ -1,5 +1,518 @@
 {
-  "node": {},
+  "node": {
+    "007ec3b90c55022c7acfdfd700ce947c7bffd9d2de": {
+      "workers": {
+        "app/lists/page": {
+          "moduleId": "[project]/apps/web/.next-internal/server/app/lists/page/actions.js { ACTIONS_MODULE0 => \"[project]/apps/web/src/actions/dashboard.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/apps/web/src/actions/list.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE2 => \"[project]/apps/web/src/actions/item.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false,
+          "exportedName": "getDashboardData",
+          "filename": "apps/web/src/actions/dashboard.ts"
+        }
+      },
+      "layer": {
+        "app/lists/page": "rsc"
+      },
+      "filename": "apps/web/src/actions/dashboard.ts",
+      "exportedName": "getDashboardData"
+    },
+    "4041a18e25bc6b0f9e8863cf1e98f0989dfc5a0ce9": {
+      "workers": {
+        "app/lists/page": {
+          "moduleId": "[project]/apps/web/.next-internal/server/app/lists/page/actions.js { ACTIONS_MODULE0 => \"[project]/apps/web/src/actions/dashboard.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/apps/web/src/actions/list.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE2 => \"[project]/apps/web/src/actions/item.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false,
+          "exportedName": "createList",
+          "filename": "apps/web/src/actions/list.ts"
+        },
+        "app/stores/page": {
+          "moduleId": "[project]/apps/web/.next-internal/server/app/stores/page/actions.js { ACTIONS_MODULE0 => \"[project]/apps/web/src/actions/store-directory.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/apps/web/src/actions/store.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE2 => \"[project]/apps/web/src/actions/section.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE3 => \"[project]/apps/web/src/actions/list.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE4 => \"[project]/apps/web/src/actions/household.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE5 => \"[project]/apps/web/src/actions/invitation.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE6 => \"[project]/apps/web/src/actions/item.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false,
+          "exportedName": "createList",
+          "filename": "apps/web/src/actions/list.ts"
+        }
+      },
+      "layer": {
+        "app/lists/page": "action-browser",
+        "app/stores/page": "action-browser"
+      },
+      "filename": "apps/web/src/actions/list.ts",
+      "exportedName": "createList"
+    },
+    "40f1e8f092b6f933a0ebced004a73c30eaa05ae561": {
+      "workers": {
+        "app/lists/page": {
+          "moduleId": "[project]/apps/web/.next-internal/server/app/lists/page/actions.js { ACTIONS_MODULE0 => \"[project]/apps/web/src/actions/dashboard.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/apps/web/src/actions/list.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE2 => \"[project]/apps/web/src/actions/item.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false,
+          "exportedName": "addItemToList",
+          "filename": "apps/web/src/actions/list.ts"
+        },
+        "app/stores/page": {
+          "moduleId": "[project]/apps/web/.next-internal/server/app/stores/page/actions.js { ACTIONS_MODULE0 => \"[project]/apps/web/src/actions/store-directory.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/apps/web/src/actions/store.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE2 => \"[project]/apps/web/src/actions/section.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE3 => \"[project]/apps/web/src/actions/list.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE4 => \"[project]/apps/web/src/actions/household.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE5 => \"[project]/apps/web/src/actions/invitation.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE6 => \"[project]/apps/web/src/actions/item.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false,
+          "exportedName": "addItemToList",
+          "filename": "apps/web/src/actions/list.ts"
+        }
+      },
+      "layer": {
+        "app/lists/page": "action-browser",
+        "app/stores/page": "action-browser"
+      },
+      "filename": "apps/web/src/actions/list.ts",
+      "exportedName": "addItemToList"
+    },
+    "409f0a8c3eceddcfda5282ccb0a72aa60db2395aab": {
+      "workers": {
+        "app/lists/page": {
+          "moduleId": "[project]/apps/web/.next-internal/server/app/lists/page/actions.js { ACTIONS_MODULE0 => \"[project]/apps/web/src/actions/dashboard.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/apps/web/src/actions/list.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE2 => \"[project]/apps/web/src/actions/item.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false,
+          "exportedName": "toggleListItem",
+          "filename": "apps/web/src/actions/list.ts"
+        },
+        "app/stores/page": {
+          "moduleId": "[project]/apps/web/.next-internal/server/app/stores/page/actions.js { ACTIONS_MODULE0 => \"[project]/apps/web/src/actions/store-directory.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/apps/web/src/actions/store.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE2 => \"[project]/apps/web/src/actions/section.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE3 => \"[project]/apps/web/src/actions/list.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE4 => \"[project]/apps/web/src/actions/household.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE5 => \"[project]/apps/web/src/actions/invitation.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE6 => \"[project]/apps/web/src/actions/item.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false,
+          "exportedName": "toggleListItem",
+          "filename": "apps/web/src/actions/list.ts"
+        }
+      },
+      "layer": {
+        "app/lists/page": "action-browser",
+        "app/stores/page": "action-browser"
+      },
+      "filename": "apps/web/src/actions/list.ts",
+      "exportedName": "toggleListItem"
+    },
+    "40ed34dd3dfebae265432146f776445f86e9c179f7": {
+      "workers": {
+        "app/lists/page": {
+          "moduleId": "[project]/apps/web/.next-internal/server/app/lists/page/actions.js { ACTIONS_MODULE0 => \"[project]/apps/web/src/actions/dashboard.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/apps/web/src/actions/list.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE2 => \"[project]/apps/web/src/actions/item.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false,
+          "exportedName": "removeItemFromList",
+          "filename": "apps/web/src/actions/list.ts"
+        },
+        "app/stores/page": {
+          "moduleId": "[project]/apps/web/.next-internal/server/app/stores/page/actions.js { ACTIONS_MODULE0 => \"[project]/apps/web/src/actions/store-directory.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/apps/web/src/actions/store.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE2 => \"[project]/apps/web/src/actions/section.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE3 => \"[project]/apps/web/src/actions/list.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE4 => \"[project]/apps/web/src/actions/household.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE5 => \"[project]/apps/web/src/actions/invitation.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE6 => \"[project]/apps/web/src/actions/item.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false,
+          "exportedName": "removeItemFromList",
+          "filename": "apps/web/src/actions/list.ts"
+        }
+      },
+      "layer": {
+        "app/lists/page": "action-browser",
+        "app/stores/page": "action-browser"
+      },
+      "filename": "apps/web/src/actions/list.ts",
+      "exportedName": "removeItemFromList"
+    },
+    "40e8dfaf7efbc9be6051792adc0a499d876ca83b01": {
+      "workers": {
+        "app/lists/page": {
+          "moduleId": "[project]/apps/web/.next-internal/server/app/lists/page/actions.js { ACTIONS_MODULE0 => \"[project]/apps/web/src/actions/dashboard.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/apps/web/src/actions/list.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE2 => \"[project]/apps/web/src/actions/item.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false,
+          "exportedName": "startShopping",
+          "filename": "apps/web/src/actions/list.ts"
+        },
+        "app/stores/page": {
+          "moduleId": "[project]/apps/web/.next-internal/server/app/stores/page/actions.js { ACTIONS_MODULE0 => \"[project]/apps/web/src/actions/store-directory.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/apps/web/src/actions/store.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE2 => \"[project]/apps/web/src/actions/section.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE3 => \"[project]/apps/web/src/actions/list.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE4 => \"[project]/apps/web/src/actions/household.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE5 => \"[project]/apps/web/src/actions/invitation.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE6 => \"[project]/apps/web/src/actions/item.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false,
+          "exportedName": "startShopping",
+          "filename": "apps/web/src/actions/list.ts"
+        }
+      },
+      "layer": {
+        "app/lists/page": "action-browser",
+        "app/stores/page": "action-browser"
+      },
+      "filename": "apps/web/src/actions/list.ts",
+      "exportedName": "startShopping"
+    },
+    "40c2323c53419c89d05c9e55f7b1c4ec42baa8c7b1": {
+      "workers": {
+        "app/lists/page": {
+          "moduleId": "[project]/apps/web/.next-internal/server/app/lists/page/actions.js { ACTIONS_MODULE0 => \"[project]/apps/web/src/actions/dashboard.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/apps/web/src/actions/list.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE2 => \"[project]/apps/web/src/actions/item.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false,
+          "exportedName": "cancelShopping",
+          "filename": "apps/web/src/actions/list.ts"
+        },
+        "app/stores/page": {
+          "moduleId": "[project]/apps/web/.next-internal/server/app/stores/page/actions.js { ACTIONS_MODULE0 => \"[project]/apps/web/src/actions/store-directory.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/apps/web/src/actions/store.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE2 => \"[project]/apps/web/src/actions/section.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE3 => \"[project]/apps/web/src/actions/list.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE4 => \"[project]/apps/web/src/actions/household.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE5 => \"[project]/apps/web/src/actions/invitation.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE6 => \"[project]/apps/web/src/actions/item.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false,
+          "exportedName": "cancelShopping",
+          "filename": "apps/web/src/actions/list.ts"
+        }
+      },
+      "layer": {
+        "app/lists/page": "action-browser",
+        "app/stores/page": "action-browser"
+      },
+      "filename": "apps/web/src/actions/list.ts",
+      "exportedName": "cancelShopping"
+    },
+    "406c4e9e1a295c95eb754bafe0ca926e1e28c81909": {
+      "workers": {
+        "app/lists/page": {
+          "moduleId": "[project]/apps/web/.next-internal/server/app/lists/page/actions.js { ACTIONS_MODULE0 => \"[project]/apps/web/src/actions/dashboard.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/apps/web/src/actions/list.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE2 => \"[project]/apps/web/src/actions/item.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false,
+          "exportedName": "updateListItemQuantity",
+          "filename": "apps/web/src/actions/list.ts"
+        },
+        "app/stores/page": {
+          "moduleId": "[project]/apps/web/.next-internal/server/app/stores/page/actions.js { ACTIONS_MODULE0 => \"[project]/apps/web/src/actions/store-directory.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/apps/web/src/actions/store.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE2 => \"[project]/apps/web/src/actions/section.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE3 => \"[project]/apps/web/src/actions/list.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE4 => \"[project]/apps/web/src/actions/household.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE5 => \"[project]/apps/web/src/actions/invitation.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE6 => \"[project]/apps/web/src/actions/item.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false,
+          "exportedName": "updateListItemQuantity",
+          "filename": "apps/web/src/actions/list.ts"
+        }
+      },
+      "layer": {
+        "app/lists/page": "action-browser",
+        "app/stores/page": "action-browser"
+      },
+      "filename": "apps/web/src/actions/list.ts",
+      "exportedName": "updateListItemQuantity"
+    },
+    "407a7473a06fe3491e67c217880dc25231749d384a": {
+      "workers": {
+        "app/lists/page": {
+          "moduleId": "[project]/apps/web/.next-internal/server/app/lists/page/actions.js { ACTIONS_MODULE0 => \"[project]/apps/web/src/actions/dashboard.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/apps/web/src/actions/list.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE2 => \"[project]/apps/web/src/actions/item.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false,
+          "exportedName": "completeList",
+          "filename": "apps/web/src/actions/list.ts"
+        },
+        "app/stores/page": {
+          "moduleId": "[project]/apps/web/.next-internal/server/app/stores/page/actions.js { ACTIONS_MODULE0 => \"[project]/apps/web/src/actions/store-directory.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/apps/web/src/actions/store.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE2 => \"[project]/apps/web/src/actions/section.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE3 => \"[project]/apps/web/src/actions/list.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE4 => \"[project]/apps/web/src/actions/household.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE5 => \"[project]/apps/web/src/actions/invitation.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE6 => \"[project]/apps/web/src/actions/item.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false,
+          "exportedName": "completeList",
+          "filename": "apps/web/src/actions/list.ts"
+        }
+      },
+      "layer": {
+        "app/lists/page": "action-browser",
+        "app/stores/page": "action-browser"
+      },
+      "filename": "apps/web/src/actions/list.ts",
+      "exportedName": "completeList"
+    },
+    "406cb983a19dac8b15cd9441c0cf320e48546f598b": {
+      "workers": {
+        "app/lists/page": {
+          "moduleId": "[project]/apps/web/.next-internal/server/app/lists/page/actions.js { ACTIONS_MODULE0 => \"[project]/apps/web/src/actions/dashboard.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/apps/web/src/actions/list.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE2 => \"[project]/apps/web/src/actions/item.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false,
+          "exportedName": "updateItem",
+          "filename": "apps/web/src/actions/item.ts"
+        },
+        "app/stores/page": {
+          "moduleId": "[project]/apps/web/.next-internal/server/app/stores/page/actions.js { ACTIONS_MODULE0 => \"[project]/apps/web/src/actions/store-directory.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/apps/web/src/actions/store.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE2 => \"[project]/apps/web/src/actions/section.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE3 => \"[project]/apps/web/src/actions/list.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE4 => \"[project]/apps/web/src/actions/household.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE5 => \"[project]/apps/web/src/actions/invitation.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE6 => \"[project]/apps/web/src/actions/item.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false,
+          "exportedName": "updateItem",
+          "filename": "apps/web/src/actions/item.ts"
+        }
+      },
+      "layer": {
+        "app/lists/page": "action-browser",
+        "app/stores/page": "action-browser"
+      },
+      "filename": "apps/web/src/actions/item.ts",
+      "exportedName": "updateItem"
+    },
+    "403353d488a1e0f7ca3d84111bb07ab6b457478492": {
+      "workers": {
+        "app/lists/page": {
+          "moduleId": "[project]/apps/web/.next-internal/server/app/lists/page/actions.js { ACTIONS_MODULE0 => \"[project]/apps/web/src/actions/dashboard.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/apps/web/src/actions/list.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE2 => \"[project]/apps/web/src/actions/item.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false,
+          "exportedName": "searchItems",
+          "filename": "apps/web/src/actions/item.ts"
+        },
+        "app/stores/page": {
+          "moduleId": "[project]/apps/web/.next-internal/server/app/stores/page/actions.js { ACTIONS_MODULE0 => \"[project]/apps/web/src/actions/store-directory.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/apps/web/src/actions/store.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE2 => \"[project]/apps/web/src/actions/section.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE3 => \"[project]/apps/web/src/actions/list.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE4 => \"[project]/apps/web/src/actions/household.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE5 => \"[project]/apps/web/src/actions/invitation.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE6 => \"[project]/apps/web/src/actions/item.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false,
+          "exportedName": "searchItems",
+          "filename": "apps/web/src/actions/item.ts"
+        }
+      },
+      "layer": {
+        "app/lists/page": "action-browser",
+        "app/stores/page": "action-browser"
+      },
+      "filename": "apps/web/src/actions/item.ts",
+      "exportedName": "searchItems"
+    },
+    "401439751795b4c368562d84c9c503a8910e618b4b": {
+      "workers": {
+        "app/lists/page": {
+          "moduleId": "[project]/apps/web/.next-internal/server/app/lists/page/actions.js { ACTIONS_MODULE0 => \"[project]/apps/web/src/actions/dashboard.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/apps/web/src/actions/list.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE2 => \"[project]/apps/web/src/actions/item.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false,
+          "exportedName": "getTopItemsForStore",
+          "filename": "apps/web/src/actions/item.ts"
+        },
+        "app/stores/page": {
+          "moduleId": "[project]/apps/web/.next-internal/server/app/stores/page/actions.js { ACTIONS_MODULE0 => \"[project]/apps/web/src/actions/store-directory.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/apps/web/src/actions/store.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE2 => \"[project]/apps/web/src/actions/section.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE3 => \"[project]/apps/web/src/actions/list.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE4 => \"[project]/apps/web/src/actions/household.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE5 => \"[project]/apps/web/src/actions/invitation.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE6 => \"[project]/apps/web/src/actions/item.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false,
+          "exportedName": "getTopItemsForStore",
+          "filename": "apps/web/src/actions/item.ts"
+        }
+      },
+      "layer": {
+        "app/lists/page": "action-browser",
+        "app/stores/page": "action-browser"
+      },
+      "filename": "apps/web/src/actions/item.ts",
+      "exportedName": "getTopItemsForStore"
+    },
+    "008c81a3c00011beb74f565ab47316fda4519e75ab": {
+      "workers": {
+        "app/login/page": {
+          "moduleId": "[project]/apps/web/.next-internal/server/app/login/page/actions.js { ACTIONS_MODULE0 => \"[project]/apps/web/src/app/login/page.tsx [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false,
+          "exportedName": "$$RSC_SERVER_ACTION_0",
+          "filename": "apps/web/src/app/login/page.tsx"
+        }
+      },
+      "layer": {
+        "app/login/page": "rsc"
+      },
+      "filename": "apps/web/src/app/login/page.tsx",
+      "exportedName": "$$RSC_SERVER_ACTION_0"
+    },
+    "00e5bda3b02db6ad778e5cf054e48d6dfc453c7746": {
+      "workers": {
+        "app/stores/page": {
+          "moduleId": "[project]/apps/web/.next-internal/server/app/stores/page/actions.js { ACTIONS_MODULE0 => \"[project]/apps/web/src/actions/store-directory.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/apps/web/src/actions/store.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE2 => \"[project]/apps/web/src/actions/section.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE3 => \"[project]/apps/web/src/actions/list.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE4 => \"[project]/apps/web/src/actions/household.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE5 => \"[project]/apps/web/src/actions/invitation.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE6 => \"[project]/apps/web/src/actions/item.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false,
+          "exportedName": "getStoreDirectoryData",
+          "filename": "apps/web/src/actions/store-directory.ts"
+        }
+      },
+      "layer": {
+        "app/stores/page": "rsc"
+      },
+      "filename": "apps/web/src/actions/store-directory.ts",
+      "exportedName": "getStoreDirectoryData"
+    },
+    "003f55b1f59c8555a9baf6f149126dd839805e6731": {
+      "workers": {
+        "app/stores/page": {
+          "moduleId": "[project]/apps/web/.next-internal/server/app/stores/page/actions.js { ACTIONS_MODULE0 => \"[project]/apps/web/src/actions/store-directory.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/apps/web/src/actions/store.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE2 => \"[project]/apps/web/src/actions/section.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE3 => \"[project]/apps/web/src/actions/list.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE4 => \"[project]/apps/web/src/actions/household.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE5 => \"[project]/apps/web/src/actions/invitation.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE6 => \"[project]/apps/web/src/actions/item.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false,
+          "exportedName": "createDefaultHousehold",
+          "filename": "apps/web/src/actions/store.ts"
+        }
+      },
+      "layer": {
+        "app/stores/page": "action-browser"
+      },
+      "filename": "apps/web/src/actions/store.ts",
+      "exportedName": "createDefaultHousehold"
+    },
+    "4041c7b91d43fc347bd1c53288815762c9f9e985bb": {
+      "workers": {
+        "app/stores/page": {
+          "moduleId": "[project]/apps/web/.next-internal/server/app/stores/page/actions.js { ACTIONS_MODULE0 => \"[project]/apps/web/src/actions/store-directory.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/apps/web/src/actions/store.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE2 => \"[project]/apps/web/src/actions/section.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE3 => \"[project]/apps/web/src/actions/list.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE4 => \"[project]/apps/web/src/actions/household.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE5 => \"[project]/apps/web/src/actions/invitation.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE6 => \"[project]/apps/web/src/actions/item.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false,
+          "exportedName": "deleteStore",
+          "filename": "apps/web/src/actions/store.ts"
+        }
+      },
+      "layer": {
+        "app/stores/page": "action-browser"
+      },
+      "filename": "apps/web/src/actions/store.ts",
+      "exportedName": "deleteStore"
+    },
+    "4002a829495177879a23dea4046887659d25bf313c": {
+      "workers": {
+        "app/stores/page": {
+          "moduleId": "[project]/apps/web/.next-internal/server/app/stores/page/actions.js { ACTIONS_MODULE0 => \"[project]/apps/web/src/actions/store-directory.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/apps/web/src/actions/store.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE2 => \"[project]/apps/web/src/actions/section.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE3 => \"[project]/apps/web/src/actions/list.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE4 => \"[project]/apps/web/src/actions/household.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE5 => \"[project]/apps/web/src/actions/invitation.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE6 => \"[project]/apps/web/src/actions/item.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false,
+          "exportedName": "createSection",
+          "filename": "apps/web/src/actions/section.ts"
+        }
+      },
+      "layer": {
+        "app/stores/page": "action-browser"
+      },
+      "filename": "apps/web/src/actions/section.ts",
+      "exportedName": "createSection"
+    },
+    "40b2b32cb400bf01e88db1c0aed89f0db43f65ec63": {
+      "workers": {
+        "app/stores/page": {
+          "moduleId": "[project]/apps/web/.next-internal/server/app/stores/page/actions.js { ACTIONS_MODULE0 => \"[project]/apps/web/src/actions/store-directory.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/apps/web/src/actions/store.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE2 => \"[project]/apps/web/src/actions/section.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE3 => \"[project]/apps/web/src/actions/list.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE4 => \"[project]/apps/web/src/actions/household.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE5 => \"[project]/apps/web/src/actions/invitation.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE6 => \"[project]/apps/web/src/actions/item.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false,
+          "exportedName": "reorderSections",
+          "filename": "apps/web/src/actions/section.ts"
+        }
+      },
+      "layer": {
+        "app/stores/page": "action-browser"
+      },
+      "filename": "apps/web/src/actions/section.ts",
+      "exportedName": "reorderSections"
+    },
+    "409d8968ea2dc0076d686166c3e1c1266ddd3f0a79": {
+      "workers": {
+        "app/stores/page": {
+          "moduleId": "[project]/apps/web/.next-internal/server/app/stores/page/actions.js { ACTIONS_MODULE0 => \"[project]/apps/web/src/actions/store-directory.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/apps/web/src/actions/store.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE2 => \"[project]/apps/web/src/actions/section.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE3 => \"[project]/apps/web/src/actions/list.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE4 => \"[project]/apps/web/src/actions/household.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE5 => \"[project]/apps/web/src/actions/invitation.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE6 => \"[project]/apps/web/src/actions/item.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false,
+          "exportedName": "deleteSection",
+          "filename": "apps/web/src/actions/section.ts"
+        }
+      },
+      "layer": {
+        "app/stores/page": "action-browser"
+      },
+      "filename": "apps/web/src/actions/section.ts",
+      "exportedName": "deleteSection"
+    },
+    "4055671e9ea37ab018e26df1f111a3c80d30388018": {
+      "workers": {
+        "app/stores/page": {
+          "moduleId": "[project]/apps/web/.next-internal/server/app/stores/page/actions.js { ACTIONS_MODULE0 => \"[project]/apps/web/src/actions/store-directory.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/apps/web/src/actions/store.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE2 => \"[project]/apps/web/src/actions/section.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE3 => \"[project]/apps/web/src/actions/list.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE4 => \"[project]/apps/web/src/actions/household.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE5 => \"[project]/apps/web/src/actions/invitation.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE6 => \"[project]/apps/web/src/actions/item.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false,
+          "exportedName": "updateSection",
+          "filename": "apps/web/src/actions/section.ts"
+        }
+      },
+      "layer": {
+        "app/stores/page": "action-browser"
+      },
+      "filename": "apps/web/src/actions/section.ts",
+      "exportedName": "updateSection"
+    },
+    "405e44639ae4a2ea2bd78f89ab130c7e15394121e7": {
+      "workers": {
+        "app/stores/page": {
+          "moduleId": "[project]/apps/web/.next-internal/server/app/stores/page/actions.js { ACTIONS_MODULE0 => \"[project]/apps/web/src/actions/store-directory.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/apps/web/src/actions/store.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE2 => \"[project]/apps/web/src/actions/section.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE3 => \"[project]/apps/web/src/actions/list.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE4 => \"[project]/apps/web/src/actions/household.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE5 => \"[project]/apps/web/src/actions/invitation.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE6 => \"[project]/apps/web/src/actions/item.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false,
+          "exportedName": "createStore",
+          "filename": "apps/web/src/actions/store.ts"
+        }
+      },
+      "layer": {
+        "app/stores/page": "action-browser"
+      },
+      "filename": "apps/web/src/actions/store.ts",
+      "exportedName": "createStore"
+    },
+    "40d28b565555be44bb6bb196881a43b2ec71267a7f": {
+      "workers": {
+        "app/stores/page": {
+          "moduleId": "[project]/apps/web/.next-internal/server/app/stores/page/actions.js { ACTIONS_MODULE0 => \"[project]/apps/web/src/actions/store-directory.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/apps/web/src/actions/store.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE2 => \"[project]/apps/web/src/actions/section.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE3 => \"[project]/apps/web/src/actions/list.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE4 => \"[project]/apps/web/src/actions/household.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE5 => \"[project]/apps/web/src/actions/invitation.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE6 => \"[project]/apps/web/src/actions/item.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false,
+          "exportedName": "createHousehold",
+          "filename": "apps/web/src/actions/household.ts"
+        }
+      },
+      "layer": {
+        "app/stores/page": "action-browser"
+      },
+      "filename": "apps/web/src/actions/household.ts",
+      "exportedName": "createHousehold"
+    },
+    "40f880fd3245fe1fa24581553dc6594d4ace6f2afa": {
+      "workers": {
+        "app/stores/page": {
+          "moduleId": "[project]/apps/web/.next-internal/server/app/stores/page/actions.js { ACTIONS_MODULE0 => \"[project]/apps/web/src/actions/store-directory.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/apps/web/src/actions/store.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE2 => \"[project]/apps/web/src/actions/section.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE3 => \"[project]/apps/web/src/actions/list.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE4 => \"[project]/apps/web/src/actions/household.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE5 => \"[project]/apps/web/src/actions/invitation.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE6 => \"[project]/apps/web/src/actions/item.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false,
+          "exportedName": "renameHousehold",
+          "filename": "apps/web/src/actions/household.ts"
+        }
+      },
+      "layer": {
+        "app/stores/page": "action-browser"
+      },
+      "filename": "apps/web/src/actions/household.ts",
+      "exportedName": "renameHousehold"
+    },
+    "40e3caf0618feaa18dd8d9d67392207ffe06bcf71e": {
+      "workers": {
+        "app/stores/page": {
+          "moduleId": "[project]/apps/web/.next-internal/server/app/stores/page/actions.js { ACTIONS_MODULE0 => \"[project]/apps/web/src/actions/store-directory.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/apps/web/src/actions/store.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE2 => \"[project]/apps/web/src/actions/section.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE3 => \"[project]/apps/web/src/actions/list.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE4 => \"[project]/apps/web/src/actions/household.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE5 => \"[project]/apps/web/src/actions/invitation.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE6 => \"[project]/apps/web/src/actions/item.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false,
+          "exportedName": "deleteHousehold",
+          "filename": "apps/web/src/actions/household.ts"
+        }
+      },
+      "layer": {
+        "app/stores/page": "action-browser"
+      },
+      "filename": "apps/web/src/actions/household.ts",
+      "exportedName": "deleteHousehold"
+    },
+    "602e6db461483c8e2728fbb5094e1c8f7a5c86dbe4": {
+      "workers": {
+        "app/stores/page": {
+          "moduleId": "[project]/apps/web/.next-internal/server/app/stores/page/actions.js { ACTIONS_MODULE0 => \"[project]/apps/web/src/actions/store-directory.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/apps/web/src/actions/store.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE2 => \"[project]/apps/web/src/actions/section.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE3 => \"[project]/apps/web/src/actions/list.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE4 => \"[project]/apps/web/src/actions/household.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE5 => \"[project]/apps/web/src/actions/invitation.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE6 => \"[project]/apps/web/src/actions/item.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false,
+          "exportedName": "updateStore",
+          "filename": "apps/web/src/actions/store.ts"
+        }
+      },
+      "layer": {
+        "app/stores/page": "action-browser"
+      },
+      "filename": "apps/web/src/actions/store.ts",
+      "exportedName": "updateStore"
+    },
+    "40329576d9d2bdc9bb3229de057488eb1b69ae50dd": {
+      "workers": {
+        "app/stores/page": {
+          "moduleId": "[project]/apps/web/.next-internal/server/app/stores/page/actions.js { ACTIONS_MODULE0 => \"[project]/apps/web/src/actions/store-directory.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/apps/web/src/actions/store.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE2 => \"[project]/apps/web/src/actions/section.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE3 => \"[project]/apps/web/src/actions/list.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE4 => \"[project]/apps/web/src/actions/household.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE5 => \"[project]/apps/web/src/actions/invitation.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE6 => \"[project]/apps/web/src/actions/item.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false,
+          "exportedName": "createInvitation",
+          "filename": "apps/web/src/actions/invitation.ts"
+        }
+      },
+      "layer": {
+        "app/stores/page": "action-browser"
+      },
+      "filename": "apps/web/src/actions/invitation.ts",
+      "exportedName": "createInvitation"
+    },
+    "40850976ecf4cac214e1ce8fcede84fe8ce87c8c9d": {
+      "workers": {
+        "app/stores/page": {
+          "moduleId": "[project]/apps/web/.next-internal/server/app/stores/page/actions.js { ACTIONS_MODULE0 => \"[project]/apps/web/src/actions/store-directory.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/apps/web/src/actions/store.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE2 => \"[project]/apps/web/src/actions/section.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE3 => \"[project]/apps/web/src/actions/list.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE4 => \"[project]/apps/web/src/actions/household.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE5 => \"[project]/apps/web/src/actions/invitation.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE6 => \"[project]/apps/web/src/actions/item.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false,
+          "exportedName": "joinHousehold",
+          "filename": "apps/web/src/actions/invitation.ts"
+        }
+      },
+      "layer": {
+        "app/stores/page": "action-browser"
+      },
+      "filename": "apps/web/src/actions/invitation.ts",
+      "exportedName": "joinHousehold"
+    },
+    "40d68629fa16f7c253d8a44da387edc73f3dc8d80e": {
+      "workers": {
+        "app/stores/page": {
+          "moduleId": "[project]/apps/web/.next-internal/server/app/stores/page/actions.js { ACTIONS_MODULE0 => \"[project]/apps/web/src/actions/store-directory.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/apps/web/src/actions/store.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE2 => \"[project]/apps/web/src/actions/section.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE3 => \"[project]/apps/web/src/actions/list.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE4 => \"[project]/apps/web/src/actions/household.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE5 => \"[project]/apps/web/src/actions/invitation.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE6 => \"[project]/apps/web/src/actions/item.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false,
+          "exportedName": "getInvitationDetails",
+          "filename": "apps/web/src/actions/invitation.ts"
+        }
+      },
+      "layer": {
+        "app/stores/page": "action-browser"
+      },
+      "filename": "apps/web/src/actions/invitation.ts",
+      "exportedName": "getInvitationDetails"
+    },
+    "40ff448c33a1443f15509bdac88620a22f2acbd9f3": {
+      "workers": {
+        "app/stores/page": {
+          "moduleId": "[project]/apps/web/.next-internal/server/app/stores/page/actions.js { ACTIONS_MODULE0 => \"[project]/apps/web/src/actions/store-directory.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/apps/web/src/actions/store.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE2 => \"[project]/apps/web/src/actions/section.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE3 => \"[project]/apps/web/src/actions/list.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE4 => \"[project]/apps/web/src/actions/household.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE5 => \"[project]/apps/web/src/actions/invitation.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE6 => \"[project]/apps/web/src/actions/item.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false,
+          "exportedName": "leaveHousehold",
+          "filename": "apps/web/src/actions/household.ts"
+        }
+      },
+      "layer": {
+        "app/stores/page": "action-browser"
+      },
+      "filename": "apps/web/src/actions/household.ts",
+      "exportedName": "leaveHousehold"
+    }
+  },
   "edge": {},
-  "encryptionKey": "XN5zROLm3G7AG8OQglZlP3yTBgUlaEzB2JUeUJUL/Es="
+  "encryptionKey": "n+HkFLSILgmRKCkNBGn/lScWvOu76+O/XcPpiXF7G9w="
 }
