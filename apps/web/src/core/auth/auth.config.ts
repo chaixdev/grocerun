@@ -2,6 +2,8 @@ import { env } from "@/core/config"
 import type { NextAuthConfig } from "next-auth"
 import Google from "next-auth/providers/google"
 
+const trustHost = env.AUTH_TRUST_HOST === "true" || env.NODE_ENV !== "production"
+
 export const authConfig = {
     providers: [
         Google({
@@ -12,6 +14,7 @@ export const authConfig = {
     pages: {
         signIn: "/login",
     },
+    trustHost,
     callbacks: {
         authorized({ auth, request: { nextUrl } }) {
             const isLoggedIn = !!auth?.user;
@@ -20,11 +23,6 @@ export const authConfig = {
                     return Response.redirect(new URL('/stores', nextUrl));
                 }
             }
-            return true;
-        },
-        async signIn({ user, account, profile }) {
-            // Ensure user exists in database for JWT strategy
-            // PrismaAdapter handles this for database sessions, but with JWT we need to do it manually
             return true;
         },
         async session({ session, token }) {
