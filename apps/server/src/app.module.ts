@@ -10,6 +10,7 @@ import { HouseholdsModule } from './households/households.module';
 import { StoresModule } from './stores/stores.module';
 import { SectionsModule } from './sections/sections.module';
 import { HouseholdOverviewModule } from './household-overview/household-overview.module';
+import { InvitationsModule } from './invitations/invitations.module';
 
 @Module({
   imports: [
@@ -21,7 +22,8 @@ import { HouseholdOverviewModule } from './household-overview/household-overview
     HouseholdsModule,
     StoresModule,
     SectionsModule,
-    HouseholdOverviewModule
+    HouseholdOverviewModule,
+    InvitationsModule
   ],
   controllers: [AppController],
   providers: [AppService],
