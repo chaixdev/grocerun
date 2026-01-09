@@ -8,6 +8,8 @@ import { UsersModule } from './users/users.module';
 import { AuthModule } from './auth/auth.module';
 import { HouseholdsModule } from './households/households.module';
 import { StoresModule } from './stores/stores.module';
+import { SectionsModule } from './sections/sections.module';
+import { HouseholdOverviewModule } from './household-overview/household-overview.module';
 
 @Module({
   imports: [
@@ -17,7 +19,9 @@ import { StoresModule } from './stores/stores.module';
     HealthModule,
     UsersModule,
     HouseholdsModule,
-    StoresModule
+    StoresModule,
+    SectionsModule,
+    HouseholdOverviewModule
   ],
   controllers: [AppController],
   providers: [AppService],
