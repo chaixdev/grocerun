@@ -25,7 +25,7 @@ This document provides a comprehensive overview of the Grocerun project's curren
 ### Workspace Structure
 
 ```
-grocerun-local/
+grocerun/
 ├── apps/
 │   ├── web/          # Next.js frontend (port 3000)
 │   └── server/       # NestJS backend (port 3001)
@@ -116,7 +116,8 @@ We abandoned a ground-up rewrite approach in favor of incremental migration to:
 - ✅ Google OAuth login working
 - ✅ Database operational (apps/web/dev.db)
 
-**Git Commit:** `c81a72f` on branch `feature/evolutive-architecture`
+**Git Commit:** `c81a72f` on branch `feature/evolutive-architecture`  
+**Key Changes:** Monorepo restructure, feature flags, documentation organization
 
 ---
 
@@ -144,20 +145,21 @@ AFTER (Phase 2):
 Server Action → HTTP Fetch → NestJS API → Prisma → SQLite
 ```
 
-**Migration Scope:** 8 domains, 38 server actions
+**Migration Scope:** 8 domains, 37 server actions
 - Items: 3 actions
 - Stores: 5 actions  
 - Sections: 5 actions
 - Lists: 11 actions
-- Households: 5 actions + 1 (createDefaultHousehold)
+- Households: 6 actions (5 + createDefaultHousehold from store.ts)
 - Users: 1 action
 - Invitations: 4 actions
 - Dashboard/Directory: 2 read queries
 
-**Current Progress:** 0/38 actions migrated 🔴
+**Current Progress:** 0/37 actions migrated 🔴
 
-**Detailed Checklist:** See [PHASE-2-MIGRATION.md](apps/web/wiki/planning/PHASE-2-MIGRATION.md)  
-**Original Plan:** See [phase-2-api-proxy.md](apps/web/wiki/planning/phase-2-api-proxy.md)
+**Detailed Checklist:** See [PHASE-2-MIGRATION.md](PHASE-2-MIGRATION.md)  
+**Original Plan:** See [phase-2-api-proxy.md](phase-2-api-proxy.md)  
+**API Approach:** See [ADR 001](../adr/001-phase2-api-approach.md)
 
 **Next Steps:**
 1. Create API client infrastructure (`api-client.ts`)
@@ -167,7 +169,7 @@ Server Action → HTTP Fetch → NestJS API → Prisma → SQLite
 5. Continue through remaining domains
 6. Remove all flags once complete
 
-**Estimated Effort:** 12-20 hours (38 actions × 20-30 min each)
+**Estimated Effort:** 12-19 hours (37 actions × 20-30 min each)
 
 ---
 
@@ -340,7 +342,7 @@ PORT=3001
 
 1. **Verify Environment**
    ```bash
-   cd /home/chaitanya/projects/grocerun-local
+   cd /Users/chaitanya/projects/grocerun
    nvm use
    npm run dev
    ```
@@ -447,14 +449,15 @@ npx prisma migrate dev
 
 ## Contact & Context
 
-**Last Updated:** January 8, 2026
-**Session Context:** Planning Phase 2 migration strategy
-**Documentation:** All documentation in `apps/web/wiki/`
+**Last Updated:** January 9, 2026  
+**Session Context:** Documentation cleanup before Phase 2 implementation  
+**Documentation:** All documentation in `wiki/`
 
 For questions or clarifications, refer to:
-- [monorepo-architecture.md](apps/web/wiki/developer-guide/monorepo-architecture.md) for setup
-- [phase-2-api-proxy.md](apps/web/wiki/planning/phase-2-api-proxy.md) for next steps
-- [agentic-workflow.md](apps/web/wiki/developer-guide/agentic-workflow.md) for AI collaboration
+- [phase-2-api-proxy.md](phase-2-api-proxy.md) for Phase 2 strategy
+- [PHASE-2-MIGRATION.md](PHASE-2-MIGRATION.md) for migration checklist
+- [product-evolution-spec.md](product-evolution-spec.md) for UX specifications
+- [../development/agentic-workflow.md](../development/agentic-workflow.md) for AI collaboration
 
 ---
 

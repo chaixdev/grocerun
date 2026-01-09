@@ -6,7 +6,7 @@
 
 ---
 
-## Overall Progress: 0/38 actions migrated 🔴
+## Overall Progress: 0/37 actions migrated 🔴
 
 ---
 
@@ -149,7 +149,7 @@
 
 ## Completion Criteria
 
-- [ ] All 38 server actions migrated
+- [ ] All 37 server actions migrated
 - [ ] All flags removed from `migration.ts`
 - [ ] UI functionality unchanged
 - [ ] Database consolidated to `apps/server/dev.db`

@@ -1,8 +1,14 @@
 # Phase 2 Migration Plan: API Proxy Layer
 
-> **Note:** This document describes the original migration plan. We are now using an **inverted feature flag approach** for better scope control and progress tracking.
+> [!IMPORTANT]
+> **Status:** SUPERSEDED by [PHASE-2-MIGRATION.md](PHASE-2-MIGRATION.md)
 > 
-> **Active checklist:** See [PHASE-2-MIGRATION.md](PHASE-2-MIGRATION.md)
+> This document contains the original detailed migration plan and is kept for historical reference.
+> The **active checklist** and current approach is documented in [PHASE-2-MIGRATION.md](PHASE-2-MIGRATION.md).
+> 
+> **Key decisions documented in ADRs:**
+> - [ADR 001: Simple REST + Zod](../adr/001-phase2-api-approach.md)
+> - [ADR 004: Inverted Feature Flags](../adr/004-inverted-feature-flags.md)
 
 ---
 

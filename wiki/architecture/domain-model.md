@@ -117,7 +117,7 @@ Shopping lists follow a lifecycle:
 3. **COMPLETED**: List archived, serves as history/template.
 
 ### 6. Identity & Authentication
-- **Clerk Integration**: Uses Clerk for authentication (OAuth, email/password).
+- **NextAuth Integration**: Uses NextAuth for authentication with Google OAuth provider.
 - **User Creation**: First-time users automatically get a default household.
 - **Invitation System**: Token-based invitations for household sharing (see [household-invitation-system](../design/household-invitation-system.md)).
 
