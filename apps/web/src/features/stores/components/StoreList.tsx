@@ -10,6 +10,7 @@ import {
 import { deleteStore } from "@/actions/store"
 import { MoreHorizontal, Trash2 } from "lucide-react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -24,6 +25,8 @@ interface Store {
 }
 
 export function StoreList({ stores }: { stores: Store[] }) {
+    const router = useRouter()
+    
     if (stores.length === 0) {
         return (
             <div className="text-center p-8 border rounded-lg border-dashed text-muted-foreground">
@@ -61,7 +64,10 @@ export function StoreList({ stores }: { stores: Store[] }) {
                                 <DropdownMenuContent align="end">
                                     <form
                                         action={async () => {
-                                            await deleteStore(store.id)
+                                            const result = await deleteStore(store.id)
+                                            if (result.success) {
+                                                router.refresh()
+                                            }
                                         }}
                                     >
                                         <DropdownMenuItem asChild className="text-destructive focus:text-destructive">
