@@ -29,6 +29,8 @@ export const authConfig = {
             if (token.sub && session.user) {
                 session.user.id = token.sub
             }
+            // Add the raw JWT to the session for API authentication
+            session.accessToken = token as any
             return session
         },
         async jwt({ token, user }) {

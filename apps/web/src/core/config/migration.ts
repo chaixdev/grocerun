@@ -5,9 +5,9 @@
  * When a domain is fully migrated and tested, set its flag to false.
  * Once confident, remove the flag and old Prisma code entirely.
  * 
- * Migration Progress: 8/8 domains remaining (38 total server actions)
+ * Migration Progress: 7/8 domains remaining (1 of 37 total server actions migrated)
  * 
- * @see apps/web/wiki/planning/PHASE-2-MIGRATION.md for detailed checklist
+ * @see wiki/planning/PHASE-2-MIGRATION.md for detailed checklist
  */
 export const migration = {
   /** Items domain - 3 server actions */

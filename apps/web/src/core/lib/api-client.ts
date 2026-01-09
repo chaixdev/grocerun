@@ -11,7 +11,7 @@ import { z } from 'zod'
  *   const item = await apiClient.post('/items', data, ItemSchema)
  */
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1'
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
 
 /**
  * Custom error class for API errors with status code and details
@@ -33,7 +33,8 @@ export class ApiError extends Error {
 async function request<T>(
   endpoint: string,
   options: RequestInit = {},
-  schema?: z.ZodSchema<T>
+  schema?: z.ZodSchema<T>,
+  authToken?: string
 ): Promise<T> {
   const url = `${API_BASE_URL}${endpoint}`
   
@@ -42,6 +43,7 @@ async function request<T>(
       ...options,
       headers: {
         'Content-Type': 'application/json',
+        ...(authToken && { 'Authorization': `Bearer ${authToken}` }),
         ...options.headers,
       },
     })
@@ -91,8 +93,8 @@ export const apiClient = {
   /**
    * GET request
    */
-  get<T>(endpoint: string, schema?: z.ZodSchema<T>): Promise<T> {
-    return request(endpoint, { method: 'GET' }, schema)
+  get<T>(endpoint: string, schema?: z.ZodSchema<T>, authToken?: string): Promise<T> {
+    return request(endpoint, { method: 'GET' }, schema, authToken)
   },
 
   /**
@@ -101,7 +103,8 @@ export const apiClient = {
   post<T>(
     endpoint: string,
     body: unknown,
-    schema?: z.ZodSchema<T>
+    schema?: z.ZodSchema<T>,
+    authToken?: string
   ): Promise<T> {
     return request(
       endpoint,
@@ -109,7 +112,8 @@ export const apiClient = {
         method: 'POST',
         body: JSON.stringify(body),
       },
-      schema
+      schema,
+      authToken
     )
   },
 
@@ -119,7 +123,8 @@ export const apiClient = {
   patch<T>(
     endpoint: string,
     body: unknown,
-    schema?: z.ZodSchema<T>
+    schema?: z.ZodSchema<T>,
+    authToken?: string
   ): Promise<T> {
     return request(
       endpoint,
@@ -127,15 +132,16 @@ export const apiClient = {
         method: 'PATCH',
         body: JSON.stringify(body),
       },
-      schema
+      schema,
+      authToken
     )
   },
 
   /**
    * DELETE request
    */
-  delete<T>(endpoint: string, schema?: z.ZodSchema<T>): Promise<T> {
-    return request(endpoint, { method: 'DELETE' }, schema)
+  delete<T>(endpoint: string, schema?: z.ZodSchema<T>, authToken?: string): Promise<T> {
+    return request(endpoint, { method: 'DELETE' }, schema, authToken)
   },
 }
 
@@ -148,21 +154,21 @@ if (process.env.NODE_ENV === 'development') {
   
   // Intercept requests for logging (development only)
   Object.assign(apiClient, {
-    get: <T>(endpoint: string, schema?: z.ZodSchema<T>) => {
+    get: <T>(endpoint: string, schema?: z.ZodSchema<T>, authToken?: string) => {
       console.log(`[API] GET ${endpoint}`)
-      return originalRequest(endpoint, { method: 'GET' }, schema)
+      return originalRequest(endpoint, { method: 'GET' }, schema, authToken)
     },
-    post: <T>(endpoint: string, body: unknown, schema?: z.ZodSchema<T>) => {
+    post: <T>(endpoint: string, body: unknown, schema?: z.ZodSchema<T>, authToken?: string) => {
       console.log(`[API] POST ${endpoint}`, body)
-      return originalRequest(endpoint, { method: 'POST', body: JSON.stringify(body) }, schema)
+      return originalRequest(endpoint, { method: 'POST', body: JSON.stringify(body) }, schema, authToken)
     },
-    patch: <T>(endpoint: string, body: unknown, schema?: z.ZodSchema<T>) => {
+    patch: <T>(endpoint: string, body: unknown, schema?: z.ZodSchema<T>, authToken?: string) => {
       console.log(`[API] PATCH ${endpoint}`, body)
-      return originalRequest(endpoint, { method: 'PATCH', body: JSON.stringify(body) }, schema)
+      return originalRequest(endpoint, { method: 'PATCH', body: JSON.stringify(body) }, schema, authToken)
     },
-    delete: <T>(endpoint: string, schema?: z.ZodSchema<T>) => {
+    delete: <T>(endpoint: string, schema?: z.ZodSchema<T>, authToken?: string) => {
       console.log(`[API] DELETE ${endpoint}`)
-      return originalRequest(endpoint, { method: 'DELETE' }, schema)
+      return originalRequest(endpoint, { method: 'DELETE' }, schema, authToken)
     },
   })
 }

@@ -6,7 +6,9 @@
 
 ---
 
-## Overall Progress: 0/37 actions migrated 🔴
+## Overall Progress: 1/37 actions migrated 🟡
+
+**Latest:** Users domain ready for testing (1 action)
 
 ---
 
@@ -82,12 +84,14 @@
 
 ---
 
-## Users Domain [0/1] 🔴
+## Users Domain [1/1] 🟢
 
 **File:** `apps/web/src/actions/user.ts`  
 **Flag:** `migration.users`
 
-- [ ] `updateProfile()` - PATCH /users/me
+- [x] `updateProfile()` - PATCH /users/me
+
+**Status:** Ready for testing (flag still `true`, will flip after validation)
 
 ---
 
