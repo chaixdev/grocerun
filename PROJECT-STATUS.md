@@ -120,16 +120,16 @@ We abandoned a ground-up rewrite approach in favor of incremental migration to:
 
 ---
 
-#### 🔄 **Phase 2: API Proxy Layer** (IN PLANNING)
+#### 🔄 **Phase 2: API Proxy Layer** (IN PROGRESS)
 
 **Goal:** Decouple frontend from database by introducing API boundary
 
-**Strategy:** Migrate one domain at a time:
-1. Items (simplest CRUD)
-2. Stores (includes sections)
-3. Lists (most complex)
-4. Households (includes invitations)
-5. Users (profile updates)
+**Strategy: Inverted Feature Flags**
+- All 38 server actions inventoried and flagged
+- Start with all flags `true` (use Prisma)
+- Migrate domain by domain, flip flag to `false` (use API)
+- Remove flag and old code once confident
+- Progress is measurable: count down from 38 to 0
 
 **What Will Change:**
 
@@ -137,24 +137,37 @@ We abandoned a ground-up rewrite approach in favor of incremental migration to:
 BEFORE (Phase 1):
 Server Action → Prisma → SQLite
 
+DURING (Phase 2):
+Server Action → [FLAG CHECK] → Prisma OR API
+
 AFTER (Phase 2):
 Server Action → HTTP Fetch → NestJS API → Prisma → SQLite
 ```
 
-**Detailed Plan:** See [phase-2-api-proxy.md](apps/web/wiki/planning/phase-2-api-proxy.md)
+**Migration Scope:** 8 domains, 38 server actions
+- Items: 3 actions
+- Stores: 5 actions  
+- Sections: 5 actions
+- Lists: 11 actions
+- Households: 5 actions + 1 (createDefaultHousehold)
+- Users: 1 action
+- Invitations: 4 actions
+- Dashboard/Directory: 2 read queries
+
+**Current Progress:** 0/38 actions migrated 🔴
+
+**Detailed Checklist:** See [PHASE-2-MIGRATION.md](apps/web/wiki/planning/PHASE-2-MIGRATION.md)  
+**Original Plan:** See [phase-2-api-proxy.md](apps/web/wiki/planning/phase-2-api-proxy.md)
 
 **Next Steps:**
-1. Create `apps/web/src/core/lib/api-client.ts` utility
-2. Add `NEXT_PUBLIC_API_URL` environment variable
-3. Create health check endpoint in NestJS (`GET /api/v1/health`)
-4. Test end-to-end connectivity
-5. Begin Items domain migration:
-   - Create 5 NestJS endpoints (list, get, create, update, delete)
-   - Update Server Actions to call API instead of Prisma
-   - Test UI functionality
-   - Remove old Prisma code
+1. Create API client infrastructure (`api-client.ts`)
+2. Create health check endpoint (proof of concept)
+3. Migrate Users domain (simplest: 1 action)
+4. Migrate Items domain (simple CRUD: 3 actions)
+5. Continue through remaining domains
+6. Remove all flags once complete
 
-**Estimated Effort:** 11-17 hours
+**Estimated Effort:** 12-20 hours (38 actions × 20-30 min each)
 
 ---
 

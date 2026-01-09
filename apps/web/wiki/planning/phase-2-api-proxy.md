@@ -1,5 +1,68 @@
 # Phase 2 Migration Plan: API Proxy Layer
 
+> **Note:** This document describes the original migration plan. We are now using an **inverted feature flag approach** for better scope control and progress tracking.
+> 
+> **Active checklist:** See [PHASE-2-MIGRATION.md](PHASE-2-MIGRATION.md)
+
+---
+
+## Migration Approach: Inverted Feature Flags
+
+**Key Change:** Instead of adding flags as we migrate, we start with ALL server actions flagged from day 1.
+
+### Benefits
+- **Explicit scope:** All 38 server actions documented upfront
+- **Measurable progress:** Count down from 38 to 0
+- **Safe defaults:** New system (API) becomes the default once flag removed
+- **Prevents scope creep:** Can't miss actions, they're all listed
+
+### Implementation
+
+**Feature flags file:** `apps/web/src/core/config/migration.ts`
+
+```typescript
+export const migration = {
+  items: true,      // true = use Prisma, false = use API
+  stores: true,
+  sections: true,
+  lists: true,
+  households: true,
+  users: true,
+  invitations: true,
+  dashboard: true,
+}
+
+export const usePrisma = {
+  items: migration.items ?? false,
+  // ... convenience helpers
+}
+```
+
+**Usage in server actions:**
+
+```typescript
+import { usePrisma } from '@/core/config/migration'
+
+export async function getItems() {
+  if (usePrisma.items) {
+    return prisma.item.findMany() // OLD - Prisma direct
+  }
+  return apiClient.get('/items')  // NEW - NestJS API
+}
+```
+
+**Migration flow:**
+1. Build NestJS endpoints
+2. Test in isolation (Postman/curl)
+3. Flip flag to `false` in migration.ts
+4. Test UI with API path
+5. Once confident, remove flag check and old code
+6. Remove flag from migration.ts (or set to `false` for record)
+
+---
+
+## Original Plan (For Reference)
+
 ## Current State (Phase 1)
 
 ```
