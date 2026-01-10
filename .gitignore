@@ -51,3 +51,4 @@ next-env.d.ts
 # prisma generated clients (anywhere in workspace)
 **/generated/
 **/prisma/generated/
+.turbo

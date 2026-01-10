@@ -2,18 +2,22 @@
   "name": "grocerun-monorepo",
   "version": "0.2.0",
   "private": true,
+  "packageManager": "npm@10.9.4",
   "workspaces": [
     "apps/*",
     "packages/*"
   ],
   "scripts": {
-    "dev": "concurrently \"npm run dev --workspace=grocerun-server\" \"npm run dev --workspace=grocerun-web\"",
-    "build": "npm run build --workspaces",
-    "test": "npm run test --workspaces",
-    "lint": "npm run lint --workspaces"
+    "dev": "turbo dev",
+    "build": "turbo build",
+    "test": "turbo test",
+    "lint": "turbo lint",
+    "typecheck": "turbo typecheck",
+    "format": "turbo format"
   },
   "devDependencies": {
     "concurrently": "^9.0.0",
+    "turbo": "^2.7.3",
     "typescript": "^5.3.3"
   },
   "dependencies": {

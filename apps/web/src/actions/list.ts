@@ -8,11 +8,8 @@ import { type ActionResult, success, failure } from "@/core/types"
 import type { List, ListItem, Item } from "@/core/db"
 import { apiClient } from "@/core/lib/api-client"
 import { SignJWT } from 'jose'
+import { CreateListSchema } from "@grocerun/dto"
 
-const CreateListSchema = z.object({
-    storeId: z.string().min(1, "Store ID is required"),
-    name: z.string().optional(),
-})
 
 export async function createList(data: z.infer<typeof CreateListSchema>): Promise<ActionResult<List>> {
     const session = await auth()

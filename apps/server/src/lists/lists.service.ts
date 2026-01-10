@@ -1,10 +1,6 @@
 import { Injectable, ForbiddenException, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
-
-type CreateListDto = {
-  storeId: string;
-  name?: string;
-};
+import { CreateListDto } from './dto/create-list.dto';
 
 type AddItemDto = {
   listId: string;

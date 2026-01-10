@@ -1,47 +1,14 @@
 import { Body, Controller, Get, Query, Patch, Param, UseGuards } from '@nestjs/common';
-import { IsString, IsOptional, IsNotEmpty, IsNumber, Min } from 'class-validator';
+import { IsOptional, IsNotEmpty, IsNumber, IsString, Min } from 'class-validator';
 import { ItemsService } from './items.service';
 import { AuthGuard, JwtPayload } from '../auth/auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
+import { UpdateItemDto } from './dto/update-item.dto';
+import { SearchItemsDto, GetTopItemsDto } from './dto/query-items.dto';
 
-export class UpdateItemDto {
-  @IsString()
-  @IsNotEmpty()
-  name: string;
-
-  @IsString()
-  @IsOptional()
-  sectionId?: string;
-
-  @IsString()
-  @IsOptional()
-  defaultUnit?: string;
-}
-
-export class SearchItemsDto {
-  @IsString()
-  @IsNotEmpty()
+interface SearchItemsParams {
   storeId: string;
-
-  @IsString()
-  @IsNotEmpty()
   query: string;
-}
-
-export class GetTopItemsDto {
-  @IsString()
-  @IsNotEmpty()
-  storeId: string;
-
-  @IsNumber()
-  @Min(1)
-  @IsOptional()
-  limit?: number;
-
-  @IsNumber()
-  @Min(0)
-  @IsOptional()
-  threshold?: number;
 }
 
 @Controller('items')
@@ -65,7 +32,8 @@ export class ItemsController {
     @Query() dto: SearchItemsDto,
     @CurrentUser() user: JwtPayload,
   ) {
-    return this.itemsService.searchItems(dto, user.sub);
+    // Cast explicitly because nestjs-zod DTOs behave slightly differently at compile time sometimes
+    return this.itemsService.searchItems(dto as SearchItemsParams, user.sub);
   }
 
   @Get('top')

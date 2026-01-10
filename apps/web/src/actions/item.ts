@@ -6,13 +6,7 @@ import { z } from "zod"
 import { type ActionResult, success, failure } from "@/core/types"
 import { apiClient } from "@/core/lib/api-client"
 import { SignJWT } from 'jose'
-
-const UpdateItemSchema = z.object({
-    itemId: z.string().min(1, "Item ID is required"),
-    name: z.string().min(1, "Name is required"),
-    sectionId: z.string().optional(),
-    defaultUnit: z.string().optional(),
-})
+import { UpdateItemSchema, SearchItemsSchema, GetTopItemsSchema } from "@grocerun/dto"
 
 export async function updateItem(data: z.infer<typeof UpdateItemSchema>): Promise<ActionResult<{ status: "UPDATED" }>> {
     const session = await auth()
@@ -45,11 +39,6 @@ export async function updateItem(data: z.infer<typeof UpdateItemSchema>): Promis
 }
 
 // --- GRO-13: Autocomplete Actions ---
-
-const SearchItemsSchema = z.object({
-    storeId: z.string().min(1, "Store ID is required"),
-    query: z.string().min(1),
-})
 
 type SearchResult = {
     id: string
@@ -96,12 +85,6 @@ export async function searchItems(data: z.infer<typeof SearchItemsSchema>): Prom
         return failure("Failed to search items")
     }
 }
-
-const GetTopItemsSchema = z.object({
-    storeId: z.string().min(1, "Store ID is required"),
-    limit: z.number().min(1).max(20).default(5),
-    threshold: z.number().min(0).default(1),
-})
 
 /**
  * Get top purchased items for a store.

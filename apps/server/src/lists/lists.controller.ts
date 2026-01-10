@@ -1,18 +1,9 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
-import { IsString, IsNotEmpty, IsOptional, IsBoolean, IsNumber, Min } from 'class-validator';
+import { IsBoolean, IsNotEmpty, IsNumber, IsOptional, IsString, Min } from 'class-validator';
 import { ListsService } from './lists.service';
 import { AuthGuard, JwtPayload } from '../auth/auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
-
-export class CreateListDto {
-  @IsString()
-  @IsNotEmpty()
-  storeId: string;
-
-  @IsString()
-  @IsOptional()
-  name?: string;
-}
+import { CreateListDto } from './dto/create-list.dto';
 
 export class AddItemDto {
   @IsString()

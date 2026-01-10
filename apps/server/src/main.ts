@@ -1,6 +1,7 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import { Logger, ValidationPipe } from '@nestjs/common';
+import { Logger } from '@nestjs/common';
+import { ZodValidationPipe } from 'nestjs-zod';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -12,14 +13,7 @@ async function bootstrap() {
   });
   
   // Enable global validation
-  app.useGlobalPipes(new ValidationPipe({
-    whitelist: true,              // Strip properties not in DTO
-    forbidNonWhitelisted: true,   // Throw error if unknown properties
-    transform: true,              // Auto-transform to DTO class instances
-    transformOptions: {
-      enableImplicitConversion: true, // Convert string "123" to number 123
-    },
-  }));
+  app.useGlobalPipes(new ZodValidationPipe());
   
   // HTTP request logging
   const logger = new Logger('HTTP');
