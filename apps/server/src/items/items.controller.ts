@@ -1,7 +1,6 @@
-import { Body, Controller, Get, Post, Query, Patch, Param, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Query, Patch, Param, UseGuards } from '@nestjs/common';
 import { IsString, IsOptional, IsNotEmpty, IsNumber, Min } from 'class-validator';
 import { ItemsService } from './items.service';
-import { Item } from '../generated/prisma/client';
 import { AuthGuard, JwtPayload } from '../auth/auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
 
@@ -49,34 +48,7 @@ export class GetTopItemsDto {
 export class ItemsController {
   constructor(private readonly itemsService: ItemsService) {}
 
-  // Legacy sync endpoints (secured)
-  @Get()
-  @UseGuards(AuthGuard)
-  async pull(
-    @Query('minUpdatedAt') minUpdatedAt?: string,
-    @CurrentUser() user?: JwtPayload,
-  ) {
-    const date = minUpdatedAt ? new Date(minUpdatedAt) : new Date(0);
-    const documents = await this.itemsService.pull(date);
-    return {
-      documents,
-      checkpoint: {
-        updatedAt: documents.length > 0 ? documents[documents.length - 1].updatedAt.toISOString() : date.toISOString(),
-      }
-    };
-  }
-
-  @Post()
-  @UseGuards(AuthGuard)
-  async push(
-    @Body() body: { items: Item[] },
-    @CurrentUser() user?: JwtPayload,
-  ) {
-    await this.itemsService.push(body.items);
-    return { success: true };
-  }
-
-  // New Phase 2 endpoints
+  // Phase 2 endpoints
   @Patch(':id')
   @UseGuards(AuthGuard)
   async updateItem(

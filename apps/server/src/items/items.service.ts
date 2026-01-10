@@ -1,6 +1,5 @@
 import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
-import { Item } from '../generated/prisma/client';
 
 type UpdateItemDto = {
   name: string;
@@ -23,38 +22,7 @@ type GetTopItemsDto = {
 export class ItemsService {
   constructor(private prisma: PrismaService) {}
 
-  // Legacy sync methods
-  async pull(minUpdatedAt: Date) {
-    return this.prisma.item.findMany({
-      where: {
-        updatedAt: {
-          gt: minUpdatedAt,
-        },
-      },
-    });
-  }
-
-  async push(items: Item[]) {
-    const results = [];
-    for (const item of items) {
-      const result = await this.prisma.item.upsert({
-        where: { id: item.id },
-        update: {
-          name: item.name,
-          updatedAt: new Date(),
-        },
-        create: {
-          id: item.id,
-          name: item.name,
-          storeId: item.storeId,
-        },
-      });
-      results.push(result);
-    }
-    return results;
-  }
-
-  // New Phase 2 methods
+  // Phase 2 methods
   async updateItem(itemId: string, dto: UpdateItemDto, userId: string) {
     // 1. Get item and verify access
     const item = await this.prisma.item.findUnique({
