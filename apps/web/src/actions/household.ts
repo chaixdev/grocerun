@@ -42,6 +42,39 @@ export async function getHouseholds() {
     }
 }
 
+/**
+ * Creates a default household for a user during onboarding.
+ * Should be called explicitly, not as a side effect of reads.
+ */
+export async function createDefaultHousehold(): Promise<ActionResult<any>> {
+    const session = await auth()
+    if (!session?.user?.id) return failure("Unauthorized")
+
+    try {
+        const token = (session as any).accessToken
+        if (!token?.sub) throw new Error('No valid session token')
+
+        const secret = new TextEncoder().encode(process.env.AUTH_SECRET)
+        const jwt = await new SignJWT(token)
+            .setProtectedHeader({ alg: 'HS256' })
+            .sign(secret)
+
+        const household = await apiClient.post(
+            '/households',
+            { name: "My Household" },
+            z.any(),
+            jwt
+        )
+
+        revalidatePath("/stores")
+        revalidatePath("/households")
+        return success(household)
+    } catch (error: unknown) {
+        console.error("Failed to create default household:", error)
+        return failure("Failed to create household")
+    }
+}
+
 export async function createHousehold(data: z.infer<typeof CreateHouseholdSchema>): Promise<ActionResult<void>> {
     const session = await auth()
     if (!session?.user?.id) return failure("Unauthorized")

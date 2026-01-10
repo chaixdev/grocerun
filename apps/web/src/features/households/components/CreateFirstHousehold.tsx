@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
-import { createDefaultHousehold } from "@/actions/store"
+import { createDefaultHousehold } from "@/actions/household"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import { Home, Loader2 } from "lucide-react"

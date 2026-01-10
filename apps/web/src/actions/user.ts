@@ -26,8 +26,6 @@ export async function updateProfile(data: ProfileFormValues) {
     }
 
     try {
-        if (usePrisma.users) {
-            // OLD PATH: Direct Prisma call
         const token = (session as any).accessToken
         
         if (!token || !token.sub) {
@@ -47,7 +45,9 @@ export async function updateProfile(data: ProfileFormValues) {
             },
             UserResponseSchema,
             jwt
-        )evalidatePath("/settings")
+        )
+
+        revalidatePath("/settings")
         return { success: true }
     } catch (error) {
         return {
