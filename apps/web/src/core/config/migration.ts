@@ -20,7 +20,7 @@ export const migration = {
   sections: false,
   
   /** Lists domain - 11 server actions */
-  lists: true,
+  lists: false,
   
   /** Households domain - 5 server actions */
   households: false,

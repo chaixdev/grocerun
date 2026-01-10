@@ -11,6 +11,7 @@ import { StoresModule } from './stores/stores.module';
 import { SectionsModule } from './sections/sections.module';
 import { HouseholdOverviewModule } from './household-overview/household-overview.module';
 import { InvitationsModule } from './invitations/invitations.module';
+import { ListsModule } from './lists/lists.module';
 
 @Module({
   imports: [
@@ -23,7 +24,8 @@ import { InvitationsModule } from './invitations/invitations.module';
     StoresModule,
     SectionsModule,
     HouseholdOverviewModule,
-    InvitationsModule
+    InvitationsModule,
+    ListsModule
   ],
   controllers: [AppController],
   providers: [AppService],
