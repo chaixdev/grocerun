@@ -4,6 +4,7 @@ import { auth } from "@/core/auth"
 import { revalidatePath } from "next/cache"
 import { type ActionResult, success, failure } from "@/core/types"
 import { z } from "zod"
+import { CreateInvitationSchema, JoinHouseholdSchema, RevokeInvitationSchema } from "@grocerun/dto"
 import { rateLimit } from "@/core/lib/rate-limit"
 import { apiClient } from "@/core/lib/api-client"
 import { SignJWT } from 'jose'
@@ -11,10 +12,6 @@ import { SignJWT } from 'jose'
 const limiter = rateLimit({
     interval: 60 * 1000, // 60 seconds
     uniqueTokenPerInterval: 500, // Max users active per interval
-})
-
-const CreateInvitationSchema = z.object({
-    householdId: z.string().min(1, "Household ID is required"),
 })
 
 type InvitationData = {
@@ -53,10 +50,6 @@ export async function createInvitation(data: z.infer<typeof CreateInvitationSche
     }
 }
 
-const JoinHouseholdSchema = z.object({
-    token: z.string().min(1, "Token is required"),
-})
-
 export async function joinHousehold(data: z.infer<typeof JoinHouseholdSchema>): Promise<ActionResult<{ householdName: string }>> {
     const session = await auth()
     if (!session?.user?.id) return failure("Unauthorized")
@@ -88,10 +81,6 @@ export async function joinHousehold(data: z.infer<typeof JoinHouseholdSchema>): 
     }
 }
 
-const RevokeInvitationSchema = z.object({
-    invitationId: z.string().min(1, "Invitation ID is required"),
-})
-
 export async function revokeInvitation(data: z.infer<typeof RevokeInvitationSchema>): Promise<ActionResult<void>> {
     const session = await auth()
     if (!session?.user?.id) return failure("Unauthorized")
@@ -122,22 +111,18 @@ export async function revokeInvitation(data: z.infer<typeof RevokeInvitationSche
     }
 }
 
-const GetInvitationSchema = z.object({
-    token: z.string().min(1, "Token is required"),
-})
-
 type InvitationDetails = {
     householdName: string
     ownerName: string
     creatorName: string
 }
 
-export async function getInvitationDetails(data: z.infer<typeof GetInvitationSchema>): Promise<ActionResult<InvitationDetails>> {
+export async function getInvitationDetails(data: z.infer<typeof JoinHouseholdSchema>): Promise<ActionResult<InvitationDetails>> {
     const session = await auth()
     if (!session?.user?.id) return failure("Unauthorized")
 
     try {
-        const { token } = GetInvitationSchema.parse(data)
+        const { token } = JoinHouseholdSchema.parse(data)
 
         const authToken = (session as any).accessToken
         if (!authToken?.sub) throw new Error('No valid session token')

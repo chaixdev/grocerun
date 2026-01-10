@@ -1,36 +1,8 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
-import { IsString, IsNotEmpty, IsOptional } from 'class-validator';
 import { StoresService } from './stores.service';
 import { AuthGuard, JwtPayload } from '../auth/auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
-
-export class CreateStoreDto {
-  @IsString()
-  @IsNotEmpty()
-  name: string;
-
-  @IsString()
-  @IsOptional()
-  location?: string;
-
-  @IsString()
-  @IsNotEmpty()
-  householdId: string;
-}
-
-export class UpdateStoreDto {
-  @IsString()
-  @IsNotEmpty()
-  name: string;
-
-  @IsString()
-  @IsOptional()
-  location?: string;
-
-  @IsString()
-  @IsOptional()
-  imageUrl?: string;
-}
+import { CreateStoreDto, UpdateStoreDto } from './dto/store.dto';
 
 @Controller('stores')
 @UseGuards(AuthGuard)

@@ -2,7 +2,7 @@
 
 import { auth } from "@/core/auth"
 import { revalidatePath } from "next/cache"
-import { ProfileSchema, type ProfileFormValues } from "@/core/schemas"
+import { UpdateProfileSchema, type UpdateProfileDto } from "@grocerun/dto"
 import { apiClient } from "@/core/lib/api-client"
 import { z } from "zod"
 import { SignJWT } from 'jose'
@@ -14,13 +14,13 @@ const UserResponseSchema = z.object({
     image: z.string().nullable(),
 })
 
-export async function updateProfile(data: ProfileFormValues) {
+export async function updateProfile(data: UpdateProfileDto) {
     const session = await auth()
     if (!session?.user?.id) {
         return { success: false, error: "Unauthorized" }
     }
 
-    const validated = ProfileSchema.safeParse(data)
+    const validated = UpdateProfileSchema.safeParse(data)
     if (!validated.success) {
         return { success: false, error: validated.error.issues[0].message }
     }

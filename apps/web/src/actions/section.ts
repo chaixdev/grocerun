@@ -8,26 +8,16 @@ import { type ActionResult, success, failure } from "@/core/types"
 import type { Section } from "@/core/db"
 import { apiClient } from "@/core/lib/api-client"
 import { SignJWT } from 'jose'
+import {
+    CreateSectionSchema,
+    UpdateSectionSchema,
+    DeleteSectionSchema,
+    ReorderSectionsSchema
+} from "@grocerun/dto"
 
-const SectionSchema = z.object({
-    name: z.string().min(1, "Name is required"),
-    storeId: z.string().min(1, "Store ID is required"),
-    order: z.number().optional(),
-})
+// Alias for backwards compatibility if needed, though we should just use CreateSectionSchema
+const SectionSchema = CreateSectionSchema;
 
-const UpdateSectionSchema = z.object({
-    id: z.string().min(1, "ID is required"),
-    name: z.string().min(1, "Name is required"),
-})
-
-const DeleteSectionSchema = z.object({
-    id: z.string().min(1, "ID is required"),
-})
-
-const ReorderSectionsSchema = z.object({
-    storeId: z.string().min(1, "Store ID is required"),
-    orderedIds: z.array(z.string().min(1)).min(1),
-})
 
 export async function getSections(storeId: string) {
     const session = await auth()

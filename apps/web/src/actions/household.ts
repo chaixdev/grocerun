@@ -4,17 +4,13 @@ import { auth } from "@/core/auth"
 import { revalidatePath } from "next/cache"
 import { z, ZodError } from "zod"
 
+import { CreateHouseholdSchema, UpdateHouseholdSchema } from "@grocerun/dto"
 import { type ActionResult, success, failure } from "@/core/types"
 import { apiClient } from "@/core/lib/api-client"
 import { SignJWT } from 'jose'
 
-const CreateHouseholdSchema = z.object({
-    name: z.string().min(1, "Name is required"),
-})
-
-const RenameHouseholdSchema = z.object({
+const RenameHouseholdSchema = UpdateHouseholdSchema.extend({
     householdId: z.string().min(1, "Household ID is required"),
-    name: z.string().min(1, "Name is required").max(100, "Name must be less than 100 characters"),
 })
 
 export async function getHouseholds() {

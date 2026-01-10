@@ -8,7 +8,14 @@ import { type ActionResult, success, failure } from "@/core/types"
 import type { List, ListItem, Item } from "@/core/db"
 import { apiClient } from "@/core/lib/api-client"
 import { SignJWT } from 'jose'
-import { CreateListSchema } from "@grocerun/dto"
+import {
+    CreateListSchema,
+    AddItemSchema,
+    ToggleItemSchema,
+    RemoveItemSchema,
+    UpdateQuantitySchema,
+    ListIdSchema
+} from "@grocerun/dto"
 
 
 export async function createList(data: z.infer<typeof CreateListSchema>): Promise<ActionResult<List>> {
@@ -116,14 +123,6 @@ export async function getList(listId: string) {
     }
 }
 
-const AddItemSchema = z.object({
-    listId: z.string(),
-    name: z.string().min(1),
-    sectionId: z.string().nullable().optional(),
-    quantity: z.number().min(0.1).default(1),
-    unit: z.string().optional(),
-})
-
 type AddItemResult =
     | { status: "ADDED"; listItem: ListItem & { item: Item } }
     | { status: "ALREADY_EXISTS" }
@@ -170,12 +169,6 @@ export async function addItemToList(data: z.infer<typeof AddItemSchema>): Promis
     }
 }
 
-const ToggleItemSchema = z.object({
-    itemId: z.string().min(1, "Item ID is required"),
-    isChecked: z.boolean(),
-    purchasedQuantity: z.number().optional(),
-})
-
 export async function toggleListItem(data: z.infer<typeof ToggleItemSchema>): Promise<ActionResult<void>> {
     const session = await auth()
     if (!session?.user?.id) return failure("Unauthorized")
@@ -213,16 +206,6 @@ export async function toggleListItem(data: z.infer<typeof ToggleItemSchema>): Pr
         return failure("Failed to update item")
     }
 }
-
-const RemoveItemSchema = z.object({
-    listItemId: z.string().min(1, "Item ID is required"),
-})
-
-const UpdateQuantitySchema = z.object({
-    listItemId: z.string().min(1, "Item ID is required"),
-    quantity: z.number().min(0.1, "Quantity must be at least 0.1"),
-    unit: z.string().optional(),
-})
 
 export async function updateListItemQuantity(data: z.infer<typeof UpdateQuantitySchema>): Promise<ActionResult<void>> {
     const session = await auth()
@@ -298,10 +281,6 @@ export async function removeItemFromList(data: z.infer<typeof RemoveItemSchema>)
         return failure("Failed to remove item")
     }
 }
-
-const ListIdSchema = z.object({
-    listId: z.string().min(1, "List ID is required"),
-})
 
 export async function completeList(data: z.infer<typeof ListIdSchema>): Promise<ActionResult<void>> {
     const session = await auth()

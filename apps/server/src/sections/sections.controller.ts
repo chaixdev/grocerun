@@ -1,35 +1,8 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
-import { IsString, IsNotEmpty, IsOptional, IsNumber, IsArray, ArrayNotEmpty } from 'class-validator';
 import { SectionsService } from './sections.service';
 import { AuthGuard, JwtPayload } from '../auth/auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
-
-export class CreateSectionDto {
-  @IsString()
-  @IsNotEmpty()
-  name: string;
-
-  @IsString()
-  @IsNotEmpty()
-  storeId: string;
-
-  @IsNumber()
-  @IsOptional()
-  order?: number;
-}
-
-export class UpdateSectionDto {
-  @IsString()
-  @IsNotEmpty()
-  name: string;
-}
-
-export class ReorderSectionsDto {
-  @IsArray()
-  @ArrayNotEmpty()
-  @IsString({ each: true })
-  orderedIds: string[];
-}
+import { CreateSectionDto, UpdateSectionDto, ReorderSectionsDto } from './dto/section.dto';
 
 @Controller('sections')
 @UseGuards(AuthGuard)

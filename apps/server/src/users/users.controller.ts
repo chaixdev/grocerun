@@ -1,18 +1,8 @@
 import { Controller, Patch, Body, UseGuards } from '@nestjs/common';
-import { IsString, IsNotEmpty, IsOptional } from 'class-validator';
 import { UsersService } from './users.service';
 import { AuthGuard, JwtPayload } from '../auth/auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
-
-export class UpdateProfileDto {
-  @IsString()
-  @IsNotEmpty()
-  name: string;
-
-  @IsString()
-  @IsOptional()
-  image?: string;
-}
+import { UpdateProfileDto } from './dto/user.dto';
 
 @Controller('users')
 export class UsersController {

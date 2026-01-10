@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
 import { updateStore } from "@/actions/store"
-import { StoreSchema } from "@/core/schemas"
+import { UpdateStoreSchema } from "@grocerun/dto"
 import { toast } from "sonner"
 
 interface StoreSettingsFormProps {
@@ -35,17 +35,16 @@ export function StoreSettingsForm({ store }: StoreSettingsFormProps) {
     const router = useRouter()
     const [isPending, startTransition] = useTransition()
 
-    const form = useForm<z.infer<typeof StoreSchema>>({
-        resolver: zodResolver(StoreSchema),
+    const form = useForm<z.infer<typeof UpdateStoreSchema>>({
+        resolver: zodResolver(UpdateStoreSchema),
         defaultValues: {
             name: store.name,
             location: store.location || "",
             imageUrl: store.imageUrl || "",
-            householdId: store.householdId,
         },
     })
 
-    function onSubmit(data: z.infer<typeof StoreSchema>) {
+    function onSubmit(data: z.infer<typeof UpdateStoreSchema>) {
         startTransition(async () => {
             try {
                 await updateStore(store.id, data)

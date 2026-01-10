@@ -4,7 +4,7 @@ import { auth } from "@/core/auth"
 import { revalidatePath } from "next/cache"
 import { z } from "zod"
 
-import { StoreSchema } from "@/core/schemas"
+import { CreateStoreSchema, UpdateStoreSchema } from "@grocerun/dto"
 import { type ActionResult, success, failure } from "@/core/types"
 import { apiClient } from "@/core/lib/api-client"
 import { SignJWT } from 'jose'
@@ -39,12 +39,12 @@ export async function getStores(householdId?: string) {
     }
 }
 
-export async function createStore(data: z.infer<typeof StoreSchema>): Promise<ActionResult<void>> {
+export async function createStore(data: z.infer<typeof CreateStoreSchema>): Promise<ActionResult<void>> {
     const session = await auth()
     if (!session?.user?.id) return failure("Unauthorized")
 
     try {
-        const validated = StoreSchema.parse(data)
+        const validated = CreateStoreSchema.parse(data)
 
         const token = (session as any).accessToken
         if (!token?.sub) throw new Error('No valid session token')
@@ -132,12 +132,12 @@ export async function getStore(id: string) {
     }
 }
 
-export async function updateStore(id: string, data: z.infer<typeof StoreSchema>): Promise<ActionResult<void>> {
+export async function updateStore(id: string, data: z.infer<typeof UpdateStoreSchema>): Promise<ActionResult<void>> {
     const session = await auth()
     if (!session?.user?.id) return failure("Unauthorized")
 
     try {
-        const validated = StoreSchema.parse(data)
+        const validated = UpdateStoreSchema.parse(data)
 
         const token = (session as any).accessToken
         if (!token?.sub) throw new Error('No valid session token')

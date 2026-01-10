@@ -21,7 +21,7 @@ import { Separator } from "@/components/ui/separator"
 import { toast } from "sonner"
 import { signOut } from "next-auth/react"
 import { LogOut } from "lucide-react"
-import { ProfileSchema, type ProfileFormValues } from "@/core/schemas"
+import { UpdateProfileSchema, type UpdateProfileDto } from "@grocerun/dto"
 import { InvitationManager } from "@/features/households"
 
 interface SettingsFormProps {
@@ -48,15 +48,15 @@ export function SettingsForm({ user, households, invitationTimeoutMinutes }: Set
         setMounted(true)
     }, [])
 
-    const form = useForm<ProfileFormValues>({
-        resolver: zodResolver(ProfileSchema),
+    const form = useForm<UpdateProfileDto>({
+        resolver: zodResolver(UpdateProfileSchema),
         defaultValues: {
             name: user.name || "",
             image: user.image || "",
         },
     })
 
-    async function onSubmit(values: ProfileFormValues) {
+    async function onSubmit(values: UpdateProfileDto) {
         setIsLoading(true)
         try {
             const result = await updateProfile(values)
