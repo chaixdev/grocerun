@@ -1,38 +1,79 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import { IsString, IsNotEmpty, IsOptional, IsBoolean, IsNumber, Min } from 'class-validator';
 import { ListsService } from './lists.service';
 import { AuthGuard, JwtPayload } from '../auth/auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
 
 export class CreateListDto {
+  @IsString()
+  @IsNotEmpty()
   storeId: string;
+
+  @IsString()
+  @IsOptional()
   name?: string;
 }
 
 export class AddItemDto {
+  @IsString()
+  @IsNotEmpty()
   listId: string;
+
+  @IsString()
+  @IsNotEmpty()
   name: string;
+
+  @IsString()
+  @IsOptional()
   sectionId?: string | null;
+
+  @IsNumber()
+  @Min(0)
+  @IsOptional()
   quantity?: number;
+
+  @IsString()
+  @IsOptional()
   unit?: string;
 }
 
 export class ToggleItemDto {
+  @IsString()
+  @IsNotEmpty()
   itemId: string;
+
+  @IsBoolean()
   isChecked: boolean;
+
+  @IsNumber()
+  @Min(0)
+  @IsOptional()
   purchasedQuantity?: number;
 }
 
 export class UpdateQuantityDto {
+  @IsString()
+  @IsNotEmpty()
   listItemId: string;
+
+  @IsNumber()
+  @Min(0)
   quantity: number;
+
+  @IsString()
+  @IsOptional()
   unit?: string;
 }
 
 export class RemoveItemDto {
+  @IsString()
+  @IsNotEmpty()
   listItemId: string;
 }
 
 export class ListIdDto {
+  @IsString()
+  @IsNotEmpty()
   listId: string;
 }
 

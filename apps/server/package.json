@@ -20,6 +20,8 @@
     "@prisma/adapter-better-sqlite3": "latest",
     "@prisma/client": "^7.2.0",
     "better-sqlite3": "latest",
+    "class-transformer": "^0.5.1",
+    "class-validator": "^0.14.3",
     "dotenv": "^17.2.3",
     "jsonwebtoken": "^9.0.3",
     "prisma": "^7.2.0",

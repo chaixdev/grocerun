@@ -1,13 +1,18 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import { IsString, IsNotEmpty } from 'class-validator';
 import { HouseholdsService } from './households.service';
 import { AuthGuard, JwtPayload } from '../auth/auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
 
 export class CreateHouseholdDto {
+  @IsString()
+  @IsNotEmpty()
   name: string;
 }
 
 export class RenameHouseholdDto {
+  @IsString()
+  @IsNotEmpty()
   name: string;
 }
 

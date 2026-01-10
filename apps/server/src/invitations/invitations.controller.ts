@@ -1,17 +1,24 @@
 import { Body, Controller, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import { IsString, IsNotEmpty } from 'class-validator';
 import { InvitationsService } from './invitations.service';
 import { AuthGuard, JwtPayload } from '../auth/auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
 
 export class CreateInvitationDto {
+  @IsString()
+  @IsNotEmpty()
   householdId: string;
 }
 
 export class JoinHouseholdDto {
+  @IsString()
+  @IsNotEmpty()
   token: string;
 }
 
 export class RevokeInvitationDto {
+  @IsString()
+  @IsNotEmpty()
   invitationId: string;
 }
 
