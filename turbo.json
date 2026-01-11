@@ -13,14 +13,15 @@
     },
     "test": {
       "dependsOn": [],
-      "outputs": ["coverage/**"]
+      "outputs": ["coverage/**", "playwright-report/**", "test-results/**"]
     },
     "typecheck": {
       "outputs": []
     },
     "dev": {
       "cache": false,
-      "persistent": true
+      "persistent": true,
+      "dependsOn": ["^build"] 
     }
   }
 }

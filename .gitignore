@@ -52,3 +52,8 @@ next-env.d.ts
 **/generated/
 **/prisma/generated/
 .turbo
+
+# Playwright
+test-results/
+playwright-report/
+playwright/.cache/

@@ -1,0 +1,23 @@
+{
+  "name": "e2e",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "test": "playwright test",
+    "test:ui": "playwright test --ui",
+    "test:debug": "playwright test --debug",
+    "codegen": "playwright codegen",
+    "lint": "eslint ."
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.49.0",
+    "@types/jsonwebtoken": "^9.0.5",
+    "@types/node": "^20.10.0",
+    "dotenv": "^17.2.3",
+    "jsonwebtoken": "^9.0.2",
+    "typescript": "^5.3.3"
+  },
+  "dependencies": {
+    "next-auth": "^5.0.0-beta.30"
+  }
+}
