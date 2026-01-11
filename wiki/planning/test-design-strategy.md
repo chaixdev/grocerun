@@ -9,41 +9,70 @@
 
 ## Executive Summary
 
-This document defines our testing strategy for Grocerun's local-first architecture using Playwright (E2E) and Vitest (unit/component). The strategy prioritizes **fast feedback during development** through feature-based test modularization while ensuring **comprehensive regression testing** in CI/CD.
+This document defines our testing strategy for Grocerun using Playwright (E2E) and Vitest (unit/component). The strategy prioritizes **UI-level regression testing** to validate user workflows independent of underlying implementation, enabling safe refactoring from Phase 2 (API proxy) to Phase 3 (local-first).
 
 **Key Principles:**
+- 🎯 **UI-Focused Regression** - Tests validate user flows, not code architecture
 - ⚡ **Fast Development Feedback** - Run only relevant feature tests during development (<30 seconds)
-- 🔒 **Comprehensive CI Coverage** - Full regression suite runs on every PR (~8 minutes)
-- 🎯 **Feature Isolation** - Tests organized by domain/feature for selective execution
-- 📊 **Smart Prioritization** - P0 tests run first, P2/P3 tests optional during dev
-- 🔄 **Local-First Focus** - Offline, sync, and conflict resolution testing built-in
+- 🔒 **Refactoring Safety Net** - Same tests validate both API proxy and local-first implementations
+- 📊 **Feature Isolation** - Tests organized by domain/feature for selective execution
+- 🔄 **Future-Proof** - Test structure supports local-first (offline, sync, conflict resolution) when ready
 
 ---
 
-## Test Organization Structure
+## Testing Philosophy
 
-### Feature-Based Modularization
+### Phase 2 (Current): UI Regression Testing
 
-Tests are organized by feature domain to enable selective execution:
+E2E tests focus exclusively on **user-visible behavior** through the browser:
 
-```
-apps/e2e/tests/
-├── auth/                           # Authentication feature
+- ✅ **Test UI interactions**: Click buttons, fill forms, navigate pages
+- ✅ **Validate user outcomes**: See expected content, get proper feedback
+- ✅ **Verify workflows**: Multi-step processes work e(5 tests)
 │   ├── login.spec.ts               # @tag:auth @tag:p0
+│   ├── logout.spec.ts              # @tag:auth @tag:p1
 │   ├── session.spec.ts             # @tag:auth @tag:p1
-│   └── unauthorized.spec.ts        # @tag:auth @tag:p0
+│   └── protected-routes.spec.ts    # @tag:auth @tag:p0
 │
-├── shopping/                       # Shopping workflow feature
+├── shopping/                       # Shopping workflow (9 tests)
 │   ├── create-list.spec.ts         # @tag:shopping @tag:p0
 │   ├── add-items.spec.ts           # @tag:shopping @tag:p0
+│   ├── shopping-mode.spec.ts       # @tag:shopping @tag:p0
 │   ├── complete-flow.spec.ts       # @tag:shopping @tag:p0
-│   ├── offline-shopping.spec.ts    # @tag:shopping @tag:local-first @tag:p0
-│   └── quantity-adjust.spec.ts     # @tag:shopping @tag:p2
+│   └── edit-list.spec.ts           # @tag:shopping @tag:p1
 │
-├── households/                     # Household management feature
-│   ├── create.spec.ts              # @tag:households @tag:p0
+├── households/                     # Household management (6 tests)
+│   ├── onboarding.spec.ts          # @tag:households @tag:p0
+│   ├── create.spec.ts              # @tag:households @tag:p1
 │   ├── invite.spec.ts              # @tag:households @tag:p1
 │   ├── join.spec.ts                # @tag:households @tag:p1
+│   └── permissions.spec.ts         # @tag:households @tag:p1
+│
+├── stores/                         # Store management (9 tests)
+│   ├── crud.spec.ts                # @tag:stores @tag:p1
+│   ├── sections.spec.ts            # @tag:stores @tag:p1
+│   ├── items.spec.ts               # @tag:stores @tag:p1
+│   └── access-control.spec.ts      # @tag:stores @tag:p0
+│
+├── dashboard/                      # Dashboard & overview (3 tests)
+│   └── empty-states.spec.ts        # @tag:dashboard @tag:p1
+│
+├── security/                       # Security validation (3 tests)
+│   ├── xss.spec.ts                 # @tag:security @tag:p0
+│   ├── sql-injection.spec.ts       # @tag:security @tag:p0
+│   └── jwt.spec.ts                 # @tag:security @tag:p0
+│
+├── api/                            # Direct API testing (4 tests)
+│   ├── validation.spec.ts          # @tag:api @tag:p0
+│   ├── authorization.spec.ts       # @tag:api @tag:p0
+│   └── errors.spec.ts              # @tag:api @tag:p1
+│
+└── _future/                        # Phase 3: Local-first (not yet implemented)
+    └── sync/                       # @tag:local-first @tag:phase3
+        ├── offline-shopping.spec.ts
+        ├── background-sync.spec.ts
+        ├── multi-device.spec.ts
+        └── conflict-resolution.spec.ts
 │   └── permissions.spec.ts         # @tag:households @tag:p1
 │
 ├── stores/                         # Store management feature
@@ -66,13 +95,15 @@ apps/web/src/
 ├── db/__tests__/                   # RxDB unit tests
 │   ├── rxdb.test.ts                # @tag:rxdb @tag:unit
 │   ├── sync.test.ts                # @tag:rxdb @tag:unit @tag:local-first
-│   └── conflicts.test.ts           # @tag:rxdb @tag:unit @tag:local-first
-│
-└── components/__tests__/           # Component tests
-    ├── List.test.tsx               # @tag:components @tag:unit
-    ├── ItemSearch.test.tsx         # @tag:components @tag:unit
-    └── SectionReorder.test.tsx     # @tag:components @tag:unit
-```
+│   └── conflicts.test.ts           # @tag:rxdb @5 tests | ~15s |
+| `@tag:shopping` | Shopping list workflow | 9 tests | ~30s |
+| `@tag:households` | Household management | 6 tests | ~20s |
+| `@tag:stores` | Store & section CRUD | 9 tests | ~25s |
+| `@tag:dashboard` | Dashboard & empty states | 3 tests | ~10s |
+| `@tag:security` | XSS, SQL injection, JWT | 3 tests | ~10s |
+| `@tag:api` | Direct API endpoint tests | 4 tests | ~15s |
+| `@tag:local-first` | Phase 3: Offline/sync (future) | 0 tests | N/A |
+| `@tag:phase3` | Deferred until local-first migration | 0 tests | N/A
 
 ---
 
@@ -105,9 +136,10 @@ Tags for selective execution by domain:
 
 ### Special Tags
 
-| Tag | Description | Usage |
-|-----|-------------|-------|
-| `@tag:smoke` | Quick smoke tests (1-2 per feature) | Pre-commit hook |
+| Tag | Description | U5 seconds | Skip during rapid iteration |
+| `@tag:flaky` | Known flaky tests (needs fixing) | Quarantine until fixed |
+| `@tag:skip-ci` | Skip in CI temporarily (with ticket) | WIP features |
+| `@tag:phase3` | Future local-first tests | Reference only, not run |
 | `@tag:slow` | Tests >10 seconds (offline, multi-device) | Skip during rapid iteration |
 | `@tag:flaky` | Known flaky tests (needs fixing) | Quarantine until fixed |
 | `@tag:skip-ci` | Skip in CI temporarily (with ticket) | WIP features |
@@ -132,20 +164,6 @@ npm run test:e2e -- --grep "@tag:shopping.*@tag:p0"
 npm run test:e2e -- --grep "@tag:shopping" --ui
 ```
 
-**Expected Duration:** ~45 seconds (13 tests)
-
-#### Scenario B: Working on Local-First Sync
-```bash
-# Run all sync-related tests
-npm run test:e2e -- --grep "@tag:sync"
-
-# Include RxDB unit tests
-npm run test:unit -- --grep "sync|conflict"
-
-# Combined (E2E + unit)
-npm run test:feature:sync
-```
-
 **Expected Duration:** ~90 seconds (8 E2E + 15 unit tests)
 
 #### Scenario C: Quick Pre-Commit Check
@@ -167,7 +185,21 @@ npm run test:critical
 
 #### Pull Request Pipeline
 ```yaml
-# .github/workflows/test-pr.yml
+# .github/workflows/test90 seconds (10 smoke tests)
+
+#### Scenario C: Working on Local-First Sync (Phase 3 Future)
+```bash
+# Phase 3: When implementing local-first architecture
+npm run test:e2e -- --grep "@tag:local-first"
+
+# Include RxDB unit tests
+npm run test:unit -- --grep "sync|conflict"
+
+# Combined (E2E + unit)
+npm run test:feature:sync
+```
+
+**Expected Duration:** ~90 seconds (TBD - not yet implemented
 name: PR Tests
 on: [pull_request]
 
@@ -193,24 +225,7 @@ jobs:
   e2e-full:
     name: E2E Full Suite (P0 + P1)
     needs: e2e-critical
-    runs-on: ubuntu-latest
-    steps:
-      - run: npx playwright test --grep "@tag:p0|@tag:p1"
-    timeout-minutes: 8
-  
-  unit:
-    name: Unit & Component Tests
-    needs: smoke
-    runs-on: ubuntu-latest
-    steps:
-      - run: npm run test:unit
-      - run: npm run test:coverage
-    timeout-minutes: 3
-
-  local-first:
-    name: Local-First Scenarios
-    needs: e2e-critical
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-l5est
     steps:
       - run: npx playwright test --grep "@tag:local-first"
     timeout-minutes: 10
@@ -230,7 +245,7 @@ jobs:
   full-regression:
     name: Full Regression Suite
     strategy:
-      matrix:
+      matrix:5-6
         browser: [chromium, firefox, webkit]
         priority: [p0, p1, p2]
     runs-on: ubuntu-latest
@@ -246,38 +261,13 @@ jobs:
 # .github/workflows/test-nightly.yml
 name: Nightly Full Suite
 on:
-  schedule:
-    - cron: '0 2 * * *'  # 2 AM daily
-
-jobs:
-  all-tests:
-    name: All Tests (P0-P3, All Browsers)
-    strategy:
-      matrix:
-        browser: [chromium, firefox, webkit]
-    runs-on: ubuntu-latest
+  scruns-on: ubuntu-latest
     steps:
-      - run: npx playwright test --project=${{ matrix.browser }}
-      - run: npm run test:unit
-      - run: npm run test:coverage
-    timeout-minutes: 30
+      - run: npx playwright test --grep "@tag:p0|@tag:p1" --project=${{ matrix.browser }}
+    timeout-minutes: 8
 ```
 
-**Expected Duration:** ~20-30 minutes (includes P3, visual regression, performance)
-
----
-
-## Package.json Scripts
-
-### Feature-Based Test Execution
-
-```json
-{
-  "scripts": {
-    "// ============ DEVELOPMENT (Fast Feedback) ============",
-    "test:smoke": "playwright test --grep '@tag:smoke'",
-    "test:critical": "playwright test --grep '@tag:p0'",
-    
+**Expected Duration:** ~6-8 minutes (all browsers
     "test:feature:auth": "playwright test --grep '@tag:auth'",
     "test:feature:shopping": "playwright test --grep '@tag:shopping'",
     "test:feature:households": "playwright test --grep '@tag:households'",
@@ -323,9 +313,8 @@ export default defineConfig({
   testDir: './tests',
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 4 : 2,
-  reporter: process.env.CI 
+  retries: processdashboard": "playwright test --grep '@tag:dashboard'",
+    "test:feature:security": "playwright test --grep '@tag:security
     ? [['html'], ['github'], ['list']]
     : [['html'], ['list']],
   
@@ -336,11 +325,11 @@ export default defineConfig({
     video: 'retain-on-failure',
   },
 
-  // Browser projects
-  projects: [
-    {
-      name: 'chromium',
-      use: { ...devices['Desktop Chrome'] },
+  // Browsall": "npm run test:e2e",
+    
+    "// ============ PHASE 3: Local-First (Future) ============",
+    "test:local-first": "playwright test --grep '@tag:local-first'",
+    "test:feature:sync": "playwright test --grep '@tag:sync'
     },
     {
       name: 'firefox',
@@ -400,16 +389,7 @@ test.describe('Create Shopping List @tag:shopping @tag:p0', () => {
   
   test('creates list with custom name @tag:p1', async ({ page }) => {
     // ... P1 test
-  });
-});
-
-// Offline test with special tags
-test.describe('Offline Shopping @tag:shopping @tag:local-first @tag:p0 @tag:slow', () => {
-  test('adds items while offline', async ({ page, context }) => {
-    await context.setOffline(true);
-    // ... offline test
-  });
-});
+  ;
 ```
 
 ### 2. Shared Fixtures by Feature
@@ -454,11 +434,11 @@ export * from './complete-flow.spec';
 export * from './offline-shopping.spec';
 ```
 
----
-
-## Performance Optimization
-
-### Development Mode Optimizations
+---Future: Phase 3 local-first test
+test.describe('Offline Shopping @tag:shopping @tag:local-first @tag:phase3 @tag:slow', () => {
+  test.skip('adds items while offline - Phase 3 only', async ({ page, context }) => {
+    await context.setOffline(true);
+    // ... offline test (not implemented yet)timizations
 
 **1. Skip Slow Tests by Default**
 ```typescript
@@ -512,16 +492,12 @@ export default defineConfig({
         singleThread: false,
       },
     },
-    
-    // Watch mode excludes node_modules
-    watchExclude: ['**/node_modules/**', '**/dist/**'],
-  },
-});
-```
-
----
-
-## Development Workflow
+    Phase 3 Tests by Default**
+```typescript
+// Phase 3 tests are marked as .skip() until local-first implementation
+test.describe('Multi-device sync @tag:local-first @tag:phase3', () => {
+  test.skip('syncs across devices - Phase 3 only', async ({ page, context }) => {
+    // ... test implementation deferred
 
 ### Scenario 1: Feature Development (Shopping)
 
@@ -539,40 +515,14 @@ npm run test:feature:shopping -- --ui
 # Gets feedback in ~30 seconds
 ```
 
-**Before Committing:**
-```bash
-# Run smoke tests (2 min)
-npm run test:smoke
-
-# If passed, commit
-git commit -m "feat: add quick-add to list"
-```
-
-**CI runs full suite on PR (8 min)**
-
----
-
-### Scenario 2: Local-First Sync Work
-
-**Developer implementing conflict resolution**
-
-```bash
-# Terminal 1: Dev servers
-npm run dev
-
-# Terminal 2: Watch RxDB unit tests
-cd apps/web
-npm run test:unit -- --watch --grep "conflict"
-
-# Terminal 3: Run sync E2E tests when ready
-npm run test:feature:sync
-```
-
-**Workflow:**
-1. Write RxDB unit test for conflict resolution (~10s feedback)
-2. Implement logic, iterate quickly with unit tests
-3. Run E2E sync tests to validate end-to-end (~90s)
-4. Commit when both pass
+**Before Committing:Future: if suite grows large)**
+```yaml
+# GitHub Actions - only if needed for >100 tests
+strategy:
+  matrix:
+    shard: [1, 2]
+steps:
+  - run: npx playwright test --shard=${{ matrix.shard }}/2Commit when both pass
 
 ---
 
@@ -620,31 +570,7 @@ npm run test:smoke
               ┌────────────┐
               │   Merge    │
               │   Ready    │
-              └────────────┘
-
-Total: ~8-10 minutes (parallel execution)
-```
-
-### Stage Definitions
-
-**Stage 1: Smoke (2 min) - Fast Gate**
-- 1-2 smoke tests per feature (~15 total)
-- Single browser (Chromium)
-- Fails fast if basic functionality broken
-- Prevents wasting CI time on broken builds
-
-**Stage 2a: E2E Critical (5 min) - Parallel**
-- All P0 tests (~19 tests)
-- All 3 browsers (Chromium, Firefox, WebKit)
-- Matrix parallelization
-- Core functionality validation
-
-**Stage 2b: Unit Tests (3 min) - Parallel**
-- All Vitest unit and component tests (~130 tests)
-- Coverage report generated
-- RxDB logic validation
-
-**Stage 3a: E2E Full (3 min)**
+              └─Full (3 min)**
 - P1 tests (~38 tests)
 - Chromium only
 - Important features coverage
@@ -683,17 +609,38 @@ export const shoppingTestData = {
 import { test as base } from '@playwright/test';
 import { shoppingTestData } from './test-data';
 
-export const test = base.extend({
-  testData: async ({}, use) => {
-    await use(shoppingTestData);
-  },
-});
-```
+### Scenario 3: Local-First Sync Work (Phase 3 Future)
 
-### Database Reset Per Feature
+**Developer implementing conflict resolution after migration**
 
-```typescript
-// tests/shopping/hooks.ts
+```bash
+# Terminal 1: Dev servers
+npm run dev
+
+# Terminal 2: Run s90s)  ← Fast gate, fail early
+└──────┬──────┘
+       │ Pass
+       ▼
+┌──────────────┐
+│ E2E Critical │  (~3 min)
+│   (P0 × 3)   │  Chromium, Firefox, WebKit
+└──────┬───────┘  (parallel)
+       │ Pass
+       ▼
+┌──────────────────┐
+│  E2E Full (P1)   │  (~2 min)
+│  Chromium only   │
+└──────────────────┘
+       │ Pass
+       ▼
+┌────────────┐
+│   Merge    │
+│   Ready    │
+└────────────┘
+
+Total: ~5-6 minutes (parallel execution)
+
+Phase 3 Future: Add "Local-First" stage after E2E Full (~10 mi
 import { test } from './setup';
 
 test.beforeEach(async ({ page }) => {
@@ -712,33 +659,30 @@ test.beforeEach(async ({ page }) => {
 
 ```typescript
 // playwright.config.ts
-export default defineConfig({
-  reporter: [
-    ['html'],
-    ['json', { outputFile: 'test-results.json' }],
-    ['./custom-reporter.ts'], // Track durations
-  ],
-});
+export default def~90s) - Fast Gate**
+- 1 smoke test per feature (~10 total)
+- Single browser (Chromium)
+- Fails fast if basic functionality broken
+- Prevents wasting CI time on broken builds
 
-// custom-reporter.ts
-class DurationReporter {
-  onTestEnd(test, result) {
-    if (result.duration > 10000) {
-      console.warn(`⚠️  Slow test: ${test.title} (${result.duration}ms)`);
-    }
-  }
-}
-```
+**Stage 2: E2E Critical (~3 min) - Parallel**
+- All P0 tests (~18 tests)
+- All 3 browsers (Chromium, Firefox, WebKit)
+- Matrix parallelization
+- Core functionality validation
 
-### Feature Coverage Dashboard
+**Stage 3: E2E Full (~2 min)**
+- P1 tests (~27 tests)
+- Chromium only
+- Important features coverage
 
-Track coverage per feature:
-
-```json
-{
-  "features": {
-    "auth": { "tests": 6, "coverage": "95%", "avgDuration": "15s" },
-    "shopping": { "tests": 13, "coverage": "88%", "avgDuration": "45s" },
+**Phase 3 Future: Local-First Stage (~10 min)**
+- Offline shopping workflows
+- Background sync validation
+- Conflict resolution tests
+- Multi-device synchronization
+- Service worker tests
+- **Note**: These will be added when migrating to local-first architecture"coverage": "88%", "avgDuration": "45s" },
     "households": { "tests": 8, "coverage": "82%", "avgDuration": "30s" },
     "stores": { "tests": 11, "coverage": "79%", "avgDuration": "35s" },
     "sync": { "tests": 8, "coverage": "91%", "avgDuration": "90s" }
@@ -825,11 +769,16 @@ test.describe('Shopping Lists @tag:shopping @tag:p0', () => {
 
 ### Adding Feature Suites
 
-1. Create feature directory: `tests/my-feature/`
-2. Add test files with tags
-3. Create `test-data.ts` and `fixtures.ts`
-4. Add npm script: `"test:feature:my-feature"`
-5. Update CI if critical path
+1. Create feature direc5, "coverage": "90%", "avgDuration": "15s" },
+    "shopping": { "tests": 9, "coverage": "85%", "avgDuration": "30s" },
+    "households": { "tests": 6, "coverage": "80%", "avgDuration": "20s" },
+    "stores": { "tests": 9, "coverage": "75%", "avgDuration": "25s" },
+    "dashboard": { "tests": 3, "coverage": "100%", "avgDuration": "10s" },
+    "security": { "tests": 3, "coverage": "100%", "avgDuration": "10s" },
+    "api": { "tests": 4, "coverage": "85%", "avgDuration": "15s" }
+  },
+  "phase3": {
+    "sync": { "tests": 0, "coverage": "N/A", "avgDuration": "N/A (deferred)
 
 ---
 
@@ -937,3 +886,36 @@ npm run test:unit                  # All unit tests
 | Offline test | <30s | <60s |
 | Feature suite | <30s | <60s |
 | Full E2E suite | <6min | <10min |
+Roadmap
+
+### Phase 2 (Current: API Proxy Architecture)
+- [ ] Implement 45 UI regression tests
+- [ ] Feature-based test organization
+- [ ] Tagging strategy (@tag:p0, @tag:shopping, etc.)
+- [ ] CI pipeline with fast-fail
+- [ ] Smoke test suite
+
+### Phase 3 (Future: Local-First Migration)
+- [ ] **Keep all Phase 2 tests** - they validate the refactor didn't break UX
+- [ ] Add offline workflow tests
+- [ ] Add background sync tests
+- [ ] Add conflict resolution tests
+- [ ] Add multi-device sync tests
+- [ ] Service worker validation
+- [ ] Performance benchmarks (offline vs onlinesmoke     Quick validation
+@tag:slow      >5 seconds
+
+@tag:auth      Authentication
+@tag:shopping  Shopping workflow
+@tag:households    Households
+@tag:stores    Stores & sections
+@tag:dashboard Dashboard & empty states
+@tag:security  XSS, SQL injection, JWT
+@tag:api       Direct API tests
+
+@tag:phase3        Phase 3 only (deferred)
+@tag:local-first   Offline/sync (Phase 3)E2E test | <3s | <5s |
+| Feature suite | <30s | <45s |
+| Full E2E suite (P0+P1) | <3min | <5min |
+| Phase 3: Offline test | <30s | <60s |
+| Phase 3: Full suite | <10min | <15
