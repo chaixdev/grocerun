@@ -5,9 +5,9 @@
  * to implement test scenarios from wiki/planning/test-scenarios.md
  */
 
-import { test, expect } from '../../fixtures/authenticated';
-import { test as multiTest, expect as multiExpect } from '../../fixtures/multi-user';
-import { testUsers } from '../../fixtures/users';
+import { test, expect } from '../fixtures/authenticated';
+import { test as multiTest, expect as multiExpect } from '../fixtures/multi-user';
+import { testUsers } from '../fixtures/users';
 
 // ============================================================================
 // AUTH SCENARIOS (P0)
