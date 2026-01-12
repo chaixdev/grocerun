@@ -14,24 +14,33 @@ export interface ShoppingList {
 
 /**
  * Creates a new shopping list for a store.
- * Assumes you're on the /stores page or a specific store page.
- * Clicks the "Start Shopping List" or "Go To List" button.
+ * If storeId provided: navigates to store detail page and clicks "New List"
+ * If no storeId: navigates to /stores and clicks "Start Shopping List" on first store card
  * Returns the list ID extracted from the URL.
  */
 export async function createList(page: Page, storeId?: string): Promise<ShoppingList> {
-  // If storeId provided, navigate to that store first
   if (storeId) {
+    // Navigate to specific store's detail page
     await page.goto(`/stores/${storeId}`);
+    await page.waitForLoadState('domcontentloaded');
+    
+    // On store detail page, click "New List" button
+    const newListButton = page.locator('button:has-text("New List")').first();
+    await expect(newListButton).toBeVisible({ timeout: 10000 });
+    await newListButton.click();
   } else {
-    // Otherwise assume we're already on stores page
+    // Navigate to stores directory and click "Start Shopping List" on first store card
     await page.goto('/stores');
+    await page.waitForLoadState('domcontentloaded');
+    
+    // Click "Start Shopping List" or "Go To List" button on store card
+    const startListButton = page.locator('button:has-text("Start Shopping List"), button:has-text("Go To List")').first();
+    await expect(startListButton).toBeVisible({ timeout: 10000 });
+    await startListButton.click();
   }
-  await page.waitForLoadState('networkidle');
   
-  // Click "Start Shopping List" or "Go To List" button
-  const startListButton = page.locator('button:has-text("Start Shopping List"), button:has-text("Go To List")').first();
-  await startListButton.click();
-  await page.waitForTimeout(3000);
+  // Wait for navigation to list page
+  await page.waitForURL(/\/lists\/.+/, { timeout: 10000 });
   
   // Extract list ID from URL
   const currentUrl = page.url();
@@ -39,8 +48,7 @@ export async function createList(page: Page, storeId?: string): Promise<Shopping
   const listId = listMatch ? listMatch[1] : `list-${Date.now()}`;
   
   // Extract store ID from URL if not provided
-  const storeMatch = currentUrl.match(/\/stores\/([^/]+)/);
-  const finalStoreId = storeId || (storeMatch ? storeMatch[1] : '');
+  const finalStoreId = storeId || '';
   
   return {
     id: listId,
@@ -52,7 +60,7 @@ export async function createList(page: Page, storeId?: string): Promise<Shopping
 /**
  * Adds an item to the current shopping list.
  * Assumes you're already on a list page.
- * Fills the item input and presses Enter.
+ * Fills the item input, handles section selection dialog if it appears, and adds the item.
  */
 export async function addItemToList(
   page: Page,
@@ -60,7 +68,7 @@ export async function addItemToList(
   quantity?: number
 ): Promise<ListItem> {
   // Find item input field
-  const addItemInput = page.locator('input[placeholder*="add" i], input[placeholder*="item" i], input[name="item"]').first();
+  const addItemInput = page.locator('input[placeholder*="add" i], input[placeholder*="item" i]').first();
   await expect(addItemInput).toBeVisible({ timeout: 5000 });
   
   // Fill in item name
@@ -84,9 +92,42 @@ export async function addItemToList(
     }
   }
   
-  // Submit the item (press Enter)
-  await addItemInput.press('Enter');
-  await page.waitForTimeout(2000);
+  // Click the Add button and wait for response
+  const addButton = page.locator('button:has-text("Add")').first();
+  
+  // Set up response listener before clicking
+  const responsePromise = page.waitForResponse(
+    response => response.url().includes('/lists/items/add') && response.status() === 200,
+    { timeout: 10000 }
+  ).catch(() => null);
+  
+  await addButton.click();
+  
+  // Wait for API response
+  await responsePromise;
+  await page.waitForTimeout(1000);
+  
+  // Check if a section selection dialog appears (for new items)
+  const sectionDialog = page.locator('dialog, [role="dialog"]').filter({ hasText: /section|where|new item/i });
+  const isDialogVisible = await sectionDialog.isVisible({ timeout: 3000 }).catch(() => false);
+  
+  if (isDialogVisible) {
+    // Dialog asking for section selection
+    // Look for "Save" or "Add" button in the dialog to submit with no section (null)
+    const saveButton = page.locator('dialog button:has-text("Save"), dialog button:has-text("Add"), dialog button:has-text("Create")').first();
+    const isSaveVisible = await saveButton.isVisible({ timeout: 1000 }).catch(() => false);
+    
+    if (isSaveVisible) {
+      await saveButton.click();
+      await page.waitForTimeout(1500);
+    } else {
+      // Try clicking outside to close or find a close button
+      const closeButton = page.locator('button[aria-label*="close" i]').first();
+      if (await closeButton.isVisible({ timeout: 500 }).catch(() => false)) {
+        await closeButton.click();
+      }
+    }
+  }
   
   // Verify item appears in the list
   const itemInList = page.locator(`text="${itemName}"`);

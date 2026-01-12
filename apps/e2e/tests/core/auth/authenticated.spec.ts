@@ -1,5 +1,5 @@
-import { test, expect } from '../../fixtures/authenticated';
-import { testUsers } from '../../fixtures/users';
+import { test, expect } from '../../../fixtures/authenticated';
+import { testUsers } from '../../../fixtures/users';
 
 test.describe('Authenticated user flows', () => {
   test('authenticated user can access stores page', async ({ authenticatedPage }) => {

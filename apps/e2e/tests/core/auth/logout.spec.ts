@@ -1,4 +1,4 @@
-import { test, expect } from '../../fixtures/authenticated';
+import { test, expect } from '../../../fixtures/authenticated';
 
 // AUTH-004: Logout
 

@@ -32,23 +32,24 @@ export async function createStore(
   // Submit the form
   const submitButton = page.locator('button:has-text("Save"), button:has-text("Create"), button[type="submit"]').first();
   await submitButton.click();
+  
+  // Wait for the store to appear in the list  
   await page.waitForTimeout(2000);
   
-  // After creation, we should be redirected to either:
-  // 1. The store detail page (/stores/:id)
-  // 2. The stores list page with the new store visible
+  // After creation, we stay on /stores page (store directory)
+  // Store should now be visible in the list - find its "View Store Details" button or card
+  await expect(page.locator(`text="${name}"`).first()).toBeVisible({ timeout: 5000 });
   
+  // Click the eye icon (View Store Details) to navigate to the store page
+  const storeCard = page.locator(`text="${name}"`).locator('..').locator('..').locator('..');
+  const viewButton = storeCard.locator('button[title="View Store Details"], button:has([class*="eye" i])').first();
+  await viewButton.click();
+  await page.waitForTimeout(1000);
+  
+  // Now we should be on /stores/:id - extract the ID
   const currentUrl = page.url();
-  let storeId = '';
-  
-  // Try to extract store ID from current URL
   const storeMatch = currentUrl.match(/\/stores\/([^/?]+)/);
-  if (storeMatch) {
-    storeId = storeMatch[1];
-  } else {
-    // Generate a placeholder ID if we couldn't extract it
-    storeId = `store-${Date.now()}`;
-  }
+  const storeId = storeMatch ? storeMatch[1] : `store-${Date.now()}`;
   
   return {
     id: storeId,
