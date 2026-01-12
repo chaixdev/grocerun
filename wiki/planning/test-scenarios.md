@@ -1,26 +1,43 @@
 # Grocerun E2E Test Scenarios
 
-**Version:** 1.0  
-**Date:** 2026-01-10  
-**Status:** Phase 2 Complete - Ready for Implementation
+**Version:** 2.0  
+**Date:** 2026-01-12  
+**Status:** Updated with Fixture-Based Testing Approach
 
 ---
 
-## Test Organization
+## Test Organization Philosophy
 
-Tests are organized by domain and priority:
+### Priority Levels
 - 🔴 **P0 (Critical)** - Core functionality, must pass for release
 - 🟠 **P1 (High)** - Important features, should pass before deployment
 - 🟡 **P2 (Medium)** - Secondary features, nice to have coverage
 - 🟢 **P3 (Low)** - Edge cases, can be addressed later
 
+### Test Types
+- **Core Tests** - Isolated feature verification (uses fixtures heavily)
+- **Integration Tests** - Feature combination verification (moderate fixtures)
+- **Journey Tests** - Complete user flow verification (minimal fixtures)
+
+### Fixture Prerequisites
+Each test scenario now lists required fixtures. See [Fixture Analysis](../development/fixture-analysis.md) for details.
+
+**Related Documentation:**
+- [E2E Test Organization Guide](../development/e2e-test-organization-guide.md) - Testing philosophy
+- [Fixture Analysis](../development/fixture-analysis.md) - Fixture requirements per story
+
 ---
 
 ## 1. Authentication & Authorization
 
+**Test Type:** Core  
+**Fixtures Needed:** None (base level tests)  
+**Fixtures Provided:** `authenticated` fixture for all other tests
+
 ### AUTH-001: User Login (P0 🔴)
+**Type:** Core  
 **Description:** User can log in with valid credentials  
-**Preconditions:** User account exists  
+**Fixtures:** None  
 **Steps:**
 1. Navigate to login page
 2. Enter valid email and password
@@ -34,8 +51,9 @@ Tests are organized by domain and priority:
 ---
 
 ### AUTH-002: Invalid Login (P0 🔴)
+**Type:** Core  
 **Description:** Invalid credentials are rejected  
-**Preconditions:** None  
+**Fixtures:** None  
 **Steps:**
 1. Navigate to login page
 2. Enter invalid email/password
@@ -49,8 +67,9 @@ Tests are organized by domain and priority:
 ---
 
 ### AUTH-003: Session Persistence (P1 🟠)
+**Type:** Core  
 **Description:** User session persists across page refreshes  
-**Preconditions:** User is logged in  
+**Fixtures:** `authenticated`  
 **Steps:**
 1. Log in successfully
 2. Refresh the page
@@ -63,8 +82,9 @@ Tests are organized by domain and priority:
 ---
 
 ### AUTH-004: Logout (P1 🟠)
+**Type:** Core  
 **Description:** User can log out  
-**Preconditions:** User is logged in  
+**Fixtures:** `authenticated`  
 **Steps:**
 1. Click user menu
 2. Click "Logout"
@@ -77,8 +97,9 @@ Tests are organized by domain and priority:
 ---
 
 ### AUTH-006: Protected Route Access (P0 🔴)
+**Type:** Core  
 **Description:** Unauthenticated users redirected from protected routes  
-**Preconditions:** User not logged in  
+**Fixtures:** None (tests without authentication)  
 **Steps:**
 1. Navigate to /stores
 2. Navigate to /lists
@@ -92,9 +113,14 @@ Tests are organized by domain and priority:
 
 ## 2. Household Management
 
+**Test Type:** Core  
+**Fixtures Needed:** `authenticated`  
+**Fixtures Provided:** `withHousehold` (for use by store/list tests)
+
 ### HOUSE-001: First-Time User Onboarding (P0 🔴)
+**Type:** Core  
 **Description:** New user creates first household  
-**Preconditions:** User logged in, no households  
+**Fixtures:** `authenticated` only (test the onboarding flow)  
 **Steps:**
 1. Navigate to /stores
 2. See "Create My Household" prompt
@@ -109,8 +135,9 @@ Tests are organized by domain and priority:
 ---
 
 ### HOUSE-002: Create Additional Household (P1 🟠)
+**Type:** Core  
 **Description:** User creates second household  
-**Preconditions:** User has 1+ households  
+**Fixtures:** `withHousehold`  
 **Steps:**
 1. Navigate to Settings → Households
 2. Click "Create Household"
@@ -126,8 +153,9 @@ Tests are organized by domain and priority:
 ---
 
 ### HOUSE-003: Rename Household (P1 🟠)
+**Type:** Core  
 **Description:** Owner renames household  
-**Preconditions:** User is household owner  
+**Fixtures:** `withHousehold` (user is owner)  
 **Steps:**
 1. Navigate to Settings → Households
 2. Click edit on household
@@ -141,8 +169,9 @@ Tests are organized by domain and priority:
 
 ---
 
-### HOUSE-004: Rename Household - Non-Owner (P1 🟠)
+##Type:** Integration  
 **Description:** Non-owner cannot rename household  
+**Fixtures:** `withMultipleUsers` (Bob is member, not owner)
 **Preconditions:** User is household member, not owner  
 **Steps:**
 1. Navigate to Settings → Households
@@ -154,8 +183,9 @@ Tests are organized by domain and priority:
 - No changes made
 
 ---
-
-### HOUSE-005: Leave Household (P1 🟠)
+Type:** Core  
+**Description:** Member leaves household  
+**Fixtures:** `withMultipleHouseholds` (user in 2+ households)
 **Description:** Member leaves household  
 **Preconditions:** User is member of 2+ households  
 **Steps:**
@@ -169,8 +199,9 @@ Tests are organized by domain and priority:
 - Other members unaffected
 
 ---
-
-### HOUSE-006: Leave Household - Owner Blocked (P1 🟠)
+Type:** Core  
+**Description:** Owner cannot leave their household  
+**Fixtures:** `withHousehold` (user is owner)cked (P1 🟠)
 **Description:** Owner cannot leave their household  
 **Preconditions:** User is household owner  
 **Steps:**
@@ -186,9 +217,14 @@ Tests are organized by domain and priority:
 
 ## 3. Invitation System
 
+**Test Type:** Core + Integration  
+**Fixtures Needed:** `withHousehold`, `withMultipleUsers`  
+**Fixtures Provided:** None (uses existing fixtures)
+
 ### INV-001: Create Invitation (P1 🟠)
+**Type:** Core  
 **Description:** Member creates invitation link  
-**Preconditions:** User is household member  
+**Fixtures:** `withHousehold`  
 **Steps:**
 1. Navigate to Settings → Households
 2. Click "Invite" on a household
@@ -203,8 +239,9 @@ Tests are organized by domain and priority:
 ---
 
 ### INV-002: Join via Invitation (P0 🔴)
+**Type:** Integration  
 **Description:** New member joins via invitation link  
-**Preconditions:** Valid invitation exists, user logged in  
+**Fixtures:** `withMultipleUsers` (Alice creates household + invitation, Bob joins)  
 **Steps:**
 1. Navigate to invitation URL
 2. See household name and owner info
@@ -216,9 +253,10 @@ Tests are organized by domain and priority:
 - Redirected to household's stores
 - Access to household data
 
----
-
-## 4. Store Management
+--Type:** Core  
+**Description:** Member revokes active invitation  
+**Fixtures:** `withHousehold` (test creates invitation first)
+### INV-003: Revoke Invitation (P1 🟠)
 **Description:** Member revokes active invitation  
 **Preconditions:** Active invitation exists  
 **Steps:**
@@ -235,9 +273,15 @@ Tests are organized by domain and priority:
 
 ## 4. Store Management
 
+**Test Type:** Core  
+**Fixtures Needed:** `withHousehold`  
+**Fixtures Provided:** `withStore` (after STORE-001 test passes)
+
 ### STORE-001: Create First Store (P0 🔴)
+**Type:** Core  
 **Description:** User creates first store in household  
-**Preconditions:** User has household, no stores  
+**Fixtures:** `withHousehold`  
+**Note:** After this test passes, create `withStore` fixture using the createStore() helper  
 **Steps:**
 1. Navigate to /stores
 2. Click "Add Store"
@@ -253,23 +297,9 @@ Tests are organized by domain and priority:
 ---
 
 ### STORE-002: Create Multiple Stores (P1 🟠)
+**Type:** Core  
 **Description:** Create multiple stores in same household  
-**Preconditions:** Household exists  
-**Steps:**
-1. Create store "Walmart"
-2. Create store "Target"
-3. Create store "Costco"
-
-**Expected:**
-- All 3 stores visible
-- Ordered by creation date (newest first)
-- Each independently accessible
-
----
-
-### STORE-002: Create Multiple Stores (P1 🟠)
-**Description:** Create multiple stores in same household  
-**Preconditions:** Household exists  
+**Fixtures:** `withHousehold` (test creates stores)  
 **Steps:**
 1. Create store "Walmart"
 2. Create store "Target"
@@ -283,8 +313,9 @@ Tests are organized by domain and priority:
 ---
 
 ### STORE-003: Update Store Details (P1 🟠)
+**Type:** Core  
 **Description:** Edit store name and location  
-**Preconditions:** Store exists  
+**Fixtures:** `withStore`  
 **Steps:**
 1. Navigate to store settings
 2. Change name to "Walmart Supercenter"
@@ -299,8 +330,9 @@ Tests are organized by domain and priority:
 ---
 
 ### STORE-004: Delete Store (P1 🟠)
+**Type:** Core  
 **Description:** Delete store and all related data  
-**Preconditions:** Store exists  
+**Fixtures:** `withStore`  
 **Steps:**
 1. Navigate to store settings
 2. Click "Delete Store"
@@ -316,8 +348,9 @@ Tests are organized by domain and priority:
 ---
 
 ### STORE-005: Store Access - Household Member (P0 🔴)
+**Type:** Integration  
 **Description:** All household members can access stores  
-**Preconditions:** 2+ users in household, store exists  
+**Fixtures:** `withMultipleUsers`, `withStore`  
 **Steps:**
 1. User A creates store
 2. User B (same household) navigates to /stores
@@ -330,8 +363,9 @@ Tests are organized by domain and priority:
 ---
 
 ### STORE-006: Store Access - Different Household (P0 🔴)
+**Type:** Integration  
 **Description:** Users from different households cannot access each other's stores  
-**Preconditions:** 2 households, each with stores  
+**Fixtures:** `withMultipleUsers` (each in separate households), `withStore`  
 **Steps:**
 1. User A creates store in Household 1
 2. User B (Household 2 only) tries to access store by ID
@@ -345,9 +379,14 @@ Tests are organized by domain and priority:
 
 ## 5. Section Management
 
+**Test Type:** Core  
+**Fixtures Needed:** `withStore`  
+**Fixtures Provided:** `withStoreSections` (optional, for section-heavy tests)
+
 ### SECT-001: Create Section (P1 🟠)
+**Type:** Core  
 **Description:** Add section to store  
-**Preconditions:** Store exists  
+**Fixtures:** `withStore`  
 **Steps:**
 1. Navigate to store settings
 2. Click "Add Section"
@@ -358,10 +397,11 @@ Tests are organized by domain and priority:
 - Section created
 - Added to end of section list
 - Available for item categorization
+Type:** Core  
+**Description:** Update section name  
+**Fixtures:** `withStore` (test creates section first)
 
----
-
-## 5. Section Management
+### SECT-002: Update Section Name (P1 🟠)
 **Description:** Update section name  
 **Preconditions:** Section exists  
 **Steps:**
@@ -373,8 +413,9 @@ Tests are organized by domain and priority:
 **Expected:**
 - Section name updated
 - All items still associated
-- Changes visible immediately
-
+- Type:** Core  
+**Description:** Delete section with no items  
+**Fixtures:** `withStore` (test creates section first)
 ---
 
 ### SECT-004: Delete Empty Section (P1 🟠)
@@ -394,39 +435,46 @@ Tests are organized by domain and priority:
 
 ## 6. Item Management
 
-### ITEM-001: Add Item with Section (P0 🔴)
-**Description:** Add categorized item to list  
-**Preconditions:** List exists, sections configured  
+**Test Type:** Core  
+**Fixtures Needed:** `withList`  
+**Fixtures Provided:** `withItems` (after ITEM-001 passes)
+
+### ITEM-001: Add Item to List (P0 🔴)
+**Type:** Core  
+**Description:** Add item to list (basic flow)  
+**Fixtures:** `withList`  
+**Note:** After this test passes, create `withItems` fixture using the addItem() helper  
 **Steps:**
 1. Open shopping list
-2. Type "Tomatoes" in add item field
-3. Select "Produce" section
-4. Click Add
+2. Type "Milk" in add item field
+3. Press Enter or click Add
 
 **Expected:**
 - Item created in catalog
 - Item added to list
-- Linked to section
+- Item appears in list (uncategorized by default)
+- Type:** Core  
+**Description:** Add categorized item with section selection  
+**Fixtures:** `withList`, `withStoreSections`
+---
+
+### ITEM-002: Add Item with Section (P1 🟠)
+**Description:** Add categorized item with section selection  
+**Preconditions:** List exists, store has sections configured  
+**Steps:**
+1. Open shopping list
+2. Type "Tomatoes" in add item field
+3. Select "Produce" section from dropdown/dialog
+4. Press Enter or click Add
+
+**Expected:**
+- Item created in catalog
+- Item added to list
+- Linked to "Produce" section
 - Appears in list grouped by section
 
 ---
 
-### ITEM-002: Add Item without Section (P1 🟠)
-**Description:** Add uncategorized item  
-**Preconditions:** List exists  
-**Steps:**
-1. Open shopping list
-2. Type "Random Item"
-3. Select "Uncategorized" or skip section
-4. Click Add
-
-**Expected:**
-- Item created with sectionId = null
-- Item added to list
-- Appears in "Uncategorized" group
-
----
-
 ### ITEM-003: Add Existing Item (P1 🟠)
 **Description:** Add item that's already in catalog  
 **Preconditions:** Item "Milk" exists in catalog  
@@ -516,8 +564,9 @@ Tests are organized by domain and priority:
 **Expected:**
 - Matching items shown ("Tomatoes", "Tomato Sauce")
 - Ordered by purchase count (popular first)
-- Max 10 results
-- Fast response (<200ms)
+- Type:** Core  
+**Description:** Edit item name and section  
+**Fixtures:** `withItemCatalog`
 
 ---
 
@@ -539,9 +588,15 @@ Tests are organized by domain and priority:
 
 ## 7. Shopping List Workflow
 
+**Test Type:** Core + Integration  
+**Fixtures Needed:** `withStore`  
+**Fixtures Provided:** `withList`, `withItems`, `withShoppingMode`
+
 ### LIST-001: Create Shopping List (P0 🔴)
+**Type:** Core  
 **Description:** Start new shopping list  
-**Preconditions:** Store exists  
+**Fixtures:** `withStore`  
+**Note:** After this test passes, create `withList` fixture using the createList() helper  
 **Steps:**
 1. Navigate to store page
 2. Click "New List" or "Start Shopping"
@@ -549,8 +604,9 @@ Tests are organized by domain and priority:
 **Expected:**
 - List created in PLANNING status
 - Empty item list
-- Named "Shopping List" (default)
-- Can add items
+- Type:** Core  
+**Description:** Reuse existing incomplete list  
+**Fixtures:** `withList` (test verifies resume behavior)
 
 ---
 
@@ -562,8 +618,9 @@ Tests are organized by domain and priority:
 2. Try to create new list
 
 **Expected:**
-- Existing list resumed instead
-- No duplicate list created
+- Type:** Core  
+**Description:** Add item with quantity and unit  
+**Fixtures:** `withList`
 - Message: "Continuing your list"
 
 ---
@@ -578,8 +635,9 @@ Tests are organized by domain and priority:
 4. Set unit to "dozen"
 5. Add to list
 
-**Expected:**
-- Item added with quantity 2, unit "dozen"
+**Type:** Core  
+**Description:** Change quantity of list item  
+**Fixtures:** `withItems`nit "dozen"
 - Appears in list
 - Catalog updated with defaultUnit
 
@@ -593,8 +651,9 @@ Tests are organized by domain and priority:
 2. Click on "2 dozen Eggs"
 3. Change to "3 dozen"
 4. Save
-
-**Expected:**
+Type:** Core  
+**Description:** Delete item from list  
+**Fixtures:** `withItems`
 - Quantity updated to 3
 - Unit preserved
 - Changes saved immediately
@@ -617,8 +676,10 @@ Tests are organized by domain and priority:
 ---
 
 ### LIST-006: Start Shopping (P0 🔴)
+**Type:** Core  
 **Description:** Transition list to shopping mode  
-**Preconditions:** List in PLANNING status with items  
+**Fixtures:** `withItems` (list with items already added)  
+**Note:** After this test passes, create `withShoppingMode` fixture  
 **Steps:**
 1. Open list
 2. Click "Start Shopping"
@@ -632,8 +693,9 @@ Tests are organized by domain and priority:
 ---
 
 ### LIST-007: Check Off Items (P0 🔴)
+**Type:** Core  
 **Description:** Mark items as purchased  
-**Preconditions:** List in SHOPPING status  
+**Fixtures:** `withShoppingMode` (list in SHOPPING status with items)  
 **Steps:**
 1. Open shopping list
 2. Tap checkbox on "Milk"
@@ -669,8 +731,9 @@ Tests are organized by domain and priority:
 1. Tap "2 dozen Eggs"
 2. Change purchased quantity to 1
 3. Check off
-
-**Expected:**
+Type:** Core  
+**Description:** Uncheck previously checked item  
+**Fixtures:** `withShoppingMode` (test checks item first, then unchecks)
 - isChecked: true
 - purchasedQuantity: 1 (not 2)
 - Quantity difference visible
@@ -693,16 +756,18 @@ Tests are organized by domain and priority:
 ---
 
 ### LIST-010: Complete Shopping (P0 🔴)
+**Type:** Integration  
 **Description:** Finish shopping and update catalog  
-**Preconditions:** List in SHOPPING status  
+**Fixtures:** `withShoppingMode` (with some items checked off)  
 **Steps:**
 1. Check off desired items
 2. Click "Complete Shopping"
 3. Confirm
 
 **Expected:**
-- List status changes to COMPLETED
-- Checked items: purchaseCount += 1, lastPurchased updated
+- Type:** Core  
+**Description:** View household summary  
+**Fixtures:** `withStore`, `withList` (needs data to display)ased updated
 - List becomes read-only
 - Redirected to store or new list
 
@@ -715,8 +780,9 @@ Tests are organized by domain and priority:
 **Preconditions:** User in household with data  
 **Steps:**
 1. Navigate to /lists (dashboard)
-
-**Expected:**
+Type:** Core  
+**Description:** New user sees onboarding  
+**Fixtures:** `authenticated` only (no household)
 - See household name
 - Count of stores
 - Count of active lists
@@ -727,8 +793,9 @@ Tests are organized by domain and priority:
 
 ### DASH-002: Empty State - No Households (P1 🟠)
 **Description:** New user sees onboarding  
-**Preconditions:** No households  
-**Steps:**
+**Type:** Core  
+**Description:** Household with no stores  
+**Fixtures:** `withHousehold` (no stores created yet)
 1. Navigate to /stores or /lists
 
 **Expected:**
@@ -740,15 +807,22 @@ Tests are organized by domain and priority:
 
 ### DASH-003: Empty State - No Stores (P1 🟠)
 **Description:** Household with no stores  
-**Preconditions:** Household exists, no stores  
-**Steps:**
+
+**Test Type:** Core  
+**Fixtures Needed:** Varies by test
+
+### EDGE-003: 404 for Non-Existent Store (P1 🟠)
+**Type:** Core  
+**Description:** Access non-existent store  
+**Fixtures:** `authenticated`
 1. Navigate to /stores
 
 **Expected:**
 - "Add your first store" prompt
 - Create store button
-- Clear UX guidance
-
+- Type:** Core (Security)  
+**Description:** Prevent script injection  
+**Fixtures:** `withStore` (test creates malicious content)
 ---
 
 ## 9. Edge Cases & Security
@@ -760,8 +834,9 @@ Tests are organized by domain and priority:
 **Expected:**
 - 404 Not Found page
 - Error: "Store not found"
-- Link to stores page
-
+- Type:** Core (Security)  
+**Description:** Prevent SQL injection  
+**Fixtures:** `authenticated`
 ---
 
 ### EDGE-004: XSS Protection (P0 🔴)
@@ -776,9 +851,13 @@ Tests are organized by domain and priority:
 - Content escaped/sanitized
 - No alerts or JS execution
 
----
+**Test Type:** Core (API Level)  
+**Fixtures Needed:** Varies by test
 
-### EDGE-005: SQL Injection Protection (P0 🔴)
+### API-001: JWT Validation (P0 🔴)
+**Type:** Core (API)  
+**Description:** API validates JWT tokens  
+**Fixtures:** None (tests unauthenticated requests)otection (P0 🔴)
 **Description:** Prevent SQL injection  
 **Preconditions:** None  
 **Steps:**
@@ -787,9 +866,10 @@ Tests are organized by domain and priority:
 
 **Expected:**
 - Input treated as literal string
-- No SQL errors
-- No data corruption
-- Prisma ORM prevents injection
+- No SQL erroCross-Household Authorization (P0 🔴)
+**Type:** Integration (API)  
+**Description:** Cannot access other household's data  
+**Fixtures:** `withMultipleUsers`, `withStore`n
 
 ---
 
@@ -801,8 +881,9 @@ Tests are organized by domain and priority:
 **Steps:**
 1. GET /stores without Authorization header
 2. GET /stores with invalid JWT
-3. GET /stores with expired JWT
-
+3.Type:** Core (API)  
+**Description:** Consistent error structure  
+**Fixtures:** `authenticated` (triggers various errors)
 **Expected:**
 - All return 401 Unauthorized
 - Error messages clear
@@ -840,29 +921,81 @@ Tests are organized by domain and priority:
 
 ## Test Execution Plan
 
-## Test Execution Plan
+**Updated to reflect fixture development workflow:**
 
-### Phase 1: Security First (11 tests) - Est: 2-3 hrs
+### Phase 1: Foundation (Auth + Fixtures) - Est: 2-3 hrs
 - Authentication: AUTH-001, 002, 003, 004, 006
 - Security: EDGE-004, EDGE-005, API-001
 - Authorization: STORE-005, STORE-006, API-002
 
-### Phase 2: Happy Path (10 tests) - Est: 2-3 hrs
-- Onboarding: HOUSE-001, DASH-002, DASH-003
-- Core workflow: STORE-001, LIST-001, ITEM-001, LIST-003, LIST-006, LIST-007, LIST-010
+### Phase 2: Store CRUD Tests - Est: 2-3 hrs
 
-### Phase 3: Multi-user Collaboration (5 tests) - Est: 1-2 hrs
+**Goal:** Complete store management, prove helpers work
+
+**Tests to implement:**
+- STORE-002: Create multiple stores
+- STORE-003: Update store details (rename, location)
+- STORE-004: Delete store (test cascade deletes)
+- STORE-005: Multi-user access (already exists - verify)
+- STORE-006: Cross-household isolation (already exists - verify)
+
+**Deliverable:** Store CRUD complete, `withStore` fixture proven reliable
+
+### Phase 3: List Foundation - Est: 2-3 hrs
+
+**Goal:** Enable list testing, create list fixtures
+
+**Tests to implement:**
+- LIST-001: Create shopping list → Create `withList` fixture
+- LIST-002: Auto-resume existing list
+- LIST-003: Add item with quantity/unit
+- LIST-004: Update item quantity
+- LIST-005: Remove item from list
+- ITEM-001: Add item to list → Create `withItems` fixture
+
+**Deliverable:** `withList` ⏭️, `withItems` ⏭️ fixtures ready
+
+### Phase 4: Shopping Flow - Est: 2-3 hrs
+
+**Goal:** Complete the shopping lifecycle
+
+**Tests to implement:**
+- LIST-006: Start shopping → Create `withShoppingMode` fixture
+- LIST-007: Check off items
+- LIST-008: Adjust purchased quantity
+- LIST-009: Uncheck item
+- LIST-010: Complete shopping (integration test)
+
+**Deliverable:** `withShoppingMode` ⏭️ fixture ready, shopping flow tested
+
+### Phase 5: Journey Test - Est: 1-2 hrs
+
+**Goal:** Verify complete user flow end-to-end
+
+**Tests to implement:**
+- First Shopping Journey (in `tests/journeys/`):
+  1. Create store
+  2. Create list
+  3. Add items
+  4. Start shopping
+  5. Check off items
+  6. Complete shopping
+
+**Deliverable:** Smoke test for entire app
+
+### Phase 6: Advanced Features - Est: 2-3 hrs
+
+**Goal:** Multi-user, sections, edge cases
+
+**Tests to implement:**
 - Invitations: INV-001, INV-002, INV-003
-- Permissions: HOUSE-004, HOUSE-006
+- Households: HOUSE-002, HOUSE-003, HOUSE-004, HOUSE-005, HOUSE-006
+- Sections: SECT-001, SECT-002, SECT-004
+- Items: ITEM-002 (with section), ITEM-003, ITEM-004, ITEM-005, ITEM-006
+- Dashboard: DASH-001, DASH-002, DASH-003
+- Edge cases: EDGE-003, API-003
 
-### Phase 4: CRUD & Errors (15 tests) - Est: 3-4 hrs
-- Store/Section/Item CRUD: STORE-002, STORE-003, STORE-004, SECT-001, SECT-002, SECT-004, ITEM-002, ITEM-006
-- List editing: LIST-002, LIST-004, LIST-005, LIST-009
-- Error handling: EDGE-003, API-003, DASH-001
-
-### Phase 5: Polish (5 tests) - Est: 1 hr
-- Households: HOUSE-002, HOUSE-003, HOUSE-005
-- Invitations: INV-001, INV-003
+**Deliverable:** Comprehensive coverage of all features
 
 **Total: ~46 tests in ~10-13 hours**
 
@@ -908,3 +1041,4 @@ Tests are organized by domain and priority:
 - [E2E Testing Setup Guide](../development/e2e-testing-setup.md)
 - [Product Evolution Spec](./product-evolution-spec.md)
 - [Phase 2 Migration Plan](./PHASE-2-MIGRATION.md)
+

@@ -1,19 +1,18 @@
-import { test, expect } from '../../fixtures/authenticated';
+import { test, expect } from '../../../fixtures/with-household';
 
 // HOUSE-001: First-Time User Onboarding
 // DASH-002: Empty State - No Households  
 // DASH-003: Empty State - No Stores
 
-// Note: These tests verify the stores page UI and household/store creation flow
-// In production, true "first-time user" tests would require a fresh user account
-
 test.describe('HOUSE-001: First-Time User Onboarding @tag:onboarding @tag:p0', () => {
-  test('user can access stores page and create stores @tag:onboarding @tag:p0', async ({ authenticatedPage }) => {
-    // Navigate to stores page
+  test('user with household can access stores page @tag:onboarding @tag:p0', async ({ authenticatedPage, household }) => {
+    // Fixture provided: authenticated user with household
+    // Test verifies: stores page is accessible
+    
     await authenticatedPage.goto('/stores');
     await authenticatedPage.waitForLoadState('networkidle');
     
-    // User with household should see "Add Store" button
+    // Verify "Add Store" button is visible
     const addStoreButton = authenticatedPage.locator('button:has-text("Add Store"), button:has-text("Create Store")');
     await expect(addStoreButton.first()).toBeVisible({ timeout: 5000 });
     
@@ -31,8 +30,10 @@ test.describe('DASH-002: Empty State - No Households @tag:onboarding @tag:p1', (
 });
 
 test.describe('DASH-003: Empty State - No Stores @tag:onboarding @tag:p1', () => {
-  test('household with stores shows them on stores page @tag:onboarding @tag:p1', async ({ authenticatedPage }) => {
-    // Navigate to stores page
+  test('household with no stores shows add store option @tag:onboarding @tag:p1', async ({ authenticatedPage, household }) => {
+    // Fixture provided: authenticated user with household
+    // Test verifies: empty state shows add store button
+    
     await authenticatedPage.goto('/stores');
     await authenticatedPage.waitForLoadState('networkidle');
     

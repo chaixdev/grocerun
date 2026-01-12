@@ -27,17 +27,51 @@ See [E2E Testing Setup Guide](../../wiki/development/e2e-testing-setup.md) for:
 
 ## Test Structure
 
+Tests are organized by type (not domain) following our fixture-based testing philosophy:
+
 ```
 tests/
-├── app.spec.ts              # Basic smoke tests
-├── auth/                    # Authentication flow tests
-├── households/              # Household management tests
-└── EXAMPLES.spec.ts         # Test templates for all scenarios
+├── core/                    # Isolated feature tests (80%)
+│   ├── auth/               # Authentication tests
+│   ├── stores/             # Store CRUD operations
+│   ├── lists/              # List and shopping mode tests
+│   ├── items/              # Item management tests
+│   ├── onboarding/         # First-time user flows
+│   ├── households/         # Household management
+│   └── security/           # Security and authorization
+├── integration/            # Feature combination tests (15%)
+│   └── store-authorization.spec.ts  # Multi-user scenarios
+└── journeys/               # End-to-end user flows (5%)
+    └── first-shopping-experience.spec.ts  # Complete shopping journey
 ```
+
+### Fixtures (Dependency Injection)
+
+Fixtures provide prerequisites for tests, organized in a hierarchy:
+
+```
+authenticated (base)
+  └── withHousehold (user has household)
+      └── withStore (store created)
+          └── withList (shopping list created)
+              └── withItems (list has items)
+                  └── withShoppingMode (list in shopping mode)
+```
+
+See [E2E Test Organization Guide](../../wiki/development/e2e-test-organization-guide.md) for philosophy and patterns.
+
+### Helpers (Reusable Actions)
+
+Helpers are proven functions extracted from core tests:
+
+- **store-helpers.ts**: `createStore()`, `updateStore()`, `deleteStore()`
+- **list-helpers.ts**: `createList()`, `addItemToList()`, `removeItemFromList()`
+- **shopping-helpers.ts**: `startShopping()`, `checkOffItem()`, `completeShopping()`
+- **auth.ts**: Session injection for authentication bypass
 
 ## Configuration
 
 - **Config**: `playwright.config.ts`
 - **Environment**: `.env.test` (copy from `.env.test.example`)
-- **Fixtures**: `fixtures/` (authenticated users, multi-user contexts)
-- **Helpers**: `helpers/` (session injection utilities)
+- **Fixtures**: `fixtures/` (authenticated, multi-user, withHousehold, withStore, etc.)
+- **Helpers**: `helpers/` (store, list, shopping, auth utilities)
