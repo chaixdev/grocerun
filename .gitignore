@@ -30,6 +30,7 @@ lerna-debug.log*
 
 # local env files
 .env
+.env.test
 .env*.local
 .env.development.local
 .env.test.local
@@ -57,3 +58,7 @@ next-env.d.ts
 test-results/
 playwright-report/
 playwright/.cache/
+
+# logs
+*.log
+job-logs.txt
