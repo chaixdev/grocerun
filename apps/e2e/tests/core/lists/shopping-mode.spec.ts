@@ -35,10 +35,11 @@ test.describe('LIST-007: Check Off Item in Shopping Mode @tag:shopping @tag:list
     const firstItem = items[0];
     await checkOffItem(authenticatedPage, firstItem.name);
     
-    // Verify item is checked
-    const itemContainer = authenticatedPage.locator(`text="${firstItem.name}"`).first().locator('..');
-    const checkbox = itemContainer.locator('input[type="checkbox"]').first();
-    await expect(checkbox).toBeChecked();
+    // Verify item is checked — the Radix Checkbox uses role="checkbox" + data-state
+    const testId = `list-item-row-${firstItem.name.toLowerCase().replace(/\s+/g, '-')}`;
+    const itemRow = authenticatedPage.locator(`[data-testid="${testId}"]`);
+    const checkbox = itemRow.locator('[role="checkbox"]').first();
+    await expect(checkbox).toHaveAttribute('data-state', 'checked');
   });
 });
 

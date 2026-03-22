@@ -49,9 +49,10 @@ test.describe('Multi-Household Store Authorization @tag:stores @tag:security @ta
     const isOnStorePage = currentUrl.includes(`/stores/${store.id}`);
     
     if (isOnStorePage) {
-      // If on the page, should see access denied or error message
-      const errorMessage = userB.locator('text=/access denied|unauthorized|not found/i');
-      await expect(errorMessage.first()).toBeVisible({ timeout: 3000 });
+      // If on the page, should see the Next.js 404 page.
+      // notFound() renders: h1 "404" and h2 "This page could not be found."
+      const notFoundH1 = userB.getByRole('heading', { level: 1, name: '404' });
+      await expect(notFoundH1).toBeVisible({ timeout: 5000 });
     } else {
       // Should be redirected away from the store page
       expect(currentUrl).not.toContain(`/stores/${store.id}`);

@@ -73,12 +73,11 @@ export async function addItemToList(
   
   // Fill in item name
   await addItemInput.fill(itemName);
-  await page.waitForTimeout(500);
   
   // If quantity is provided, look for quantity controls
   if (quantity && quantity > 1) {
     const quantityInput = page.locator('input[type="number"], input[name="quantity"]').first();
-    if (await quantityInput.isVisible({ timeout: 2000 }).catch(() => false)) {
+    if (await quantityInput.isVisible({ timeout: 1000 }).catch(() => false)) {
       await quantityInput.fill(quantity.toString());
     } else {
       // Try using stepper buttons
@@ -86,52 +85,46 @@ export async function addItemToList(
       if (await plusButton.isVisible({ timeout: 1000 }).catch(() => false)) {
         for (let i = 1; i < quantity; i++) {
           await plusButton.click();
-          await page.waitForTimeout(200);
         }
       }
     }
   }
   
-  // Click the Add button and wait for response
+  // Click the Add button
   const addButton = page.locator('button:has-text("Add")').first();
-  
-  // Set up response listener before clicking
-  const responsePromise = page.waitForResponse(
-    response => response.url().includes('/lists/items/add') && response.status() === 200,
-    { timeout: 10000 }
-  ).catch(() => null);
-  
   await addButton.click();
   
-  // Wait for API response
-  await responsePromise;
-  await page.waitForTimeout(1000);
-  
-  // Check if a section selection dialog appears (for new items)
-  const sectionDialog = page.locator('dialog, [role="dialog"]').filter({ hasText: /section|where|new item/i });
-  const isDialogVisible = await sectionDialog.isVisible({ timeout: 3000 }).catch(() => false);
-  
-  if (isDialogVisible) {
-    // Dialog asking for section selection
-    // Look for "Save" or "Add" button in the dialog to submit with no section (null)
-    const saveButton = page.locator('dialog button:has-text("Save"), dialog button:has-text("Add"), dialog button:has-text("Create")').first();
-    const isSaveVisible = await saveButton.isVisible({ timeout: 1000 }).catch(() => false);
-    
-    if (isSaveVisible) {
-      await saveButton.click();
-      await page.waitForTimeout(1500);
-    } else {
-      // Try clicking outside to close or find a close button
-      const closeButton = page.locator('button[aria-label*="close" i]').first();
-      if (await closeButton.isVisible({ timeout: 500 }).catch(() => false)) {
-        await closeButton.click();
-      }
-    }
+  // Check if a section selection dialog appears (for new items that don't exist in the catalog yet).
+  // The dialog opens AFTER a server action round-trip (Next.js → NestJS), so we must wait for it.
+  // NOTE: locator.isVisible() is an immediate check — use waitFor() to actually wait.
+  const sectionDialog = page.locator('[data-testid="section-selection-dialog"]');
+  let isDialogVisible = false;
+  try {
+    await sectionDialog.waitFor({ state: 'visible', timeout: 10000 });
+    isDialogVisible = true;
+  } catch {
+    isDialogVisible = false;
   }
   
-  // Verify item appears in the list
+  if (isDialogVisible) {
+    // Dialog asking for section selection - click "Save & Add" to add with uncategorized section
+    const saveButton = page.locator('[data-testid="save-and-add-button"]').first();
+    await expect(saveButton).toBeVisible({ timeout: 3000 });
+    await saveButton.click();
+    
+    // Wait for dialog to close — this signals the server action completed
+    await expect(sectionDialog).not.toBeVisible({ timeout: 10000 });
+
+    // After dialog closes, router.refresh() is called which triggers a server-side re-fetch.
+    // Wait for any in-flight network requests to settle before asserting the item is visible.
+    await page.waitForLoadState('networkidle', { timeout: 10000 }).catch(() => { /* ignore timeout */ });
+  }
+  
+  // Verify item appears in the list.
+  // router.refresh() is called after the dialog closes, which triggers a server re-fetch.
+  // Give it up to 15s for the page to update.
   const itemInList = page.locator(`text="${itemName}"`);
-  await expect(itemInList.first()).toBeVisible({ timeout: 5000 });
+  await expect(itemInList.first()).toBeVisible({ timeout: 15000 });
   
   return {
     name: itemName,

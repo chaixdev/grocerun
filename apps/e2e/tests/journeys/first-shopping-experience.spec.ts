@@ -49,14 +49,11 @@ test.describe('First Shopping Experience Journey @tag:journey @tag:p0', () => {
     for (const item of items.slice(0, 3)) {
       await checkOffItem(authenticatedPage, item.name);
       
-      // Verify item is checked
-      const checkbox = authenticatedPage
-        .locator(`text="${item.name}"`)
-        .first()
-        .locator('..')
-        .locator('input[type="checkbox"]')
-        .first();
-      await expect(checkbox).toBeChecked();
+      // Verify item is checked — Radix Checkbox uses role="checkbox" + data-state
+      const testId = `list-item-row-${item.name.toLowerCase().replace(/\s+/g, '-')}`;
+      const itemRow = authenticatedPage.locator(`[data-testid="${testId}"]`);
+      const checkbox = itemRow.locator('[role="checkbox"]').first();
+      await expect(checkbox).toHaveAttribute('data-state', 'checked');
     }
     
     // Step 6: Complete shopping session

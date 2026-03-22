@@ -20,22 +20,22 @@ export async function startShopping(page: Page): Promise<void> {
 
 /**
  * Checks off (completes) an item in shopping mode.
- * Finds the item and clicks its checkbox.
+ * The row div has the onClick toggle handler. The Checkbox's onCheckedChange is a no-op.
+ * We click the item name span (which bubbles to the row) using the data-testid on the row.
  */
 export async function checkOffItem(page: Page, itemName: string): Promise<void> {
-  // Find the item in the list
-  const itemElement = page.locator(`text="${itemName}"`).first();
-  await expect(itemElement).toBeVisible({ timeout: 5000 });
+  const testId = `list-item-row-${itemName.toLowerCase().replace(/\s+/g, '-')}`;
+  const itemRow = page.locator(`[data-testid="${testId}"]`);
+  await expect(itemRow).toBeVisible({ timeout: 5000 });
   
-  // Find the checkbox for this item
-  const itemContainer = itemElement.locator('..');
-  const checkbox = itemContainer.locator('input[type="checkbox"]').first();
-  
-  await checkbox.check();
+  // Click the item name span — it's inside a flex-1 div without stopPropagation, so click bubbles to row
+  const nameSpan = itemRow.locator('[data-testid="item-name"]');
+  await nameSpan.click();
   await page.waitForTimeout(500);
   
-  // Verify checkbox is checked
-  await expect(checkbox).toBeChecked();
+  // Verify the Radix checkbox inside the row is now in checked state
+  const checkbox = itemRow.locator('[role="checkbox"]').first();
+  await expect(checkbox).toHaveAttribute('data-state', 'checked', { timeout: 5000 });
 }
 
 /**
@@ -43,33 +43,37 @@ export async function checkOffItem(page: Page, itemName: string): Promise<void> 
  * Useful for when user unchecks an accidentally checked item.
  */
 export async function uncheckItem(page: Page, itemName: string): Promise<void> {
-  // Find the item in the list
-  const itemElement = page.locator(`text="${itemName}"`).first();
-  await expect(itemElement).toBeVisible({ timeout: 5000 });
+  const testId = `list-item-row-${itemName.toLowerCase().replace(/\s+/g, '-')}`;
+  const itemRow = page.locator(`[data-testid="${testId}"]`);
+  await expect(itemRow).toBeVisible({ timeout: 5000 });
   
-  // Find the checkbox for this item
-  const itemContainer = itemElement.locator('..');
-  const checkbox = itemContainer.locator('input[type="checkbox"]').first();
+  const nameSpan = itemRow.locator('[data-testid="item-name"]');
+  await nameSpan.click();
   
-  await checkbox.uncheck();
   await page.waitForTimeout(500);
   
   // Verify checkbox is unchecked
-  await expect(checkbox).not.toBeChecked();
+  const checkbox = itemRow.locator('[role="checkbox"]').first();
+  await expect(checkbox).toHaveAttribute('data-state', 'unchecked', { timeout: 5000 });
 }
 
 /**
  * Completes the shopping session.
- * Clicks the "Finish" or "Complete Shopping" button.
+ * Clicks the "Finish" button, then confirms in the TripSummary dialog.
  */
 export async function completeShopping(page: Page): Promise<void> {
-  // Click "Finish" or "Complete" button
-  const finishButton = page.locator('button:has-text("Finish"), button:has-text("Complete")').first();
+  // Click "Finish" button — this opens the TripSummary confirmation dialog
+  const finishButton = page.locator('button:has-text("Finish")').first();
+  await expect(finishButton).toBeVisible({ timeout: 5000 });
   await finishButton.click();
-  await page.waitForTimeout(2000);
   
-  // Should redirect back to stores page or list page in PLANNING mode
-  await page.waitForURL(/\/(stores|lists)\/.*/);
+  // The TripSummary dialog appears — click "Complete Trip" to confirm
+  const completeTripButton = page.locator('button:has-text("Complete Trip")').first();
+  await expect(completeTripButton).toBeVisible({ timeout: 5000 });
+  await completeTripButton.click();
+  
+  // Should redirect to the store page after completion
+  await page.waitForURL(/\/stores\/.*/, { timeout: 10000 });
 }
 
 /**
@@ -91,8 +95,8 @@ export async function verifyShoppingModeActive(page: Page): Promise<void> {
   const finishButton = page.locator('button:has-text("Finish"), button:has-text("Complete")').first();
   await expect(finishButton).toBeVisible({ timeout: 5000 });
   
-  // Should see checkboxes for items
-  const checkboxes = page.locator('input[type="checkbox"]');
+  // Should see Radix checkboxes (role="checkbox") for items — shadcn Checkbox renders as button, not input
+  const checkboxes = page.locator('[role="checkbox"]');
   const checkboxCount = await checkboxes.count();
   expect(checkboxCount).toBeGreaterThan(0);
 }

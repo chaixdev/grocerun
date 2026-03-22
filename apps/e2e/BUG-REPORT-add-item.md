@@ -90,4 +90,21 @@ Error context shows:
 - All tests using `withList` fixture + `addItemToList()` helper
 
 ## Status
-🔴 **BLOCKING** - 24 E2E tests failing due to this bug
+✅ **FIXED** - Root cause identified and resolved
+
+## Root Cause (Confirmed)
+
+The issue was **not** a server-side failure. The full flow worked correctly:
+1. Backend returned `{ status: 'NEEDS_SECTION' }` with HTTP 200
+2. Frontend received the response and opened the section selection dialog
+
+The actual bug was in the **E2E test helper** (`helpers/list-helpers.ts`):
+- Helper looked for `button:has-text("Save")` or `button:has-text("Add")`
+- Actual dialog button text is **"Save & Add"** (ListEditor.tsx:630)
+- Selector never matched → dialog was never confirmed → item never added
+
+## Fix Applied
+- `helpers/list-helpers.ts`: Updated selector to `[data-testid="save-and-add-button"]`
+  and fallback `[role="dialog"] button:has-text("Save & Add")`
+- `ListEditor.tsx`: Added `data-testid="section-selection-dialog"` and
+  `data-testid="save-and-add-button"` for reliable test targeting

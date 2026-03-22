@@ -1,8 +1,10 @@
 import { defineConfig, devices } from '@playwright/test';
 import * as dotenv from 'dotenv';
+import * as path from 'path';
 
-// Load test environment variables
-dotenv.config({ path: '.env.test' });
+// Load test environment variables using an absolute path so the config works
+// regardless of which directory `npx playwright test` is invoked from.
+dotenv.config({ path: path.resolve(__dirname, '.env.test') });
 
 /**
  * See https://playwright.dev/docs/test-configuration.
@@ -16,7 +18,7 @@ export default defineConfig({
   /* Retry on CI only */
   retries: process.env.CI ? 2 : 0,
   /* Opt out of parallel tests on CI. */
-  workers: process.env.CI ? 1 : undefined,
+  workers: 1,
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
   reporter: [['html', { open: 'never' }], ['list']],
   
@@ -28,6 +30,9 @@ export default defineConfig({
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
     trace: 'on-first-retry',
   },
+
+  /* Per-test timeout — raised to 60s to accommodate fixture setup (store + list + items via UI) */
+  timeout: 60000,
 
   /* Configure projects for major browsers */
   projects: [
