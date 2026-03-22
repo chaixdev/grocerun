@@ -1,9 +1,9 @@
 "use server"
 
 import { auth } from "@/core/auth"
-import { prisma } from "@/core/db"
-// Define the return type based on inferred return from the function
-// We will rely on simple type inference for the action return
+import { apiClient } from "@/core/lib/api-client"
+import { SignJWT } from 'jose'
+import { z } from 'zod'
 
 // Shared type for store directory item
 export type DirectoryStore = {
@@ -25,46 +25,30 @@ export async function getStoreDirectoryData(): Promise<DirectoryHousehold[]> {
     if (!session?.user?.id) return []
 
     try {
-        const households = await prisma.household.findMany({
-            where: {
-                users: {
-                    some: {
-                        id: session.user.id
-                    }
-                }
-            },
-            select: {
-                id: true,
-                name: true,
-                stores: {
-                    select: {
-                        id: true,
-                        name: true,
-                        location: true,
-                        lists: {
-                            where: {
-                                status: { not: "COMPLETED" }
-                            },
-                            orderBy: { createdAt: "desc" },
-                            take: 1,
-                            select: { id: true }
-                        }
-                    },
-                    orderBy: { name: "asc" }
-                }
-            },
-            orderBy: { createdAt: "desc" }
-        })
+        const token = (session as any).accessToken
+        if (!token?.sub) return []
 
-        // Transform results to flatten activeListId
-        return households.map(h => ({
-            ...h,
-            stores: h.stores.map(s => ({
+        const secret = new TextEncoder().encode(process.env.AUTH_SECRET)
+        const jwt = await new SignJWT(token)
+            .setProtectedHeader({ alg: 'HS256' })
+            .sign(secret)
+
+        const households = await apiClient.get(
+            '/household-overview',
+            z.array(z.any()),
+            jwt
+        )
+
+        // Map the household-overview response to the DirectoryHousehold shape
+        return households.map((h: any) => ({
+            id: h.id,
+            name: h.name,
+            stores: (h.stores ?? []).map((s: any) => ({
                 id: s.id,
                 name: s.name,
-                location: s.location,
-                activeListId: s.lists[0]?.id || null
-            }))
+                location: s.location ?? null,
+                activeListId: s.lists?.[0]?.id ?? null,
+            })),
         }))
     } catch (error) {
         console.error("Failed to fetch store directory data:", error)

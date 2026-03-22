@@ -1,7 +1,6 @@
 "use server"
 
 import { auth } from "@/core/auth"
-import { prisma } from "@/core/db"
 import { revalidatePath } from "next/cache"
 import { z } from "zod"
 import { type ActionResult, success, failure } from "@/core/types"
@@ -15,8 +14,17 @@ import {
     ReorderSectionsSchema
 } from "@grocerun/dto"
 
-// Alias for backwards compatibility if needed, though we should just use CreateSectionSchema
+// Alias for backwards compatibility
 const SectionSchema = CreateSectionSchema;
+
+// Extended schemas for actions that need storeId for cache revalidation.
+// storeId is NOT sent to the API — it's used only for revalidatePath.
+const UpdateSectionActionSchema = UpdateSectionSchema.extend({
+    storeId: z.string().min(1, "Store ID is required"),
+})
+const DeleteSectionActionSchema = DeleteSectionSchema.extend({
+    storeId: z.string().min(1, "Store ID is required"),
+})
 
 
 export async function getSections(storeId: string) {
@@ -74,20 +82,12 @@ export async function createSection(data: z.infer<typeof SectionSchema>): Promis
     }
 }
 
-export async function updateSection(data: z.infer<typeof UpdateSectionSchema>): Promise<ActionResult<void>> {
+export async function updateSection(data: z.infer<typeof UpdateSectionActionSchema>): Promise<ActionResult<void>> {
     const session = await auth()
     if (!session?.user?.id) return failure("Unauthorized")
 
     try {
-        const { id, name } = UpdateSectionSchema.parse(data)
-
-        // Fetch section first to get storeId (needed for revalidation)
-        const section = await prisma.section.findUnique({ 
-            where: { id },
-            select: { storeId: true }
-        })
-        if (!section) return failure("Section not found")
-        const storeId = section.storeId
+        const { id, name, storeId } = UpdateSectionActionSchema.parse(data)
 
         const token = (session as any).accessToken
         if (!token?.sub) throw new Error('No valid session token')
@@ -112,20 +112,12 @@ export async function updateSection(data: z.infer<typeof UpdateSectionSchema>): 
     }
 }
 
-export async function deleteSection(data: z.infer<typeof DeleteSectionSchema>): Promise<ActionResult<void>> {
+export async function deleteSection(data: z.infer<typeof DeleteSectionActionSchema>): Promise<ActionResult<void>> {
     const session = await auth()
     if (!session?.user?.id) return failure("Unauthorized")
 
     try {
-        const { id } = DeleteSectionSchema.parse(data)
-
-        // Fetch section first to get storeId (needed for revalidation)
-        const section = await prisma.section.findUnique({ 
-            where: { id },
-            select: { storeId: true }
-        })
-        if (!section) return failure("Section not found")
-        const storeId = section.storeId
+        const { id, storeId } = DeleteSectionActionSchema.parse(data)
 
         const token = (session as any).accessToken
         if (!token?.sub) throw new Error('No valid session token')

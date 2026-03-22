@@ -46,13 +46,13 @@ export function SectionList({ sections: initialSections, storeId }: SectionListP
 
     const debouncedUpdate = useMemo(
         () => debounce(async (id: string, name: string) => {
-            const result = await updateSection({ id, name })
+            const result = await updateSection({ id, name, storeId })
             if (!result.success) {
                 // silent fail but log
                 console.error("Failed to update section:", result.error)
             }
         }, 500),
-        []
+        [storeId]
     )
     useEffect(() => {
         return () => {
@@ -118,7 +118,7 @@ export function SectionList({ sections: initialSections, storeId }: SectionListP
         // If it's a temp section, just remove it locally
         if (section.id.startsWith("temp-")) return
 
-        const result = await deleteSection({ id: section.id })
+        const result = await deleteSection({ id: section.id, storeId })
         if (result.success) {
             toast.success("Section deleted")
         } else {

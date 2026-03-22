@@ -1,7 +1,6 @@
 "use server"
 
 import { auth } from "@/core/auth"
-import { prisma } from "@/core/db"
 import { revalidatePath } from "next/cache"
 import { z } from "zod"
 import { type ActionResult, success, failure } from "@/core/types"
@@ -16,6 +15,21 @@ import {
     UpdateQuantitySchema,
     ListIdSchema
 } from "@grocerun/dto"
+
+// Extended schemas for actions that need parent IDs for cache revalidation.
+// These IDs are NOT sent to the API — they are used only for revalidatePath.
+const ToggleItemActionSchema = ToggleItemSchema.extend({
+    listId: z.string().min(1, "List ID is required"),
+})
+const UpdateQuantityActionSchema = UpdateQuantitySchema.extend({
+    listId: z.string().min(1, "List ID is required"),
+})
+const RemoveItemActionSchema = RemoveItemSchema.extend({
+    listId: z.string().min(1, "List ID is required"),
+})
+const ListIdWithStoreSchema = ListIdSchema.extend({
+    storeId: z.string().min(1, "Store ID is required"),
+})
 
 
 export async function createList(data: z.infer<typeof CreateListSchema>): Promise<ActionResult<List>> {
@@ -169,20 +183,12 @@ export async function addItemToList(data: z.infer<typeof AddItemSchema>): Promis
     }
 }
 
-export async function toggleListItem(data: z.infer<typeof ToggleItemSchema>): Promise<ActionResult<void>> {
+export async function toggleListItem(data: z.infer<typeof ToggleItemActionSchema>): Promise<ActionResult<void>> {
     const session = await auth()
     if (!session?.user?.id) return failure("Unauthorized")
 
     try {
-        const { itemId, isChecked, purchasedQuantity } = ToggleItemSchema.parse(data)
-
-        // Fetch listId first for revalidation
-        const listItem = await prisma.listItem.findUnique({
-            where: { id: itemId },
-            select: { listId: true }
-        })
-        if (!listItem) return failure("Item not found")
-        const listId = listItem.listId
+        const { itemId, isChecked, purchasedQuantity, listId } = ToggleItemActionSchema.parse(data)
 
         const token = (session as any).accessToken
         if (!token?.sub) throw new Error('No valid session token')
@@ -207,20 +213,12 @@ export async function toggleListItem(data: z.infer<typeof ToggleItemSchema>): Pr
     }
 }
 
-export async function updateListItemQuantity(data: z.infer<typeof UpdateQuantitySchema>): Promise<ActionResult<void>> {
+export async function updateListItemQuantity(data: z.infer<typeof UpdateQuantityActionSchema>): Promise<ActionResult<void>> {
     const session = await auth()
     if (!session?.user?.id) return failure("Unauthorized")
 
     try {
-        const { listItemId, quantity, unit } = UpdateQuantitySchema.parse(data)
-
-        // Fetch listId first for revalidation
-        const listItem = await prisma.listItem.findUnique({
-            where: { id: listItemId },
-            select: { listId: true }
-        })
-        if (!listItem) return failure("Item not found")
-        const listId = listItem.listId
+        const { listItemId, quantity, unit, listId } = UpdateQuantityActionSchema.parse(data)
 
         const token = (session as any).accessToken
         if (!token?.sub) throw new Error('No valid session token')
@@ -245,20 +243,12 @@ export async function updateListItemQuantity(data: z.infer<typeof UpdateQuantity
     }
 }
 
-export async function removeItemFromList(data: z.infer<typeof RemoveItemSchema>): Promise<ActionResult<void>> {
+export async function removeItemFromList(data: z.infer<typeof RemoveItemActionSchema>): Promise<ActionResult<void>> {
     const session = await auth()
     if (!session?.user?.id) return failure("Unauthorized")
 
     try {
-        const { listItemId } = RemoveItemSchema.parse(data)
-
-        // Fetch listId first for revalidation
-        const listItem = await prisma.listItem.findUnique({
-            where: { id: listItemId },
-            select: { listId: true }
-        })
-        if (!listItem) return failure("Item not found")
-        const listId = listItem.listId
+        const { listItemId, listId } = RemoveItemActionSchema.parse(data)
 
         const token = (session as any).accessToken
         if (!token?.sub) throw new Error('No valid session token')
@@ -282,20 +272,12 @@ export async function removeItemFromList(data: z.infer<typeof RemoveItemSchema>)
     }
 }
 
-export async function completeList(data: z.infer<typeof ListIdSchema>): Promise<ActionResult<void>> {
+export async function completeList(data: z.infer<typeof ListIdWithStoreSchema>): Promise<ActionResult<void>> {
     const session = await auth()
     if (!session?.user?.id) return failure("Unauthorized")
 
     try {
-        const { listId } = ListIdSchema.parse(data)
-
-        // Fetch storeId first for revalidation
-        const list = await prisma.list.findUnique({
-            where: { id: listId },
-            select: { storeId: true }
-        })
-        if (!list) return failure("List not found")
-        const storeId = list.storeId
+        const { listId, storeId } = ListIdWithStoreSchema.parse(data)
 
         const token = (session as any).accessToken
         if (!token?.sub) throw new Error('No valid session token')
@@ -321,20 +303,12 @@ export async function completeList(data: z.infer<typeof ListIdSchema>): Promise<
     }
 }
 
-export async function startShopping(data: z.infer<typeof ListIdSchema>): Promise<ActionResult<void>> {
+export async function startShopping(data: z.infer<typeof ListIdWithStoreSchema>): Promise<ActionResult<void>> {
     const session = await auth()
     if (!session?.user?.id) return failure("Unauthorized")
 
     try {
-        const { listId } = ListIdSchema.parse(data)
-
-        // Fetch storeId first for revalidation
-        const list = await prisma.list.findUnique({
-            where: { id: listId },
-            select: { storeId: true }
-        })
-        if (!list) return failure("List not found")
-        const storeId = list.storeId
+        const { listId, storeId } = ListIdWithStoreSchema.parse(data)
 
         const token = (session as any).accessToken
         if (!token?.sub) throw new Error('No valid session token')
@@ -360,20 +334,12 @@ export async function startShopping(data: z.infer<typeof ListIdSchema>): Promise
     }
 }
 
-export async function cancelShopping(data: z.infer<typeof ListIdSchema>): Promise<ActionResult<void>> {
+export async function cancelShopping(data: z.infer<typeof ListIdWithStoreSchema>): Promise<ActionResult<void>> {
     const session = await auth()
     if (!session?.user?.id) return failure("Unauthorized")
 
     try {
-        const { listId } = ListIdSchema.parse(data)
-
-        // Fetch storeId first for revalidation
-        const list = await prisma.list.findUnique({
-            where: { id: listId },
-            select: { storeId: true }
-        })
-        if (!list) return failure("List not found")
-        const storeId = list.storeId
+        const { listId, storeId } = ListIdWithStoreSchema.parse(data)
 
         const token = (session as any).accessToken
         if (!token?.sub) throw new Error('No valid session token')

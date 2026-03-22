@@ -249,6 +249,7 @@ export function ListEditor({ list }: ListEditorProps) {
                 setInputUnit("")
                 setIsDialogOpen(false)
                 toast.success("Item created and added")
+                router.refresh()
             }
         } finally {
             setIsSubmitting(false)
@@ -338,7 +339,7 @@ export function ListEditor({ list }: ListEditorProps) {
             }
 
             // 3. Server Action
-            const result = await toggleListItem({ itemId, isChecked: checked, purchasedQuantity })
+            const result = await toggleListItem({ itemId, isChecked: checked, purchasedQuantity, listId: list.id })
             if (!result.success) {
                 // Rollback
                 setOptimisticItems({ type: "TOGGLE", itemId, isChecked: !checked })
@@ -357,7 +358,7 @@ export function ListEditor({ list }: ListEditorProps) {
 
             setOptimisticItems({ type: "UPDATE_QTY", itemId, quantity, unit })
 
-            const result = await updateListItemQuantity({ listItemId: itemId, quantity, unit })
+            const result = await updateListItemQuantity({ listItemId: itemId, quantity, unit, listId: list.id })
             if (!result.success) {
                 toast.error(result.error || "Failed to update quantity")
                 // Rollback
@@ -372,7 +373,7 @@ export function ListEditor({ list }: ListEditorProps) {
             // But we can remove it optimistically.
             setOptimisticItems({ type: "REMOVE", itemId })
 
-            const result = await removeItemFromList({ listItemId: itemId })
+            const result = await removeItemFromList({ listItemId: itemId, listId: list.id })
             if (result.success) {
                 toast.success("Item removed")
             } else {
@@ -391,7 +392,7 @@ export function ListEditor({ list }: ListEditorProps) {
 
     const handleCompleteTrip = async () => {
         setIsCompleting(true)
-        const result = await completeList({ listId: list.id })
+        const result = await completeList({ listId: list.id, storeId: list.store.id })
         if (result.success) {
             toast.success("Trip completed!")
             router.push(`/stores/${list.store.id}`)
@@ -540,7 +541,7 @@ export function ListEditor({ list }: ListEditorProps) {
                                 size="lg"
                                 className="h-14 rounded-full shadow-xl px-8 bg-primary hover:bg-primary/90 transition-all active:scale-95 font-semibold"
                                 onClick={async () => {
-                                    const result = await startShopping({ listId: list.id })
+                                    const result = await startShopping({ listId: list.id, storeId: list.store.id })
                                     if (result.success) {
                                         router.refresh()
                                         toast.success("Shopping mode activated! 🛒")
@@ -560,7 +561,7 @@ export function ListEditor({ list }: ListEditorProps) {
                                     variant="secondary"
                                     className="h-14 w-14 rounded-full shadow-lg bg-background border hover:bg-muted"
                                     onClick={async () => {
-                                        const result = await cancelShopping({ listId: list.id })
+                                        const result = await cancelShopping({ listId: list.id, storeId: list.store.id })
                                         if (result.success) {
                                             router.refresh()
                                             toast("Shopping Cancelled", { description: "List reverted to planning mode." })
@@ -595,7 +596,7 @@ export function ListEditor({ list }: ListEditorProps) {
             />
 
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                <DialogContent>
+                <DialogContent data-testid="section-selection-dialog">
                     <DialogHeader>
                         <DialogTitle>New Item: {newItemName}</DialogTitle>
                         <DialogDescription>
@@ -606,7 +607,7 @@ export function ListEditor({ list }: ListEditorProps) {
                         <div className="grid gap-2">
                             <Label htmlFor="section">Section</Label>
                             <Select value={selectedSection} onValueChange={setSelectedSection}>
-                                <SelectTrigger>
+                                <SelectTrigger data-testid="section-select">
                                     <SelectValue placeholder="Select a section" />
                                 </SelectTrigger>
                                 <SelectContent className="max-h-60">
@@ -626,7 +627,7 @@ export function ListEditor({ list }: ListEditorProps) {
                         <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
                             Cancel
                         </Button>
-                        <Button type="button" onClick={handleConfirmNewItem} disabled={isSubmitting}>
+                        <Button type="button" data-testid="save-and-add-button" onClick={handleConfirmNewItem} disabled={isSubmitting}>
                             Save & Add
                         </Button>
                     </DialogFooter>
