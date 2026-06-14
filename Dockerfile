@@ -51,6 +51,15 @@ COPY packages/dto/package.json ./packages/dto/
 
 RUN --mount=type=cache,target=/root/.npm npm ci --omit=dev --workspace apps/server --include-workspace-root=false
 
+# Strip packages unnecessary at runtime.
+# - typescript: pulled by @prisma/client but not needed at runtime (~23MB)
+# - @electric-sql: extraneous on Linux, only needed by @prisma/dev for PG (~25MB)
+# - sharp + @img + next: legacy from Next.js era if still present
+# Note: @prisma/studio* and @prisma/dev are required by the Prisma CLI.
+RUN rm -rf node_modules/typescript node_modules/@electric-sql \
+  node_modules/sharp node_modules/next node_modules/@img \
+  node_modules/.cache
+
 # ── Stage 5: Runner ──
 FROM base AS runner
 WORKDIR /app
