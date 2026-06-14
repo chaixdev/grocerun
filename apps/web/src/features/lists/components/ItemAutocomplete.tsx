@@ -204,9 +204,9 @@ export function ItemAutocomplete({
                                                     {item.defaultUnit}
                                                 </span>
                                             )}
-                                            {item.purchaseCount > 0 && (
-                                                <span className="text-xs text-muted-foreground">
-                                                    ×{item.purchaseCount}
+                                            {item.purchaseCount > 1 && (
+                                                <span className="text-[10px] text-muted-foreground/60">
+                                                    bought {item.purchaseCount}x
                                                 </span>
                                             )}
                                         </div>

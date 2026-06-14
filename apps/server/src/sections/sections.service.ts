@@ -1,16 +1,20 @@
 import { Injectable, ForbiddenException, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
+import { SseBroadcastService } from '../sync/sse-broadcast.service';
 import { CreateSectionDto, UpdateSectionDto, ReorderSectionsDto } from './dto/section.dto';
 
 @Injectable()
 export class SectionsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private sseBroadcast: SseBroadcastService,
+  ) {}
 
   async getSections(storeId: string, userId: string) {
     await this.verifyStoreAccess(storeId, userId);
 
     return this.prisma.section.findMany({
-      where: { storeId },
+      where: { storeId, deleted: false },
       orderBy: { order: 'asc' },
     });
   }
@@ -18,11 +22,12 @@ export class SectionsService {
   async createSection(dto: CreateSectionDto, userId: string) {
     await this.verifyStoreAccess(dto.storeId, userId);
 
-    // If order is provided, shift everything down
+    // If order is provided, shift everything down (only non-deleted sections)
     if (dto.order !== undefined) {
       await this.prisma.section.updateMany({
         where: {
           storeId: dto.storeId,
+          deleted: false,
           order: { gte: dto.order },
         },
         data: {
@@ -35,7 +40,7 @@ export class SectionsService {
     let newOrder = dto.order;
     if (newOrder === undefined) {
       const lastSection = await this.prisma.section.findFirst({
-        where: { storeId: dto.storeId },
+        where: { storeId: dto.storeId, deleted: false },
         orderBy: { order: 'desc' },
       });
       newOrder = (lastSection?.order ?? -1) + 1;
@@ -49,13 +54,14 @@ export class SectionsService {
       },
     });
 
+    this.notifyHouseholdMembers(dto.storeId);
+
     return section;
   }
 
   async updateSection(sectionId: string, dto: UpdateSectionDto, userId: string) {
-    // Find section to get storeId for access verification
-    const section = await this.prisma.section.findUnique({
-      where: { id: sectionId },
+    const section = await this.prisma.section.findFirst({
+      where: { id: sectionId, deleted: false },
     });
 
     if (!section) {
@@ -69,12 +75,14 @@ export class SectionsService {
       data: { name: dto.name },
     });
 
+    this.notifyHouseholdMembers(section.storeId);
+
     return { success: true };
   }
 
   async deleteSection(sectionId: string, userId: string) {
-    const section = await this.prisma.section.findUnique({
-      where: { id: sectionId },
+    const section = await this.prisma.section.findFirst({
+      where: { id: sectionId, deleted: false },
     });
 
     if (!section) {
@@ -83,7 +91,22 @@ export class SectionsService {
 
     await this.verifyStoreAccess(section.storeId, userId);
 
-    await this.prisma.section.delete({ where: { id: sectionId } });
+    const now = new Date();
+
+    await this.prisma.$transaction(async (tx) => {
+      // Replicate onDelete: SetNull — null out sectionId on non-deleted items
+      await tx.item.updateMany({
+        where: { sectionId, deleted: false },
+        data: { sectionId: null }
+      });
+
+      await tx.section.update({
+        where: { id: sectionId },
+        data: { deleted: true, deletedAt: now }
+      });
+    });
+
+    this.notifyHouseholdMembers(section.storeId);
 
     return { success: true };
   }
@@ -91,11 +114,12 @@ export class SectionsService {
   async reorderSections(storeId: string, dto: ReorderSectionsDto, userId: string) {
     await this.verifyStoreAccess(storeId, userId);
 
-    // Security check: verify all IDs belong to the store
+    // Security check: verify all IDs belong to the store and are not deleted
     const count = await this.prisma.section.count({
       where: {
         id: { in: dto.orderedIds },
-        storeId: storeId
+        storeId: storeId,
+        deleted: false,
       }
     });
 
@@ -112,12 +136,14 @@ export class SectionsService {
       )
     );
 
+    this.notifyHouseholdMembers(storeId);
+
     return { success: true };
   }
 
   private async verifyStoreAccess(storeId: string, userId: string) {
-    const store = await this.prisma.store.findUnique({
-      where: { id: storeId },
+    const store = await this.prisma.store.findFirst({
+      where: { id: storeId, deleted: false },
       select: {
         household: {
           select: {
@@ -137,5 +163,32 @@ export class SectionsService {
     if (store.household.users.length === 0) {
       throw new ForbiddenException('Access denied');
     }
+  }
+
+  /**
+   * Fire-and-forget: resolve all household members for the store and
+   * send a RESYNC event to their open SSE connections.
+   */
+  private notifyHouseholdMembers(storeId: string) {
+    this.prisma.store
+      .findUnique({
+        where: { id: storeId },
+        select: {
+          household: {
+            select: {
+              users: { select: { id: true } },
+            },
+          },
+        },
+      })
+      .then((store) => {
+        if (store) {
+          const userIds = store.household.users.map((u) => u.id);
+          this.sseBroadcast.notify(userIds);
+        }
+      })
+      .catch(() => {
+        // Best-effort — don't fail the mutation if notification fails
+      });
   }
 }

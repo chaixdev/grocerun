@@ -77,7 +77,7 @@ fi
 # ── 3. Apply database schema ──
 
 echo "[init] Applying database schema..."
-if ! npx prisma db push --schema=apps/web/prisma/schema.prisma 2>&1; then
+if ! npx prisma db push --schema=apps/web/prisma/schema.prisma --url="$DATABASE_URL" 2>&1; then
     echo "[init] CRITICAL: Database migration failed."
     exit 1
 fi

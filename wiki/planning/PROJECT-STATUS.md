@@ -1,4 +1,4 @@
-# Grocerun Project Status - January 8, 2026
+# Grocerun Project Status
 
 ## Executive Summary
 
@@ -47,40 +47,24 @@ grocerun/
 
 ### Current State Diagram
 
-```
-┌─────────────┐
-│   Browser   │
-└──────┬──────┘
-       │
-       │ HTTP Request
-       ▼
-┌─────────────────────────────────┐
-│  Next.js (Port 3000)            │
-│  ┌──────────────────────────┐  │
-│  │  Server Actions          │  │
-│  │  (Direct Prisma calls)   │  │  ← CURRENT STATE
-│  └───────────┬──────────────┘  │
-│              │                  │
-│              ▼                  │
-│  ┌──────────────────────────┐  │
-│  │  Prisma Client           │  │
-│  └───────────┬──────────────┘  │
-│              │                  │
-└──────────────┼──────────────────┘
-               │
-               ▼
-       ┌──────────────┐
-       │  SQLite DB   │
-       │  (apps/web)  │
-       └──────────────┘
+```mermaid
+graph TD
+    Browser["Browser"]
+    NextJS["Next.js (Port 3000)<br/>Client Components<br/>React Query + api.ts"]
+    NestJS["NestJS (Port 3001)<br/>AuthGuard (JWT)<br/>REST controllers + services<br/>Prisma Client"]
+    DB["SQLite DB"]
+
+    Browser -->|"React Query hooks<br/>Bearer JWT from /api/token"| NextJS
+    NextJS -->|"/api/v1/* rewrite"| NestJS
+    NestJS --> DB
 ```
 
 **Key Characteristics:**
-- Server Actions directly query the database via Prisma
-- Tight coupling between UI and data layer
-- No API boundary between frontend and backend
-- Google OAuth working on localhost:3000
-- Reverse proxy configured: `/api/v1/*` → `http://localhost:3001/*` (infrastructure ready, not yet used)
+- All data fetching via React Query hooks (8 queries, 18 mutations)
+- Auth: `/api/token` endpoint signs JWT, stored in memory, sent as Bearer
+- Auth middleware (`proxy.ts`) protects all routes, redirects unauthenticated to `/login`
+- Server Actions fully removed — `actions/` directory deleted
+- No offline support yet (Phase 4 goal)
 
 ---
 
@@ -121,92 +105,56 @@ We abandoned a ground-up rewrite approach in favor of incremental migration to:
 
 ---
 
-#### 🔄 **Phase 2: API Proxy Layer** (IN PROGRESS)
+#### ✅ **Phase 2: API Proxy Layer** (COMPLETED)
 
 **Goal:** Decouple frontend from database by introducing API boundary
 
-**Strategy: Inverted Feature Flags**
-- All 38 server actions inventoried and flagged
-- Start with all flags `true` (use Prisma)
-- Migrate domain by domain, flip flag to `false` (use API)
-- Remove flag and old code once confident
-- Progress is measurable: count down from 38 to 0
+**What Was Done:**
+- All 37 server actions migrated from direct Prisma calls to NestJS REST API
+- Feature flag system used for incremental migration, then removed
+- API client utility created (`api-client.ts`) with Zod validation
+- JWT authentication between Next.js and NestJS via `AUTH_SECRET`
+- All NestJS controllers/services built with AuthGuard + membership verification
+- Database consolidated (NestJS owns Prisma, Next.js accesses via API)
 
-**What Will Change:**
-
-```
-BEFORE (Phase 1):
-Server Action → Prisma → SQLite
-
-DURING (Phase 2):
-Server Action → [FLAG CHECK] → Prisma OR API
-
-AFTER (Phase 2):
-Server Action → HTTP Fetch → NestJS API → Prisma → SQLite
-```
-
-**Migration Scope:** 8 domains, 37 server actions
-- Items: 3 actions
-- Stores: 5 actions  
-- Sections: 5 actions
-- Lists: 11 actions
-- Households: 6 actions (5 + createDefaultHousehold from store.ts)
-- Users: 1 action
-- Invitations: 4 actions
-- Dashboard/Directory: 2 read queries
-
-**Current Progress:** 0/37 actions migrated 🔴
-
-**Detailed Checklist:** See [PHASE-2-MIGRATION.md](PHASE-2-MIGRATION.md)  
-**Original Plan:** See [phase-2-api-proxy.md](phase-2-api-proxy.md)  
-**API Approach:** See [ADR 001](../adr/001-phase2-api-approach.md)
-
-**Next Steps:**
-1. Create API client infrastructure (`api-client.ts`)
-2. Create health check endpoint (proof of concept)
-3. Migrate Users domain (simplest: 1 action)
-4. Migrate Items domain (simple CRUD: 3 actions)
-5. Continue through remaining domains
-6. Remove all flags once complete
-
-**Estimated Effort:** 12-19 hours (37 actions × 20-30 min each)
+**Branch:** `feature/phase-2-api-migration` (merged)  
+**ADRs:** 001 (API approach), 003 (JWT authentication)
 
 ---
 
-#### 📋 **Phase 3: Client Fetch** (NOT STARTED)
+#### ✅ **Phase 3: Client Fetch** (COMPLETED)
 
-**Goal:** Replace Server Actions with client-side data fetching
+**Goal:** Replace Server Actions with client-side data fetching via React Query
 
-**Why:** Prepare for RxDB integration by moving data fetching to the client
+**What Was Done:**
+- React Query (`@tanstack/react-query`) installed with 30s stale time
+- Token endpoint (`/api/token`) returns signed JWT for browser use
+- Client-side API client (`api.ts`) with Bearer auth and 401 retry
+- All 7 routes migrated to client-rendered pages with React Query hooks
+- 10 hook files: 8 queries, 18 mutations, 2 plain async functions
+- Auth middleware (`proxy.ts`) protects routes, redirects to `/login`
+- Server actions directory deleted (-1103 lines)
+- Smoke test bugs fixed: section rename, household cache invalidation, trip navigation
+- UX quick wins: list card width, autocomplete badge clarity
 
-**Approach:**
-- Install React Query or SWR
-- Create custom hooks for each domain
-- Replace Server Actions with client-side API calls
-- Add loading states, error handling, optimistic updates
-
-**What Will Change:**
-
-```
-BEFORE (Phase 2):
-Component → Server Action → API → NestJS
-
-AFTER (Phase 3):
-Component → useQuery/useMutation → API → NestJS
-```
+**Branch:** `feature/phase-3-client-fetch` (19 commits: `a07bd74`..`3b6d7f1`)  
+**ADRs:** 006 (auth strategy)  
+**Detailed Plan:** [PHASE-3-MIGRATION.md](PHASE-3-MIGRATION.md)
 
 ---
 
-#### 🚀 **Phase 4: RxDB Integration** (NOT STARTED)
+#### 🔄 **Phase 4: RxDB Integration** (PLANNING)
 
 **Goal:** Achieve Local-First architecture with offline support
 
 **Approach:**
-- Install RxDB in frontend
-- Create RxDB schemas mirroring Prisma schema
-- Implement sync protocol between RxDB and NestJS
-- Add conflict resolution logic
-- Enable offline mode
+- Install RxDB + Dexie.js (free tier) in frontend
+- Create RxDB schemas for 6 domain models
+- Build sync endpoints on NestJS (pull/push/stream per collection)
+- Add soft-delete to all models (required for sync tombstones)
+- Implement conflict resolution (server-wins + guard rails)
+- Replace React Query hooks with RxDB reactive queries
+- Enable offline mode with network status indicator
 
 **What Will Change:**
 
@@ -217,6 +165,9 @@ Component → useQuery → API → NestJS → SQLite
 AFTER (Phase 4):
 Component → RxDB (local) ⟷ Sync Protocol ⟷ NestJS → SQLite (cloud)
 ```
+
+**Detailed Plan:** [PHASE-4-MIGRATION.md](PHASE-4-MIGRATION.md)  
+**Estimated Effort:** 16–25 working days
 
 ---
 
@@ -256,27 +207,22 @@ PORT=3001
 
 ### Database State
 
-**Current Database:** `apps/web/dev.db` (SQLite)
+**Current Database:** `apps/server/dev.db` (SQLite, owned by NestJS/Prisma)
 
-**Schema:** 
-- Users, Accounts, Sessions (NextAuth)
-- Households, HouseholdMembers
-- Stores, Sections
-- Lists, ListItems, Items
-- Invitations
+**Schema:** 11 models
+- Auth: User, Account, Session, VerificationToken (NextAuth-managed)
+- Domain: Household, Store, Section, Item, List, ListItem, Invitation
 
-**Migrations Applied:** 8 migrations (see `apps/web/prisma/migrations/`)
-
-**Known Issue:** `apps/server/dev.db` exists but is not being used yet. Will be consolidated in Phase 2.
+**Migrations Applied:** 9 migrations (see `apps/server/prisma/migrations/`)
 
 ---
 
 ## Key Files & Locations
 
 ### Documentation
-- [apps/web/wiki/developer-guide/monorepo-architecture.md](apps/web/wiki/developer-guide/monorepo-architecture.md) - Complete setup guide
-- [apps/web/wiki/developer-guide/agentic-workflow.md](apps/web/wiki/developer-guide/agentic-workflow.md) - AI agent SOP
-- [apps/web/wiki/planning/phase-2-api-proxy.md](apps/web/wiki/planning/phase-2-api-proxy.md) - Phase 2 migration plan
+- [wiki/planning/](wiki/planning/) - Migration plans (this file, Phase 2-4 plans)
+- [wiki/adr/](wiki/adr/) - Architecture Decision Records (001-006)
+- [wiki/development/agentic-workflow.md](wiki/development/agentic-workflow.md) - AI agent SOP
 
 ### Configuration
 - [package.json](package.json) - Root workspace configuration
@@ -285,112 +231,73 @@ PORT=3001
 - [apps/web/next.config.mjs](apps/web/next.config.mjs) - Next.js config (includes reverse proxy)
 - [.nvmrc](.nvmrc) - Node version lock
 
-### Core Code
-- [apps/web/src/actions/](apps/web/src/actions/) - Server Actions (to be migrated in Phase 2)
-- [apps/web/src/features/](apps/web/src/features/) - Feature-specific UI components
-- [apps/server/src/](apps/server/src/) - NestJS application
+### Core Code — Frontend
+- [apps/web/src/features/](apps/web/src/features/) - Feature components + React Query hooks
+- [apps/web/src/core/](apps/web/src/core/) - Auth, API client, shared utilities
+- [apps/web/src/core/lib/api.ts](apps/web/src/core/lib/api.ts) - Client-side API client (Bearer JWT)
+- [apps/web/src/core/lib/auth-token.ts](apps/web/src/core/lib/auth-token.ts) - In-memory JWT token manager
+- [apps/web/src/components/](apps/web/src/components/) - Shared UI components + providers
+- [apps/web/src/app/api/token/route.ts](apps/web/src/app/api/token/route.ts) - Token endpoint (ADR 006)
+
+### Core Code — Backend
+- [apps/server/src/](apps/server/src/) - NestJS application (controllers, services, guards)
+- [apps/server/prisma/schema.prisma](apps/server/prisma/schema.prisma) - Database schema
+- [apps/server/src/auth/auth.guard.ts](apps/server/src/auth/auth.guard.ts) - JWT validation
 
 ---
 
-## Issues Resolved
+## Issues Resolved (Historical)
 
-### 1. Node Version Mismatch
-**Problem:** better-sqlite3 binary mismatch (NODE_MODULE_VERSION 137 vs 127)
-**Solution:** Created `.nvmrc` with "22", ran `npm rebuild`
-
-### 2. Port Conflicts
-**Problem:** Next.js and NestJS both trying to use same port
-**Solution:** Next.js on 3000, NestJS on 3001, configured reverse proxy
-
-### 3. Google OAuth 404
-**Problem:** Reverse proxy intercepting `/api/auth/*` routes
-**Solution:** Changed proxy to only forward `/api/v1/*`, preserving NextAuth routes
-
-### 4. Database Missing
-**Problem:** "table main.Account does not exist"
-**Solution:** Ran `npx prisma migrate dev` in apps/web directory
+| # | Problem | Solution | Phase |
+|---|---------|----------|-------|
+| 1 | Node version mismatch (better-sqlite3 binary) | Created `.nvmrc` with "22", `npm rebuild` | 1 |
+| 2 | Port conflicts (Next.js + NestJS) | Next.js on 3000, NestJS on 3001, reverse proxy | 1 |
+| 3 | Google OAuth 404 | Changed proxy to only forward `/api/v1/*`, preserving NextAuth routes | 1 |
+| 4 | Database missing ("table main.Account does not exist") | Ran `npx prisma migrate dev` | 1 |
+| 5 | Database consolidation | Both apps point to `apps/server/dev.db` | 2 |
+| 6 | Client auth for API requests | Token endpoint (`/api/token`) returns JWT for browser use (ADR 006) | 3 |
 
 ---
 
-## Open Questions & Decisions Needed
+## Open Questions
 
-### 1. Database Consolidation
-**Question:** How to handle two separate SQLite databases during migration?
+### Phase 4 Decision Gates
 
-**Options:**
-- A) Share database (point both to `apps/server/dev.db`)
-- B) Dual write (write to both during migration)
-- C) Migration script (copy data once all APIs migrated)
+All 6 gates resolved. See [ADR 007](../adr/007-phase4-local-first-strategy.md).
 
-**Current Recommendation:** Start with Option A for simplicity
-
-### 2. Turborepo Adoption
-**Question:** When to migrate from NPM workspaces to Turborepo?
-
-**Current Thinking:** After Phase 2 completion, before Phase 3
-
-### 3. API Design
-**Question:** REST vs GraphQL vs tRPC?
-
-**Current Decision:** REST (simpler, already configured)
+| # | Decision | Resolution |
+|---|----------|------------|
+| 1 | RxDB vs. alternatives | RxDB + Dexie.js (free tier) |
+| 2 | Soft-delete migration strategy | Big bang — single migration for all 6 models |
+| 3 | Conflict resolution strategy | Server wins + shopping lock + guard rails |
+| 4 | What stays server-authoritative? | See ADR 007 §Decision 3 |
+| 5 | Migration approach | Collection-by-collection (Section → Item/List/ListItem → Store/Household) |
+| 6 | React Query coexistence | Same hook interface, swap implementation behind it |
 
 ---
 
-## Next Session: Step-by-Step Instructions
+## Next Steps
 
-### Immediate Next Steps (Phase 2, Step 1)
-
-1. **Verify Environment**
-   ```bash
-   cd /Users/chaitanya/projects/grocerun
-   nvm use
-   npm run dev
-   ```
-   Confirm both servers start successfully.
-
-2. **Create API Client Utility**
-   ```bash
-   # Create the file
-   touch apps/web/src/core/lib/api-client.ts
-   ```
-   
-   Implement a fetch wrapper with:
-   - Base URL from environment variable
-   - Error handling
-   - Type safety
-   - Request/response logging (dev only)
-
-3. **Add Environment Variable**
-   Update `apps/web/.env`:
-   ```
-   NEXT_PUBLIC_API_URL=http://localhost:3001/api/v1
-   ```
-
-4. **Create Health Check Endpoint**
-   In `apps/server/src/`, create:
-   - `health/health.controller.ts`
-   - `health/health.module.ts`
-   
-   Endpoint: `GET /api/v1/health`
-   Response: `{ status: "ok", timestamp: Date }`
-
-5. **Test Connectivity**
-   Create a test Server Action that calls the health endpoint via api-client.
-
-6. **Proceed to Items Migration**
-   Follow the plan in [phase-2-api-proxy.md](apps/web/wiki/planning/phase-2-api-proxy.md)
+1. **Begin Phase 4 implementation** — create branch `feature/phase-4-rxdb`
+2. **Backend: soft-delete migration** — single Prisma migration adding `deleted`/`deletedAt` to all 6 domain models, convert all `prisma.*.delete()` calls, add `where: { deleted: false }` filters
+3. **Backend: sync endpoints** — generic pull/push/stream handler, prototype with Section
+4. **Frontend: RxDB setup** — install, schemas, DB init, replication config for Section
+5. **Frontend: swap `useSections` hook** — same interface, RxDB implementation
 
 ---
 
 ## Git Repository State
 
-**Current Branch:** `feature/evolutive-architecture`
+**Current Branch:** `feature/phase-3-client-fetch`
 
-**Last Commit:** `c81a72f` - "refactor: restructure to monorepo for evolutive architecture"
+**Last Commit:** `3b6d7f1` — "fix list card width and autocomplete badge confusion"
 
-**Working Tree:** Clean (after this commit)
+**Branch History:**
+- `feature/evolutive-architecture` — Phase 1 + Phase 2 (merged)
+- `feature/phase-3-client-fetch` — Phase 3 (19 commits, current)
+- `feature/phase-4-rxdb` — Phase 4 (not yet created)
 
-**Remote:** (Check with `git remote -v`)
+**Working Tree:** Modified (Phase 4 planning docs in progress)
 
 ---
 
@@ -408,7 +315,7 @@ npm rebuild
 
 ### Prisma Client Out of Sync
 ```bash
-cd apps/web
+cd apps/server
 npx prisma generate
 npx prisma migrate dev
 ```
@@ -421,25 +328,27 @@ npx prisma migrate dev
 
 ## Success Metrics
 
-### Phase 1 (Current)
+### Phase 1 (Complete)
 - ✅ Monorepo structure established
 - ✅ Both apps running independently
 - ✅ Google OAuth working
 - ✅ Database operational
 
-### Phase 2 (In Progress)
-- [ ] API client utility created
-- [ ] All domains have NestJS endpoints
-- [ ] All Server Actions use API (no direct Prisma)
-- [ ] UI functionality unchanged
-- [ ] Database consolidated to apps/server
+### Phase 2 (Complete)
+- ✅ API client utility created
+- ✅ All domains have NestJS endpoints
+- ✅ All Server Actions use API (no direct Prisma)
+- ✅ UI functionality unchanged
+- ✅ Database consolidated to apps/server
 
-### Phase 3 (Future)
-- [ ] React Query integrated
-- [ ] All data fetching client-side
-- [ ] Loading states & error handling implemented
+### Phase 3 (Complete)
+- ✅ React Query integrated
+- ✅ All data fetching client-side
+- ✅ Loading states & error handling implemented
+- ✅ Auth middleware protecting all routes
+- ✅ Server actions deleted
 
-### Phase 4 (Future)
+### Phase 4 (Planning)
 - [ ] RxDB integrated
 - [ ] Offline mode working
 - [ ] Sync protocol implemented
@@ -449,16 +358,12 @@ npx prisma migrate dev
 
 ## Contact & Context
 
-**Last Updated:** January 9, 2026  
-**Session Context:** Documentation cleanup before Phase 2 implementation  
+**Last Updated:** March 23, 2026  
+**Current Phase:** Phase 4 — RxDB Local-First (Planning, decision gates in progress)  
 **Documentation:** All documentation in `wiki/`
 
-For questions or clarifications, refer to:
-- [phase-2-api-proxy.md](phase-2-api-proxy.md) for Phase 2 strategy
-- [PHASE-2-MIGRATION.md](PHASE-2-MIGRATION.md) for migration checklist
-- [product-evolution-spec.md](product-evolution-spec.md) for UX specifications
-- [../development/agentic-workflow.md](../development/agentic-workflow.md) for AI collaboration
-
----
-
-**Ready to continue from any machine!** 🚀
+For details on specific phases:
+- [PHASE-2-MIGRATION.md](PHASE-2-MIGRATION.md) — Phase 2 migration checklist
+- [PHASE-3-MIGRATION.md](PHASE-3-MIGRATION.md) — Phase 3 migration plan and decisions
+- [PHASE-4-MIGRATION.md](PHASE-4-MIGRATION.md) — Phase 4 migration plan and decision gates
+- [../adr/](../adr/) — Architecture Decision Records (001-006)

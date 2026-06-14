@@ -31,10 +31,14 @@ model Household {
   stores    Store[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  deleted   Boolean  @default(false)
+  deletedAt DateTime?
 
   ownerId   String?
   owner     User?    @relation("HouseholdOwner", fields: [ownerId], references: [id])
   invitations Invitation[]
+
+  @@index([updatedAt, id])
 }
 
 model Store {
@@ -46,9 +50,13 @@ model Store {
   household   Household @relation(fields: [householdId], references: [id], onDelete: Cascade)
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
+  deleted     Boolean   @default(false)
+  deletedAt   DateTime?
   sections    Section[]
   items       Item[]
   lists       List[]
+
+  @@index([updatedAt, id])
 }
 
 model Section {
@@ -57,9 +65,13 @@ model Section {
   order     Int      @default(0)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  deleted   Boolean  @default(false)
+  deletedAt DateTime?
   storeId   String
   store     Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
   items     Item[]
+
+  @@index([updatedAt, id])
 }
 
 model Item {
@@ -71,6 +83,8 @@ model Item {
   section   Section? @relation(fields: [sectionId], references: [id], onDelete: SetNull)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  deleted   Boolean  @default(false)
+  deletedAt DateTime?
   purchaseCount Int @default(0)
   lastPurchased DateTime?
   defaultUnit   String?
@@ -79,6 +93,7 @@ model Item {
   @@unique([storeId, name])
   @@index([purchaseCount])
   @@index([storeId, purchaseCount])
+  @@index([updatedAt, id])
 }
 
 model List {
@@ -87,12 +102,16 @@ model List {
   storeId   String
   store     Store      @relation(fields: [storeId], references: [id], onDelete: Cascade)
   status    ListStatus @default(PLANNING)
+  assignedTo String?
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
+  deleted   Boolean    @default(false)
+  deletedAt DateTime?
   items     ListItem[]
 
   @@index([status])
   @@index([storeId, status])
+  @@index([updatedAt, id])
 }
 
 enum ListStatus {
@@ -113,10 +132,13 @@ model ListItem {
   purchasedQuantity Float?
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
+  deleted           Boolean  @default(false)
+  deletedAt         DateTime?
 
   @@unique([listId, itemId])
   @@index([isChecked])
   @@index([listId, isChecked])
+  @@index([updatedAt, id])
 }
 
 model Account {

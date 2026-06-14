@@ -18,9 +18,11 @@ export type SeededHousehold = {
 let _prisma: PrismaClient | undefined;
 
 function getDbUrl(): string {
-  // The running dev servers use apps/web/dev.db.
-  // We point at the same file so that seeds are visible to the live Next.js + NestJS servers.
-  const dbPath = path.resolve(__dirname, '../../web/dev.db');
+  // The server app owns the SQLite DB.
+  // Use test.db when running under the E2E test harness (NODE_ENV=test),
+  // fall back to dev.db for manual exploration against a running dev server.
+  const dbFile = process.env.NODE_ENV === 'test' ? 'test.db' : 'dev.db';
+  const dbPath = path.resolve(__dirname, `../../server/${dbFile}`);
   return dbPath;
 }
 

@@ -22,6 +22,7 @@ import {
 import { Label } from "@/components/ui/label"
 import { TripSummary } from "./TripSummary"
 import { useRouter } from "next/navigation"
+import { useSession } from "next-auth/react"
 import { ShoppingCart, CheckCheck, X } from "lucide-react"
 import { ListItemRow } from "./ListItemRow"
 import { useScreenWakeLock } from "@/hooks/use-screen-wake-lock"
@@ -78,9 +79,12 @@ export function ListEditor({ list }: ListEditorProps) {
     const [isEditOpen, setIsEditOpen] = useState(false)
 
     // Screen Wake Lock for Shopping Mode
+    const { data: session } = useSession()
     const isReadOnly = list.status === "COMPLETED"
     const isPlanningMode = list.status === "PLANNING"
     const isShoppingMode = list.status === "SHOPPING"
+    const isLockHolder = !isShoppingMode || list.assignedTo === session?.user?.id
+    const isShoppingLockedForOtherUser = isShoppingMode && !isLockHolder
 
     useScreenWakeLock(isShoppingMode)
 
@@ -100,7 +104,7 @@ export function ListEditor({ list }: ListEditorProps) {
 
     const handleAddItem = async (e?: React.FormEvent) => {
         e?.preventDefault()
-        if (isSubmitting) return
+        if (isSubmitting || isShoppingLockedForOtherUser) return
         if (!inputValue.trim()) return
 
         addItem.mutate(
@@ -130,7 +134,7 @@ export function ListEditor({ list }: ListEditorProps) {
                     }
                 },
                 onError: () => {
-                    toast.error("Failed to add item")
+                    toast.error(isShoppingLockedForOtherUser ? "This list is locked by another shopper" : "Failed to add item")
                 },
             }
         )
@@ -167,7 +171,7 @@ export function ListEditor({ list }: ListEditorProps) {
                     }
                 },
                 onError: () => {
-                    toast.error("Failed to add item")
+                    toast.error(isShoppingLockedForOtherUser ? "This list is locked by another shopper" : "Failed to add item")
                 },
             }
         )
@@ -175,6 +179,10 @@ export function ListEditor({ list }: ListEditorProps) {
 
     const handleConfirmNewItem = () => {
         if (!newItemName || isSubmitting) return
+        if (isShoppingLockedForOtherUser) {
+            toast.error("This list is locked by another shopper")
+            return
+        }
 
         addItem.mutate(
             {
@@ -198,13 +206,17 @@ export function ListEditor({ list }: ListEditorProps) {
                     }
                 },
                 onError: () => {
-                    toast.error("Failed to create item")
+                    toast.error(isShoppingLockedForOtherUser ? "This list is locked by another shopper" : "Failed to create item")
                 },
             }
         )
     }
 
     const handleToggle = (itemId: string, checked: boolean, purchasedQuantity?: number) => {
+        if (isShoppingLockedForOtherUser) {
+            toast.error("This list is locked by another shopper")
+            return
+        }
         toggleItem.mutate(
             {
                 itemId,
@@ -260,6 +272,10 @@ export function ListEditor({ list }: ListEditorProps) {
     }
 
     const handleUpdateQuantity = (itemId: string, quantity: number, unit?: string) => {
+        if (isShoppingLockedForOtherUser) {
+            toast.error("This list is locked by another shopper")
+            return
+        }
         updateQuantity.mutate({
             listItemId: itemId,
             quantity,
@@ -269,6 +285,10 @@ export function ListEditor({ list }: ListEditorProps) {
     }
 
     const handleRemoveItem = (itemId: string) => {
+        if (isShoppingLockedForOtherUser) {
+            toast.error("This list is locked by another shopper")
+            return
+        }
         removeItem.mutate({ listItemId: itemId, listId: list.id })
     }
 
@@ -323,6 +343,11 @@ export function ListEditor({ list }: ListEditorProps) {
 
             {!isReadOnly && (
                 <div className="sticky top-0 z-20 bg-background/95 backdrop-blur border-b -mx-4 px-4 py-3 mb-4">
+                    {isShoppingLockedForOtherUser && (
+                        <div className="mb-3 rounded-lg border border-amber-300/50 bg-amber-100/50 px-3 py-2 text-sm text-amber-900 dark:border-amber-700/50 dark:bg-amber-900/20 dark:text-amber-200">
+                            Another household member is currently shopping this list. You can follow updates live, but only they can make changes right now.
+                        </div>
+                    )}
                     <form onSubmit={handleAddItem} className="flex gap-2 items-center">
                         <div className="flex-1">
                             <Label htmlFor="item-name" className="sr-only">Item Name</Label>
@@ -333,20 +358,21 @@ export function ListEditor({ list }: ListEditorProps) {
                                 onSelect={handleSelectFromAutocomplete}
                                 onSubmit={handleAddItem}
                                 placeholder="Add item..."
-                                disabled={isSubmitting}
+                                disabled={isSubmitting || isShoppingLockedForOtherUser}
                             />
                         </div>
                         <div className="shrink-0">
                             <QuantityStepper
                                 value={inputQty}
                                 unit={inputUnit}
+                                disabled={isShoppingLockedForOtherUser}
                                 onChange={(qty, unit) => {
                                     setInputQty(qty)
                                     setInputUnit(unit || "")
                                 }}
                             />
                         </div>
-                        <Button type="submit" disabled={isSubmitting} className="h-8 px-3 shrink-0 rounded-lg text-sm font-medium">
+                        <Button type="submit" disabled={isSubmitting || isShoppingLockedForOtherUser} className="h-8 px-3 shrink-0 rounded-lg text-sm font-medium">
                             Add
                         </Button>
                     </form>
@@ -369,6 +395,7 @@ export function ListEditor({ list }: ListEditorProps) {
                                         key={listItem.id}
                                         listItem={listItem}
                                         isReadOnly={isReadOnly}
+                                        isLocked={isShoppingLockedForOtherUser}
                                         isHighlighted={highlightedItemId === listItem.id}
                                         isPlanningMode={isPlanningMode}
                                         onToggle={handleToggle}
@@ -398,6 +425,7 @@ export function ListEditor({ list }: ListEditorProps) {
                                     key={listItem.id}
                                     listItem={listItem}
                                     isReadOnly={isReadOnly}
+                                    isLocked={isShoppingLockedForOtherUser}
                                     isHighlighted={highlightedItemId === listItem.id}
                                     isPlanningMode={isPlanningMode}
                                     onToggle={handleToggle}
@@ -445,7 +473,7 @@ export function ListEditor({ list }: ListEditorProps) {
                                     size="icon"
                                     variant="secondary"
                                     className="h-14 w-14 rounded-full shadow-lg bg-background border hover:bg-muted"
-                                    disabled={cancelShoppingMut.isPending}
+                                    disabled={cancelShoppingMut.isPending || !isLockHolder}
                                     onClick={() => {
                                         cancelShoppingMut.mutate(
                                             { listId: list.id, storeId: list.store.id },
@@ -464,6 +492,7 @@ export function ListEditor({ list }: ListEditorProps) {
                                     size="lg"
                                     className="h-14 rounded-full shadow-xl px-6 bg-tangerine hover:bg-tangerine/90 text-white transition-all active:scale-95"
                                     onClick={handleFinishShopping}
+                                    disabled={!isLockHolder}
                                 >
                                     <CheckCheck className="mr-2 h-5 w-5" />
                                     Finish ({list.items.filter(i => i.isChecked).length}/{list.items.length})

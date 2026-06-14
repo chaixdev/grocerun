@@ -1,15 +1,19 @@
 import { Injectable, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
+import { SseBroadcastService } from '../sync/sse-broadcast.service';
 import { CreateStoreDto, UpdateStoreDto } from './dto/store.dto';
 
 @Injectable()
 export class StoresService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private sseBroadcast: SseBroadcastService,
+  ) {}
 
   async getStores(householdId: string | undefined, userId: string) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
-      include: { households: true },
+      include: { households: { where: { deleted: false } } },
     });
 
     if (!user || user.households.length === 0) return [];
@@ -22,7 +26,7 @@ export class StoresService {
     }
 
     const stores = await this.prisma.store.findMany({
-      where: { householdId: targetHouseholdId },
+      where: { householdId: targetHouseholdId, deleted: false },
       orderBy: { createdAt: 'desc' },
     });
 
@@ -32,8 +36,8 @@ export class StoresService {
   async getStore(storeId: string, userId: string) {
     await this.verifyStoreAccess(storeId, userId);
 
-    return this.prisma.store.findUnique({
-      where: { id: storeId },
+    return this.prisma.store.findFirst({
+      where: { id: storeId, deleted: false },
       select: {
         id: true,
         name: true,
@@ -48,7 +52,7 @@ export class StoresService {
     // Verify access to household
     await this.verifyHouseholdAccess(dto.householdId, userId);
 
-    await this.prisma.store.create({
+    const store = await this.prisma.store.create({
       data: {
         name: dto.name,
         location: dto.location,
@@ -56,7 +60,9 @@ export class StoresService {
       },
     });
 
-    return { success: true };
+    this.notifyHouseholdMembers(dto.householdId);
+
+    return store;
   }
 
   async updateStore(storeId: string, dto: UpdateStoreDto, userId: string) {
@@ -71,20 +77,78 @@ export class StoresService {
       }
     });
 
+    const store = await this.prisma.store.findUnique({ where: { id: storeId }, select: { householdId: true } });
+    if (store) this.notifyHouseholdMembers(store.householdId);
+
     return { success: true };
   }
 
   async deleteStore(storeId: string, userId: string) {
     await this.verifyStoreAccess(storeId, userId);
 
-    await this.prisma.store.delete({ where: { id: storeId } });
+    const now = new Date();
+
+    await this.prisma.$transaction(async (tx) => {
+      // Cascade soft-delete: ListItems → Lists → Items → Sections → Store
+      const lists = await tx.list.findMany({
+        where: { storeId, deleted: false },
+        select: { id: true }
+      });
+      const listIds = lists.map(l => l.id);
+
+      if (listIds.length > 0) {
+        await tx.listItem.updateMany({
+          where: { listId: { in: listIds }, deleted: false },
+          data: { deleted: true, deletedAt: now }
+        });
+      }
+
+      await tx.list.updateMany({
+        where: { storeId, deleted: false },
+        data: { deleted: true, deletedAt: now }
+      });
+
+      await tx.item.updateMany({
+        where: { storeId, deleted: false },
+        data: { deleted: true, deletedAt: now }
+      });
+
+      await tx.section.updateMany({
+        where: { storeId, deleted: false },
+        data: { deleted: true, deletedAt: now }
+      });
+
+      await tx.store.update({
+        where: { id: storeId },
+        data: { deleted: true, deletedAt: now }
+      });
+    });
+
+    const store = await this.prisma.store.findUnique({ where: { id: storeId }, select: { householdId: true } });
+    if (store) this.notifyHouseholdMembers(store.householdId);
 
     return { success: true };
   }
 
+  private notifyHouseholdMembers(householdId: string) {
+    this.prisma.household
+      .findUnique({
+        where: { id: householdId },
+        select: { users: { select: { id: true } } },
+      })
+      .then((household) => {
+        if (household) {
+          this.sseBroadcast.notify(household.users.map((u) => u.id));
+        }
+      })
+      .catch(() => {
+        // Best-effort
+      });
+  }
+
   private async verifyHouseholdAccess(householdId: string, userId: string) {
-    const household = await this.prisma.household.findUnique({
-      where: { id: householdId },
+    const household = await this.prisma.household.findFirst({
+      where: { id: householdId, deleted: false },
       select: {
         users: {
           where: { id: userId },
@@ -103,8 +167,8 @@ export class StoresService {
   }
 
   private async verifyStoreAccess(storeId: string, userId: string) {
-    const store = await this.prisma.store.findUnique({
-      where: { id: storeId },
+    const store = await this.prisma.store.findFirst({
+      where: { id: storeId, deleted: false },
       select: {
         household: {
           select: {

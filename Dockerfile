@@ -26,16 +26,12 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/apps/web/node_modules ./apps/web/node_modules
 COPY --from=deps /app/apps/server/node_modules ./apps/server/node_modules
-COPY --from=deps /app/packages/dto/node_modules ./packages/dto/node_modules
 
 # Copy full source
 COPY . .
 
-# Dummy env vars for build time (Prisma generation + Next.js build)
+# DATABASE_URL needed for Prisma client generation at build time
 ENV DATABASE_URL="file:./db.sqlite"
-ENV AUTH_SECRET="build-time-dummy"
-ENV AUTH_GOOGLE_ID="build-time-dummy"
-ENV AUTH_GOOGLE_SECRET="build-time-dummy"
 
 # Generate Prisma clients for both apps
 RUN npx prisma generate --schema=apps/web/prisma/schema.prisma
@@ -71,11 +67,12 @@ RUN adduser --system --uid 1001 nextjs
 
 ARG NEXT_PUBLIC_APP_VERSION
 ENV NEXT_PUBLIC_APP_VERSION=$NEXT_PUBLIC_APP_VERSION
+# APP_VERSION is read at runtime by the NestJS health endpoint
+ENV APP_VERSION=$NEXT_PUBLIC_APP_VERSION
 
 # ── Production node_modules (root + workspaces) ──
 COPY --from=prod-deps /app/node_modules ./node_modules
 COPY --from=prod-deps /app/apps/server/node_modules ./apps/server/node_modules
-COPY --from=prod-deps /app/packages/dto/node_modules ./packages/dto/node_modules
 # Root package.json needed for workspace resolution
 COPY --from=builder /app/package.json ./
 
@@ -108,6 +105,9 @@ RUN chmod +x docker-entrypoint.sh
 USER nextjs
 
 EXPOSE 3000
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+  CMD wget -qO- http://localhost:3001/health || exit 1
 
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"

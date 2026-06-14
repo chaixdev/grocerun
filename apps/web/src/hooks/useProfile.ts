@@ -1,4 +1,4 @@
-import { useMutation } from "@tanstack/react-query"
+import { useMutation } from "@/core/lib/useMutation"
 import { api } from "@/core/lib/api"
 import { toast } from "sonner"
 

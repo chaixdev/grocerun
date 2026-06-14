@@ -20,8 +20,8 @@ export class ItemsService {
   // Phase 2 methods
   async updateItem(itemId: string, dto: UpdateItemDto, userId: string) {
     // 1. Get item and verify access
-    const item = await this.prisma.item.findUnique({
-      where: { id: itemId },
+    const item = await this.prisma.item.findFirst({
+      where: { id: itemId, deleted: false },
       select: {
         storeId: true,
         store: {
@@ -79,6 +79,7 @@ export class ItemsService {
       SELECT id, name, sectionId, defaultUnit, purchaseCount
       FROM Item
       WHERE storeId = ${dto.storeId}
+        AND deleted = 0
         AND LOWER(name) LIKE LOWER(${likePattern})
       ORDER BY purchaseCount DESC, name ASC
       LIMIT 10
@@ -94,6 +95,7 @@ export class ItemsService {
     const items = await this.prisma.item.findMany({
       where: {
         storeId: dto.storeId,
+        deleted: false,
         purchaseCount: {
           gte: dto.threshold,
         },
@@ -115,8 +117,8 @@ export class ItemsService {
   }
 
   private async verifyStoreAccess(storeId: string, userId: string) {
-    const store = await this.prisma.store.findUnique({
-      where: { id: storeId },
+    const store = await this.prisma.store.findFirst({
+      where: { id: storeId, deleted: false },
       select: {
         household: {
           select: {

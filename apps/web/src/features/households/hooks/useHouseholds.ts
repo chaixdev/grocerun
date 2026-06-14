@@ -1,8 +1,9 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
+import { useEffect, useState } from "react"
+import { useMutation } from "@/core/lib/useMutation"
 import { api } from "@/core/lib/api"
+import { removeHouseholdSubtreeFromLocalDb } from "@/core/rxdb/cleanup"
+import { getRxDb, resyncHouseholds, resyncStores, resyncLists, resyncListItems, resyncItems, resyncSections } from "@/core/rxdb"
 import { toast } from "sonner"
-import { storeDirectoryKeys } from "@/features/stores/hooks/useStoreDirectory"
-import { householdKeys, settingsHouseholdKeys } from "./keys"
 
 // ----- Types -----
 
@@ -12,30 +13,59 @@ export interface Household {
   createdAt: string
 }
 
-// ----- Query Keys -----
-// Defined in ./keys.ts to break circular dependency with useInvitations
-export { householdKeys } from "./keys"
-
 // ----- Queries -----
 
 export function useHouseholds() {
-  return useQuery({
-    queryKey: householdKeys.all,
-    queryFn: () => api.get<Household[]>("/households"),
-  })
+  const [data, setData] = useState<Household[] | undefined>(undefined)
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<Error | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+    let unsubscribe = () => {}
+
+    getRxDb()
+      .then(async (db) => {
+        if (cancelled) return
+        resyncHouseholds()
+        resyncStores()
+
+        const recompute = async () => {
+          const docs = await db.households.find({ sort: [{ updatedAt: 'desc' }] }).exec()
+          if (!cancelled) {
+            setData(docs.map((doc) => ({ id: doc.id, name: doc.name, createdAt: doc.updatedAt })))
+            setIsLoading(false)
+            setError(null)
+          }
+        }
+
+        const sub = db.households.find().$.subscribe(() => void recompute())
+        unsubscribe = () => sub.unsubscribe()
+        await recompute()
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          setError(err instanceof Error ? err : new Error('Failed to load households'))
+          setIsLoading(false)
+        }
+      })
+
+    return () => {
+      cancelled = true
+      unsubscribe()
+    }
+  }, [])
+
+  return { data, isLoading, error, isError: !!error }
 }
 
 // ----- Mutations -----
 
 export function useCreateDefaultHousehold() {
-  const queryClient = useQueryClient()
-
   return useMutation({
     mutationFn: () => api.post("/households", { name: "My Household" }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: householdKeys.all })
-      queryClient.invalidateQueries({ queryKey: storeDirectoryKeys.all })
-      queryClient.invalidateQueries({ queryKey: settingsHouseholdKeys.all })
+      resyncHouseholds()
       toast.success("Household created!")
     },
     onError: () => {
@@ -45,14 +75,10 @@ export function useCreateDefaultHousehold() {
 }
 
 export function useCreateHousehold() {
-  const queryClient = useQueryClient()
-
   return useMutation({
     mutationFn: (data: { name: string }) => api.post("/households", data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: householdKeys.all })
-      queryClient.invalidateQueries({ queryKey: storeDirectoryKeys.all })
-      queryClient.invalidateQueries({ queryKey: settingsHouseholdKeys.all })
+      resyncHouseholds()
       toast.success("Household created")
     },
     onError: () => {
@@ -62,15 +88,11 @@ export function useCreateHousehold() {
 }
 
 export function useRenameHousehold() {
-  const queryClient = useQueryClient()
-
   return useMutation({
     mutationFn: ({ householdId, name }: { householdId: string; name: string }) =>
       api.patch(`/households/${householdId}`, { name }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: householdKeys.all })
-      queryClient.invalidateQueries({ queryKey: storeDirectoryKeys.all })
-      queryClient.invalidateQueries({ queryKey: settingsHouseholdKeys.all })
+      resyncHouseholds()
       toast.success("Household updated")
     },
     onError: () => {
@@ -80,14 +102,16 @@ export function useRenameHousehold() {
 }
 
 export function useDeleteHousehold() {
-  const queryClient = useQueryClient()
-
   return useMutation({
     mutationFn: (id: string) => api.delete(`/households/${id}`),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: householdKeys.all })
-      queryClient.invalidateQueries({ queryKey: storeDirectoryKeys.all })
-      queryClient.invalidateQueries({ queryKey: settingsHouseholdKeys.all })
+    onSuccess: async (_data, id) => {
+      await removeHouseholdSubtreeFromLocalDb(id)
+      resyncHouseholds()
+      resyncStores()
+      resyncLists()
+      resyncListItems()
+      resyncItems()
+      resyncSections()
       toast.success("Household deleted")
     },
     onError: () => {

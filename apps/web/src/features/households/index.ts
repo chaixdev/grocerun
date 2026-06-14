@@ -8,11 +8,11 @@ export { InvitationManager } from './components/Invitations'
 // Hooks
 export {
   useHouseholds, useCreateDefaultHousehold, useCreateHousehold,
-  useRenameHousehold, useDeleteHousehold, householdKeys,
+  useRenameHousehold, useDeleteHousehold,
 } from './hooks/useHouseholds'
 export type { Household } from './hooks/useHouseholds'
 export {
   useSettingsHouseholds, useCreateInvitation, useGetInvitationDetails,
-  useJoinHousehold, useLeaveHousehold, settingsHouseholdKeys,
+  useJoinHousehold, useLeaveHousehold,
 } from './hooks/useInvitations'
 export type { SettingsHousehold } from './hooks/useInvitations'
