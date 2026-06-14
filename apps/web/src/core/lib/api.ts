@@ -64,16 +64,19 @@ async function request<T>(
 
   // On 401, try refreshing tokens once and retry
   if (res.status === 401 && accessToken) {
+    let retryToken: string | null = getTestToken()
+
+    // Refresh OIDC token outside try/catch so TypeScript can narrow types
+    if (!retryToken) {
+      const oidc = await getOidc()
+      if (!oidc) { throw new ApiError('Auth unavailable', 401) }
+      await oidc.renewTokens?.()
+      const fresh = await oidc.getAccessToken?.()
+      if (!fresh) { throw new ApiError('Token unavailable', 401) }
+      retryToken = fresh
+    }
+
     try {
-      const testToken = getTestToken()
-      let retryToken = testToken
-
-      if (!retryToken) {
-        const oidc = await getOidc()
-        await oidc.renewTokens()
-        retryToken = await oidc.getAccessToken()
-      }
-
       const retryRes = await fetch(`/api/v1${endpoint}`, {
         ...options,
         headers: {
@@ -98,7 +101,7 @@ async function request<T>(
       const testToken = getTestToken()
       if (!testToken) {
         const oidc = await getOidc()
-        oidc.logout({ redirectTo: "home" })
+        oidc?.logout?.({ redirectTo: "home" })
       }
       throw new ApiError('Session expired', 401)
     }
