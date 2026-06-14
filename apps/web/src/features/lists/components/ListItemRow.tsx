@@ -1,4 +1,3 @@
-"use client"
 
 import { useEffect, useRef, useState } from "react"
 import { Button } from "@/components/ui/button"
@@ -89,9 +88,17 @@ export function ListItemRow({
     // Debounce the actual mutation: fire 300ms after the last tap.
     // Shopping-mode quantity changes implicitly check the item.
     const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+    const pendingQtyRef = useRef<{ qty: number; unit: string | undefined } | null>(null)
+    const onToggleRef = useRef(onToggle)
+    onToggleRef.current = onToggle
+    const onUpdateQuantityRef = useRef(onUpdateQuantity)
+    onUpdateQuantityRef.current = onUpdateQuantity
+
     const flushQtyWrite = (qty: number, unit: string | undefined) => {
+        pendingQtyRef.current = { qty, unit }
         if (debounceRef.current) clearTimeout(debounceRef.current)
         debounceRef.current = setTimeout(() => {
+            pendingQtyRef.current = null
             if (isPlanningMode) {
                 onUpdateQuantity?.(listItem.id, qty, unit)
             } else {
@@ -100,8 +107,20 @@ export function ListItemRow({
             }
         }, 300)
     }
-    // Cancel any pending write if the row unmounts.
-    useEffect(() => () => { if (debounceRef.current) clearTimeout(debounceRef.current) }, [])
+    // Flush any pending write on unmount — don't silently drop the user's edit.
+    useEffect(() => () => {
+        if (debounceRef.current) {
+            clearTimeout(debounceRef.current)
+            const pending = pendingQtyRef.current
+            if (pending) {
+                if (isPlanningMode) {
+                    onUpdateQuantityRef.current?.(listItem.id, pending.qty, pending.unit)
+                } else {
+                    onToggleRef.current(listItem.id, true, pending.qty)
+                }
+            }
+        }
+    }, [isPlanningMode, listItem.id])
 
     return (
         <div

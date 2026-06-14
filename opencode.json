@@ -1,0 +1,16 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "permission": {
+    "skill": {
+      "*": "allow",
+      "git-master": "deny"
+    },
+    "bash": {
+      "git push*": "deny",
+      "git remote set-url *": "deny"
+    },
+    "external_directory": {
+      "/Users/chaitanya/projects/grocerun-workspace/grocerun/planning/**": "allow"
+    }
+  }
+}

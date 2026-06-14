@@ -10,6 +10,6 @@ export class HouseholdOverviewController {
 
   @Get()
   async getHouseholdOverview(@CurrentUser() user: JwtPayload) {
-    return this.householdOverviewService.getHouseholdOverview(user.sub);
+    return this.householdOverviewService.getHouseholdOverview(user.userId!);
   }
 }

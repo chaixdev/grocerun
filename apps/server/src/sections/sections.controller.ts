@@ -14,7 +14,7 @@ export class SectionsController {
     @Param('storeId') storeId: string,
     @CurrentUser() user: JwtPayload,
   ) {
-    return this.sectionsService.getSections(storeId, user.sub);
+    return this.sectionsService.getSections(storeId, user.userId!);
   }
 
   @Post()
@@ -22,7 +22,7 @@ export class SectionsController {
     @Body() dto: CreateSectionDto,
     @CurrentUser() user: JwtPayload,
   ) {
-    return this.sectionsService.createSection(dto, user.sub);
+    return this.sectionsService.createSection(dto, user.userId!);
   }
 
   @Patch(':id')
@@ -31,7 +31,7 @@ export class SectionsController {
     @Body() dto: UpdateSectionDto,
     @CurrentUser() user: JwtPayload,
   ) {
-    return this.sectionsService.updateSection(sectionId, dto, user.sub);
+    return this.sectionsService.updateSection(sectionId, dto, user.userId!);
   }
 
   @Delete(':id')
@@ -39,7 +39,7 @@ export class SectionsController {
     @Param('id') sectionId: string,
     @CurrentUser() user: JwtPayload,
   ) {
-    return this.sectionsService.deleteSection(sectionId, user.sub);
+    return this.sectionsService.deleteSection(sectionId, user.userId!);
   }
 
   @Post('store/:storeId/reorder')
@@ -48,6 +48,6 @@ export class SectionsController {
     @Body() dto: ReorderSectionsDto,
     @CurrentUser() user: JwtPayload,
   ) {
-    return this.sectionsService.reorderSections(storeId, dto, user.sub);
+    return this.sectionsService.reorderSections(storeId, dto, user.userId!);
   }
 }

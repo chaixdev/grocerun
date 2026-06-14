@@ -40,17 +40,23 @@ export function useStore(storeId: string) {
         const recompute = async () => {
           const doc = await db.stores.findOne(storeId).exec()
           if (!cancelled) {
-            setData(
-              doc
-                ? {
-                    id: doc.id,
-                    name: doc.name,
-                    location: doc.location ?? null,
-                    imageUrl: doc.imageUrl ?? null,
-                    householdId: doc.householdId,
-                  }
-                : undefined,
-            )
+            if (doc) {
+              setData({
+                id: doc.id,
+                name: doc.name,
+                location: doc.location ?? null,
+                imageUrl: doc.imageUrl ?? null,
+                householdId: doc.householdId,
+              })
+            } else {
+              // The user may navigate immediately after a REST mutation, before
+              // RxDB has pulled the destination store. Fall back to the API so
+              // the route renders immediately; replication will replace this
+              // with the local document once it arrives.
+              const remoteStore = await api.get<Store>(`/stores/${storeId}`)
+              if (cancelled) return
+              setData(remoteStore)
+            }
             setIsLoading(false)
             setError(null)
           }

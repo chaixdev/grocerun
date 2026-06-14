@@ -1,6 +1,6 @@
 {
   "name": "grocerun-monorepo",
-  "version": "1.0.0-alpha.0",
+  "version": "1.0.0-rc.2",
   "private": true,
   "packageManager": "npm@10.9.4",
   "workspaces": [
@@ -23,6 +23,12 @@
   },
   "dependencies": {
     "@prisma/client": "^7.5.0",
-    "prisma": "^7.5.0"
+    "prisma": "^7.5.0",
+    "react": "^19.2.3",
+    "react-dom": "^19.2.3"
+  },
+  "overrides": {
+    "@types/react": "^19.2.7",
+    "@types/react-dom": "^19.2.3"
   }
 }

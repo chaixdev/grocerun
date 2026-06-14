@@ -14,7 +14,7 @@ export class StoresController {
     @Query('householdId') householdId: string | undefined,
     @CurrentUser() user: JwtPayload,
   ) {
-    return this.storesService.getStores(householdId, user.sub);
+    return this.storesService.getStores(householdId, user.userId!);
   }
 
   @Get(':id')
@@ -22,7 +22,7 @@ export class StoresController {
     @Param('id') storeId: string,
     @CurrentUser() user: JwtPayload,
   ) {
-    return this.storesService.getStore(storeId, user.sub);
+    return this.storesService.getStore(storeId, user.userId!);
   }
 
   @Post()
@@ -30,7 +30,7 @@ export class StoresController {
     @Body() dto: CreateStoreDto,
     @CurrentUser() user: JwtPayload,
   ) {
-    return this.storesService.createStore(dto, user.sub);
+    return this.storesService.createStore(dto, user.userId!);
   }
 
   @Patch(':id')
@@ -39,7 +39,7 @@ export class StoresController {
     @Body() dto: UpdateStoreDto,
     @CurrentUser() user: JwtPayload,
   ) {
-    return this.storesService.updateStore(storeId, dto, user.sub);
+    return this.storesService.updateStore(storeId, dto, user.userId!);
   }
 
   @Delete(':id')
@@ -47,6 +47,6 @@ export class StoresController {
     @Param('id') storeId: string,
     @CurrentUser() user: JwtPayload,
   ) {
-    return this.storesService.deleteStore(storeId, user.sub);
+    return this.storesService.deleteStore(storeId, user.userId!);
   }
 }

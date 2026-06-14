@@ -9,6 +9,9 @@ export default defineConfig({
         globals: true,
         setupFiles: ['./src/test/setup.ts'],
         include: ['src/**/*.{test,spec}.{ts,tsx}'],
+        // No web test files exist yet (SPA refactor removed Next.js tests).
+        // Allow zero tests so CI isn't blocked.
+        passWithNoTests: true,
     },
     resolve: {
         alias: {

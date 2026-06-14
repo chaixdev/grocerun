@@ -1,4 +1,3 @@
-"use client"
 
 import { useState } from "react"
 import { toast } from "sonner"
@@ -207,7 +206,7 @@ export function InvitationManager({ userId, households, invitationTimeoutMinutes
             <div className="space-y-4">
                 <h3 className="text-sm font-medium text-muted-foreground">Your Households</h3>
                 {households.map((household) => {
-                    const isOwner = !household.ownerId || household.ownerId === userId
+                    const isOwner = household.ownerId === userId
                     const memberCount = household._count.users
 
                     return (

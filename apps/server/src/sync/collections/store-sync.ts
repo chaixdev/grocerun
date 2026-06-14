@@ -1,9 +1,13 @@
-import { BadRequestException, ForbiddenException } from '@nestjs/common';
+/**
+ * Store sync — server-authoritative collection.
+ *
+ * Pull: client caches stores for local display.
+ * Push: NOT supported. All store mutations go through REST.
+ */
+
 import { SyncDeps } from '../sync-deps';
 import {
   PullResponse,
-  PushRow,
-  PushResponse,
   SyncCheckpoint,
   SyncDocument,
 } from '../sync.types';
@@ -14,24 +18,37 @@ export async function pullStores(
   limit: number,
   userId: string,
 ): Promise<PullResponse> {
-  const accessibleHouseholdIds = await deps.getAccessibleHouseholdIds(userId);
+  const accessibleHouseholdIds = await deps.getAccessibleHouseholdIdsForSync(userId);
 
   if (accessibleHouseholdIds.length === 0) {
     return { documents: [], checkpoint: null };
   }
 
-  const where = checkpoint
-    ? {
-        householdId: { in: accessibleHouseholdIds },
+  const tombstoneWindow = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+
+  const where: Record<string, unknown> = {
+    householdId: { in: accessibleHouseholdIds },
+    AND: [
+      {
         OR: [
-          { updatedAt: { gt: new Date(checkpoint.updatedAt) } },
-          {
-            updatedAt: { equals: new Date(checkpoint.updatedAt) },
-            id: { gt: checkpoint.id },
-          },
+          { deleted: false },
+          { deletedAt: { gte: tombstoneWindow } },
         ],
-      }
-    : { householdId: { in: accessibleHouseholdIds } };
+      },
+    ],
+  };
+
+  if (checkpoint) {
+    (where.AND as Array<Record<string, unknown>>).push({
+      OR: [
+        { updatedAt: { gt: new Date(checkpoint.updatedAt) } },
+        {
+          updatedAt: { equals: new Date(checkpoint.updatedAt) },
+          id: { gt: checkpoint.id },
+        },
+      ],
+    });
+  }
 
   const rows = await deps.prisma.store.findMany({
     where,
@@ -50,105 +67,6 @@ export async function pullStores(
       : checkpoint;
 
   return { documents, checkpoint: newCheckpoint };
-}
-
-export async function pushStores(
-  deps: SyncDeps,
-  rows: PushRow[],
-  userId: string,
-): Promise<PushResponse> {
-  const conflicts: SyncDocument[] = [];
-
-  for (const row of rows) {
-    const { newDocumentState, assumedMasterState } = row;
-    const id = newDocumentState.id as string;
-    const householdId = newDocumentState.householdId as string;
-
-    if (!householdId) {
-      throw new BadRequestException(`Missing householdId in document ${id}`);
-    }
-
-    try {
-      await deps.verifyHouseholdAccess(householdId, userId);
-    } catch (err) {
-      if (err instanceof ForbiddenException) {
-        // User no longer has access to this household (e.g. left it).
-        // Return a tombstone conflict so RxDB stops retrying this row.
-        conflicts.push({ id, updatedAt: new Date().toISOString(), _deleted: true });
-        continue;
-      }
-      throw err;
-    }
-
-    const current = await deps.prisma.store.findUnique({ where: { id } });
-
-    if (current && assumedMasterState != null) {
-      const assumedAt = new Date(assumedMasterState.updatedAt as string).getTime();
-      const actualAt = current.updatedAt.getTime();
-      if (assumedAt !== actualAt) {
-        conflicts.push(storeToSyncDoc(current));
-        continue;
-      }
-    }
-
-    if (newDocumentState._deleted) {
-      if (current && !current.deleted) {
-        const now = new Date();
-        await deps.prisma.$transaction(async (tx) => {
-          const lists = await tx.list.findMany({
-            where: { storeId: id, deleted: false },
-            select: { id: true },
-          });
-          const listIds = lists.map((l) => l.id);
-          if (listIds.length > 0) {
-            await tx.listItem.updateMany({
-              where: { listId: { in: listIds }, deleted: false },
-              data: { deleted: true, deletedAt: now },
-            });
-          }
-          await tx.list.updateMany({
-            where: { storeId: id, deleted: false },
-            data: { deleted: true, deletedAt: now },
-          });
-          await tx.item.updateMany({
-            where: { storeId: id, deleted: false },
-            data: { deleted: true, deletedAt: now },
-          });
-          await tx.section.updateMany({
-            where: { storeId: id, deleted: false },
-            data: { deleted: true, deletedAt: now },
-          });
-          await tx.store.update({
-            where: { id },
-            data: { deleted: true, deletedAt: now },
-          });
-        });
-      }
-    } else if (current) {
-      await deps.prisma.store.update({
-        where: { id },
-        data: {
-          name: newDocumentState.name as string,
-          location: (newDocumentState.location as string | undefined) ?? null,
-          imageUrl: (newDocumentState.imageUrl as string | undefined) ?? null,
-          deleted: false,
-          deletedAt: null,
-        },
-      });
-    } else {
-      await deps.prisma.store.create({
-        data: {
-          id,
-          name: newDocumentState.name as string,
-          householdId,
-          location: (newDocumentState.location as string | undefined) ?? null,
-          imageUrl: (newDocumentState.imageUrl as string | undefined) ?? null,
-        },
-      });
-    }
-  }
-
-  return conflicts;
 }
 
 function storeToSyncDoc(row: {

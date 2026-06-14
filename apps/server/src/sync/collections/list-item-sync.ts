@@ -1,5 +1,20 @@
-import { BadRequestException, ForbiddenException } from '@nestjs/common';
+/**
+ * List item sync — local-first for active shopping.
+ *
+ * Pull: client caches all list items for local display.
+ * Push: ACCEPTED. Local-first writes for check/uncheck, quantity changes,
+ *       add/remove during active shopping.
+ *
+ *       Push is gated: COMPLETED lists are immutable. SHOPPING lists are
+ *       locked to their assignedTo shopper — only that user can push.
+ *       PLANNING mode list item mutations go through REST, not push.
+ */
+
+import { BadRequestException, ForbiddenException, Logger } from '@nestjs/common';
+import { Prisma } from '../../generated/prisma/client';
 import { SyncDeps } from '../sync-deps';
+
+const logger = new Logger('ListItemSync');
 import {
   PullResponse,
   PushRow,
@@ -14,24 +29,37 @@ export async function pullListItems(
   limit: number,
   userId: string,
 ): Promise<PullResponse> {
-  const accessibleStoreIds = await deps.getAccessibleStoreIds(userId);
+  const accessibleStoreIds = await deps.getAccessibleStoreIdsForSync(userId);
 
   if (accessibleStoreIds.length === 0) {
     return { documents: [], checkpoint: null };
   }
 
-  const where = checkpoint
-    ? {
-        list: { storeId: { in: accessibleStoreIds } },
+  const tombstoneWindow = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+
+  const where: Record<string, unknown> = {
+    list: { storeId: { in: accessibleStoreIds } },
+    AND: [
+      {
         OR: [
-          { updatedAt: { gt: new Date(checkpoint.updatedAt) } },
-          {
-            updatedAt: { equals: new Date(checkpoint.updatedAt) },
-            id: { gt: checkpoint.id },
-          },
+          { deleted: false },
+          { deletedAt: { gte: tombstoneWindow } },
         ],
-      }
-    : { list: { storeId: { in: accessibleStoreIds } } };
+      },
+    ],
+  };
+
+  if (checkpoint) {
+    (where.AND as Array<Record<string, unknown>>).push({
+      OR: [
+        { updatedAt: { gt: new Date(checkpoint.updatedAt) } },
+        {
+          updatedAt: { equals: new Date(checkpoint.updatedAt) },
+          id: { gt: checkpoint.id },
+        },
+      ],
+    });
+  }
 
   const rows = await deps.prisma.listItem.findMany({
     where,
@@ -56,6 +84,7 @@ export async function pushListItems(
   deps: SyncDeps,
   rows: PushRow[],
   userId: string,
+  shoppingLockId: string,
 ): Promise<PushResponse> {
   const conflicts: SyncDocument[] = [];
 
@@ -100,10 +129,10 @@ export async function pushListItems(
     if (list.status === 'SHOPPING') {
       if (!list.assignedTo) {
         // Server-side inconsistency — warn but allow the push to proceed.
-        console.warn(
+        logger.warn(
           `pushListItems: list ${listId} is SHOPPING but has no assignedTo. Allowing push for userId=${userId}.`,
         );
-      } else if (list.assignedTo !== userId) {
+      } else if (list.assignedTo !== shoppingLockId) {
         conflicts.push({ id, updatedAt: new Date().toISOString(), _deleted: true });
         continue;
       }
@@ -150,6 +179,35 @@ export async function pushListItems(
         },
       });
     } else {
+      // Compute updatedAt FIRST for use in both soft-delete restore and create.
+      const clientUpdatedAt = newDocumentState.updatedAt;
+      const updatedAt = typeof clientUpdatedAt === 'string'
+        ? new Date(clientUpdatedAt)
+        : new Date();
+
+      // Check for soft-deleted row to restore (unique constraint changed to
+      // @@unique([listId, itemId, deleted]) so soft-deleted rows no longer
+      // block creation, but we still restore in-place for data continuity).
+      const softDeleted = await deps.prisma.listItem.findFirst({
+        where: { listId, itemId, deleted: true },
+      });
+      if (softDeleted) {
+        await deps.prisma.listItem.update({
+          where: { id: softDeleted.id },
+          data: {
+            isChecked: (newDocumentState.isChecked as boolean) ?? false,
+            quantity: (newDocumentState.quantity as number) ?? 1,
+            unit: (newDocumentState.unit as string | undefined) ?? null,
+            purchasedQuantity:
+              (newDocumentState.purchasedQuantity as number | undefined) ?? null,
+            deleted: false,
+            deletedAt: null,
+            updatedAt,
+          },
+        });
+        continue;
+      }
+
       // Guard against a duplicate (listId, itemId) created via a different code
       // path (e.g. the REST addItem endpoint) before this push arrived.
       const duplicate = await deps.prisma.listItem.findFirst({
@@ -161,24 +219,40 @@ export async function pushListItems(
         continue;
       }
 
-      const clientUpdatedAt = newDocumentState.updatedAt;
-      const updatedAt = typeof clientUpdatedAt === 'string'
-        ? new Date(clientUpdatedAt)
-        : new Date();
-
-      await deps.prisma.listItem.create({
-        data: {
-          id,
-          listId,
-          itemId,
-          isChecked: (newDocumentState.isChecked as boolean) ?? false,
-          quantity: (newDocumentState.quantity as number) ?? 1,
-          unit: (newDocumentState.unit as string | undefined) ?? null,
-          purchasedQuantity:
-            (newDocumentState.purchasedQuantity as number | undefined) ?? null,
-          updatedAt,
-        },
-      });
+      // Note: createdAt is intentionally omitted from the create call.
+      // It defaults to Prisma @default(now()) (server-authoritative).
+      // The client's original createdAt is replaced by the server value
+      // on the next pull — this converges after one round-trip.
+      try {
+        await deps.prisma.listItem.create({
+          data: {
+            id,
+            listId,
+            itemId,
+            isChecked: (newDocumentState.isChecked as boolean) ?? false,
+            quantity: (newDocumentState.quantity as number) ?? 1,
+            unit: (newDocumentState.unit as string | undefined) ?? null,
+            purchasedQuantity:
+              (newDocumentState.purchasedQuantity as number | undefined) ?? null,
+            updatedAt,
+          },
+        });
+      } catch (err) {
+        // P2002 race-condition safety net: another request created the row
+        // between our check and create. Return it as a conflict.
+        if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
+          const canonical = await deps.prisma.listItem.findFirst({
+            where: { listId, itemId },
+          });
+          if (canonical) {
+            conflicts.push(listItemToSyncDoc(canonical));
+          } else {
+            throw err;
+          }
+          continue;
+        }
+        throw err;
+      }
     }
   }
 

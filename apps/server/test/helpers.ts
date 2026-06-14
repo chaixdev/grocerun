@@ -1,4 +1,4 @@
-import { INestApplication } from '@nestjs/common';
+import { INestApplication, RequestMethod } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { ZodValidationPipe } from 'nestjs-zod';
 import supertest from 'supertest';
@@ -7,28 +7,20 @@ import { AppModule } from '../src/app.module';
 import { PrismaService } from '../src/prisma.service';
 
 // ---------------------------------------------------------------------------
-// Auth bypass
+// Auth helpers
 // ---------------------------------------------------------------------------
 
-/**
- * A no-op guard that skips JWT verification and injects a fixed test user.
- * We use the real JWT path for the token so CurrentUser() still works —
- * we just sign it ourselves with the test secret.
- */
 export const TEST_USER_ID = 'test-user-id';
 export const TEST_USER_EMAIL = 'test@grocerun.test';
+const TEST_SECRET = 'grocerun-test-secret-do-not-use-in-production';
 
 export function makeTestToken(): string {
   return jwt.sign(
     { sub: TEST_USER_ID, email: TEST_USER_EMAIL },
-    process.env.AUTH_SECRET!,
+    TEST_SECRET,
     { expiresIn: '1h' },
   );
 }
-
-// We keep the real AuthGuard wired up and just sign tokens ourselves.
-// This means auth logic IS exercised, and we don't need a mock.
-// The only thing we need is for a User row to exist in the DB for the test.
 
 // ---------------------------------------------------------------------------
 // App factory
@@ -39,6 +31,10 @@ export function makeTestToken(): string {
  * Call this in beforeAll, close it in afterAll.
  *
  * DATABASE_URL is already set to file:./test.db by globalSetup via .env.test.
+ *
+ * Auth is handled by AuthGuard's built-in test-mode bypass: when NODE_ENV is
+ * "test", it accepts locally-signed JWTs verified with TEST_SECRET directly,
+ * without calling out to Google's JWKS endpoint.
  */
 export async function createTestApp(): Promise<INestApplication> {
   const moduleRef = await Test.createTestingModule({
@@ -46,6 +42,9 @@ export async function createTestApp(): Promise<INestApplication> {
   }).compile();
 
   const app = moduleRef.createNestApplication();
+  app.setGlobalPrefix('api/v1', {
+    exclude: [{ path: 'health', method: RequestMethod.GET }],
+  });
   app.useGlobalPipes(new ZodValidationPipe());
   await app.init();
   return app;
@@ -57,19 +56,23 @@ export async function createTestApp(): Promise<INestApplication> {
 
 /**
  * Returns a supertest agent pre-configured with the test JWT.
- * Usage: const api = agent(app); await api.get('/stores').expect(200);
+ * Usage: const api = agent(app); await api.get('/stores').expect(200).
+ * Unprefixed URLs are automatically routed through the public /api/v1 prefix
+ * so specs mirror browser-facing API paths without repeating the prefix.
  */
 export function agent(app: INestApplication) {
   const token = makeTestToken();
+  const apiUrl = (url: string) => url.startsWith('/api/v1') ? url : `/api/v1${url}`;
+
   return {
     get: (url: string) =>
-      supertest(app.getHttpServer()).get(url).set('Authorization', `Bearer ${token}`),
+      supertest(app.getHttpServer()).get(apiUrl(url)).set('Authorization', `Bearer ${token}`),
     post: (url: string) =>
-      supertest(app.getHttpServer()).post(url).set('Authorization', `Bearer ${token}`),
+      supertest(app.getHttpServer()).post(apiUrl(url)).set('Authorization', `Bearer ${token}`),
     patch: (url: string) =>
-      supertest(app.getHttpServer()).patch(url).set('Authorization', `Bearer ${token}`),
+      supertest(app.getHttpServer()).patch(apiUrl(url)).set('Authorization', `Bearer ${token}`),
     delete: (url: string) =>
-      supertest(app.getHttpServer()).delete(url).set('Authorization', `Bearer ${token}`),
+      supertest(app.getHttpServer()).delete(apiUrl(url)).set('Authorization', `Bearer ${token}`),
   };
 }
 

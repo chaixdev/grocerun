@@ -117,3 +117,48 @@ Client local-first writes set `updatedAt` to client time via `incrementalPatch`.
 2. Click + on an unchecked item → should check AND increment quantity
 3. Click + again after 10s → should increment cleanly (no snapback)
 4. Repeat at varying intervals — every click persists
+
+---
+
+## Step 2 – Simplify sync invalidation (2026-06-08)
+
+**Commit:** `8115929` (13 files, +13/-56)
+
+### Goal
+Replace ad hoc client-side `resync*()` calls after REST mutations with the server-originated SSE notification path. All server REST services already emitted `RESYNC` — Step 2 makes them emit `SYNC_CHANGED` with explicit `collections` + `reason` payload instead of bare `RESYNC`.
+
+### Server changes (6 files)
+| File | Change |
+|------|--------|
+| `sync.controller.ts` | `push()` handler: `notify()` → `notifyChanged()` with dynamic `collections: [collection]` and `reason: '${collection}.push'` |
+| `lists.service.ts` | Private helper: `notify()` → `notifyChanged()` with `collections: ['list','listItem']`, reason `'list-mutation'` |
+| `households.service.ts` | Private helper: → `notifyChanged()` with `['household','store']`, `'household-mutation'` |
+| `stores.service.ts` | Private helper: → `notifyChanged()` with `['store','section']`, `'store-mutation'` |
+| `sections.service.ts` | Private helper: → `notifyChanged()` with `['section']`, `'section-mutation'` |
+| `invitations.service.ts` | Private helper: → `notifyChanged()` with `['household']`, `'invitation-mutation'` |
+
+`notifyChanged()` emits both `RESYNC` and `SYNC_CHANGED` — backward compatible.
+
+### Client changes (7 hook files)
+Removed redundant `resync*()` calls from mutation `onSuccess` callbacks. SSE already triggers `resyncAll()` within milliseconds. Kept mount-time `useEffect` resync calls (initial hydration).
+
+| Hook file | Removed from |
+|-----------|-------------|
+| `useStore.ts` | `useUpdateStore`, `useDeleteStore` onSuccess |
+| `useLists.ts` | `useCreateList`, `useStartShopping`, `useCancelShopping`, `useCompleteList` onSuccess (were empty except for resync) |
+| `useHouseholds.ts` | `useCreateDefaultHousehold`, `useCreateHousehold`, `useRenameHousehold`, `useDeleteHousehold` onSuccess |
+| `useInvitations.ts` | `useLeaveHousehold` onSuccess |
+| `useSections.ts` | `useCreateSection`, `useUpdateSection`, `useReorderSections`, `useDeleteSection` onSuccess |
+| `useItems.ts` | `useUpdateItem` onSuccess |
+| `useStoreDirectory.ts` | `useCreateStore` onSuccess |
+
+Also cleaned up unused `resync*()` imports where they became dead code.
+
+### Architecture shift
+Before: `REST mutation → server write → SSE RESYNC → client full pull` **AND ALSO** `REST mutation → hook callback → resyncX() → specific collection pull`
+
+After: `REST mutation → server write → SSE SYNC_CHANGED+RESYNC → client full pull` **only**. Server owns the notification path; client hooks don't need to know which REST command affects which cache.
+
+The `collections` in `SYNC_CHANGED` are informational today (client still does `resyncAll()`), but pave the way for targeted per-collection pulls in a future optimization.
+
+**Verification:** `tsc --noEmit` passes in both `apps/server` and `apps/web`.

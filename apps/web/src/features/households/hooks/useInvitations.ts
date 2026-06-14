@@ -7,13 +7,10 @@ import {
   resetRxDb,
   resyncHouseholds,
   resyncStores,
-  resyncLists,
-  resyncListItems,
-  resyncItems,
-  resyncSections,
 } from "@/core/rxdb"
 import { ApiError } from "@/core/lib/api"
 import { toast } from "sonner"
+import { router } from "@/router"
 
 // ----- Types -----
 
@@ -95,6 +92,10 @@ export function useCreateInvitation() {
   return useMutation({
     mutationFn: (data: { householdId: string }) =>
       api.post<InvitationData>("/invitations", data),
+    onSuccess: () => {
+      resyncHouseholds()
+      resyncStores()
+    },
     onError: () => {
       toast.error("Failed to create invitation")
     },
@@ -117,11 +118,13 @@ export function useJoinHousehold() {
       api.post<{ householdName: string }>("/invitations/join", { token }),
     onSuccess: async (data) => {
       await resetRxDb()
+      resyncHouseholds()
+      resyncStores()
       await getRxDb()
       toast.success("Joined Household", {
         description: `You have successfully joined ${data.householdName}`,
       })
-      window.location.reload()
+      router.navigate({ to: "/lists", replace: true })
     },
     onError: async (error) => {
       if (error instanceof ApiError && error.status === 400 && String(error.message).includes('already a member')) {
@@ -130,7 +133,7 @@ export function useJoinHousehold() {
         toast.success("Household already linked", {
           description: "Refreshing your local data.",
         })
-        window.location.reload()
+        router.navigate({ to: "/lists", replace: true })
         return
       }
       toast.error("Failed to join household")
@@ -142,13 +145,9 @@ export function useLeaveHousehold() {
   return useMutation({
     mutationFn: (id: string) => api.post(`/households/${id}/leave`, {}),
     onSuccess: async (_data, householdId) => {
-      await removeHouseholdSubtreeFromLocalDb(householdId)
       resyncHouseholds()
       resyncStores()
-      resyncLists()
-      resyncListItems()
-      resyncItems()
-      resyncSections()
+      await removeHouseholdSubtreeFromLocalDb(householdId)
       toast.success("Left household")
     },
     onError: () => {

@@ -2,8 +2,8 @@
 set -e
 
 # ── Grocerun Entrypoint ──
-# Starts the NestJS API server (background) and Next.js web app (foreground).
-# Both share the same SQLite database via the /app/data volume.
+# Prepares the SQLite database, applies the server Prisma schema, then starts
+# the NestJS process. Nest serves both the /api/v1 API and the Vite-built SPA.
 
 # ── 1. Database setup ──
 
@@ -31,6 +31,7 @@ else
 fi
 
 DB_DIR=$(dirname "$DB_FILE")
+mkdir -p "$DB_DIR"
 
 if [ ! -w "$DB_DIR" ]; then
     echo "[init] CRITICAL: Directory $DB_DIR is not writable."
@@ -38,7 +39,7 @@ if [ ! -w "$DB_DIR" ]; then
     exit 1
 fi
 
-# ── 2. Database backup (before schema changes) ──
+# ── 2. Database backup before schema changes ──
 
 if [ -f "$DB_FILE" ]; then
     CURRENT_MD5=$(md5sum "$DB_FILE" | awk '{print $1}')
@@ -54,9 +55,9 @@ if [ -f "$DB_FILE" ]; then
     fi
 
     if [ "$SHOULD_BACKUP" = true ]; then
-        APP_VERSION="${NEXT_PUBLIC_APP_VERSION:-unknown}"
+        VERSION="${APP_VERSION:-unknown}"
         TIMESTAMP=$(date +%s)
-        BACKUP_FILE="/app/data/grocerun_${APP_VERSION}_${TIMESTAMP}.db"
+        BACKUP_FILE="/app/data/grocerun_${VERSION}_${TIMESTAMP}.db"
 
         echo "[init] Creating backup: $BACKUP_FILE"
         if ! cp "$DB_FILE" "$BACKUP_FILE"; then
@@ -64,7 +65,7 @@ if [ -f "$DB_FILE" ]; then
             exit 1
         fi
 
-        # Rotate: keep last 5 backups
+        # Rotate: keep last 5 backups.
         ls -t /app/data/grocerun_*.db 2>/dev/null | tail -n +6 | while read -r file; do
             echo "[init] Rotating old backup: $file"
             rm -f "$file"
@@ -77,31 +78,41 @@ fi
 # ── 3. Apply database schema ──
 
 echo "[init] Applying database schema..."
-if ! npx prisma db push --schema=apps/web/prisma/schema.prisma --url="$DATABASE_URL" 2>&1; then
+if ! npx prisma db push --accept-data-loss --schema=apps/server/prisma/schema.prisma --url="$DATABASE_URL" 2>&1; then
     echo "[init] CRITICAL: Database migration failed."
     exit 1
 fi
 echo "[init] Database schema synchronized."
 
-# ── 4. Start NestJS API server (background) ──
+# ── 4. Runtime frontend config ──
 
-echo "[init] Starting API server on port 3001..."
-node apps/server/dist/src/main.js &
-SERVER_PID=$!
+CONFIG_JS_PATH="/app/apps/web/dist/config.js"
+echo "[init] Writing runtime frontend config: $CONFIG_JS_PATH"
+node <<'NODE'
+const fs = require('node:fs');
 
-# Give the server a moment to start
-sleep 1
-if ! kill -0 $SERVER_PID 2>/dev/null; then
-    echo "[init] CRITICAL: API server failed to start."
-    exit 1
-fi
+const configPath = '/app/apps/web/dist/config.js';
+const config = {
+  clientId: process.env.OIDC_CLIENT_ID || process.env.VITE_OIDC_CLIENT_ID || '',
+  clientSecret:
+    process.env.OIDC_CLIENT_SECRET ||
+    process.env.VITE_OIDC_PUBLIC_VALUE ||
+    process.env.VITE_OIDC_CLIENT_SECRET ||
+    '',
+};
 
-# Forward signals to both processes
-trap "kill $SERVER_PID 2>/dev/null; exit" INT TERM
+if (process.env.NODE_ENV === 'production' && !config.clientId) {
+  console.warn('[init] WARNING: OIDC_CLIENT_ID is not set — frontend OIDC will fail.');
+}
 
-echo "[init] API server started (pid: $SERVER_PID)"
+fs.writeFileSync(
+  configPath,
+  `window.__GROCERUN_CONFIG__ = ${JSON.stringify(config)};\n`,
+  'utf8',
+);
+NODE
 
-# ── 5. Start Next.js web app (foreground) ──
+# ── 5. Start NestJS server ──
 
-echo "[init] Starting web app on port 3000..."
+echo "[init] Starting Grocerun on port ${PORT:-3000}..."
 exec "$@"

@@ -11,7 +11,7 @@ export class HouseholdsController {
 
   @Get()
   async getHouseholds(@CurrentUser() user: JwtPayload) {
-    return this.householdsService.getHouseholds(user.sub);
+    return this.householdsService.getHouseholds(user.userId!);
   }
 
   @Post()
@@ -19,7 +19,7 @@ export class HouseholdsController {
     @Body() dto: CreateHouseholdDto,
     @CurrentUser() user: JwtPayload,
   ) {
-    return this.householdsService.createHousehold(dto, user.sub);
+    return this.householdsService.createHousehold(dto, user.userId!);
   }
 
   @Patch(':id')
@@ -28,7 +28,7 @@ export class HouseholdsController {
     @Body() dto: UpdateHouseholdDto,
     @CurrentUser() user: JwtPayload,
   ) {
-    return this.householdsService.renameHousehold(householdId, dto, user.sub);
+    return this.householdsService.renameHousehold(householdId, dto, user.userId!);
   }
 
   @Post(':id/leave')
@@ -36,7 +36,7 @@ export class HouseholdsController {
     @Param('id') householdId: string,
     @CurrentUser() user: JwtPayload,
   ) {
-    return this.householdsService.leaveHousehold(householdId, user.sub);
+    return this.householdsService.leaveHousehold(householdId, user.userId!);
   }
 
   @Delete(':id')
@@ -44,6 +44,6 @@ export class HouseholdsController {
     @Param('id') householdId: string,
     @CurrentUser() user: JwtPayload,
   ) {
-    return this.householdsService.deleteHousehold(householdId, user.sub);
+    return this.householdsService.deleteHousehold(householdId, user.userId!);
   }
 }

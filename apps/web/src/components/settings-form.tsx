@@ -1,8 +1,8 @@
-"use client"
 
 import { useState, useEffect } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
+import { router } from "@/router"
 import { Button } from "@/components/ui/button"
 import {
     Form,
@@ -17,7 +17,7 @@ import { Input } from "@/components/ui/input"
 import { ModeToggle } from "@/components/mode-toggle"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
-import { signOut } from "next-auth/react"
+import { useOidc } from "@/core/auth/oidc"
 import { LogOut, RefreshCw } from "lucide-react"
 import { resetRxDb } from "@/core/rxdb"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -38,6 +38,7 @@ interface SettingsFormProps {
 }
 
 export function SettingsForm({ user, households, invitationTimeoutMinutes }: SettingsFormProps) {
+    const oidc = useOidc({ assert: "user logged in" })
     const [mounted, setMounted] = useState(false)
     const updateProfile = useUpdateProfile()
 
@@ -177,7 +178,7 @@ export function SettingsForm({ user, households, invitationTimeoutMinutes }: Set
                             onClick={async () => {
                                 if (!confirm('This will delete all local data and re-sync from the server. Continue?')) return
                                 await resetRxDb()
-                                window.location.reload()
+                                router.navigate({ to: "/lists", replace: true })
                             }}
                         >
                             <RefreshCw className="mr-2 h-4 w-4" />
@@ -200,7 +201,7 @@ export function SettingsForm({ user, households, invitationTimeoutMinutes }: Set
                 <CardContent>
                     <Button
                         variant="destructive"
-                        onClick={() => signOut({ callbackUrl: "/login" })}
+                        onClick={() => oidc.logout({ redirectTo: "home" })}
                         className="w-full sm:w-auto"
                     >
                         <LogOut className="mr-2 h-4 w-4" />

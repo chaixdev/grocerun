@@ -117,7 +117,7 @@ Shopping lists follow a lifecycle:
 3. **COMPLETED**: List archived, serves as history/template.
 
 ### 6. Identity & Authentication
-- **NextAuth Integration**: Uses NextAuth for authentication with Google OAuth provider.
+- **Google OIDC Integration**: Uses Google OIDC (oidc-spa) for authentication. Currently Google-only.
 - **User Creation**: First-time users automatically get a default household.
 - **Invitation System**: Token-based invitations for household sharing (see [household-invitation-system](../design/household-invitation-system.md)).
 
@@ -125,7 +125,7 @@ Shopping lists follow a lifecycle:
 
 ### New User Journey
 ```
-1. User signs up with Clerk → User record created
+1. User signs in with Google → User record created
 2. System creates default Household "My Household"
 3. User creates first Store "Trader Joe's"
 4. User creates ShoppingList for that Store

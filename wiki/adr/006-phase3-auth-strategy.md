@@ -1,10 +1,12 @@
 # ADR 006: Phase 3 Auth Strategy — Token Endpoint
 
-**Status:** Accepted  
+**Status:** Superseded  
 **Date:** 2026-03-22  
 **Deciders:** Development Team  
 **Context:** Phase 3 — Client-Side Fetching Authentication  
 **Supersedes:** ADR 003 §Rationale.1 (Phase 3 migration path — `credentials: 'include'` approach)
+
+> **Superseded by:** Google-only OIDC integration using `oidc-spa`. Next.js and NextAuth were removed in the Vite SPA refactor. Multi-provider auth is not currently supported — see `planning/tickets/google-only-auth-cleanup.md`.
 
 ---
 

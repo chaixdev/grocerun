@@ -1,4 +1,3 @@
-"use client"
 
 import { useState, useRef } from "react"
 import { Button } from "@/components/ui/button"
@@ -21,8 +20,8 @@ import {
 } from "@/components/ui/select"
 import { Label } from "@/components/ui/label"
 import { TripSummary } from "./TripSummary"
-import { useRouter } from "next/navigation"
-import { useSession } from "next-auth/react"
+import { useRouter } from "@tanstack/react-router"
+import { useOidc } from "@/core/auth/oidc"
 import { ShoppingCart, CheckCheck, X } from "lucide-react"
 import { ListItemRow } from "./ListItemRow"
 import { useScreenWakeLock } from "@/hooks/use-screen-wake-lock"
@@ -79,11 +78,11 @@ export function ListEditor({ list }: ListEditorProps) {
     const [isEditOpen, setIsEditOpen] = useState(false)
 
     // Screen Wake Lock for Shopping Mode
-    const { data: session } = useSession()
+    const oidc = useOidc({ assert: "user logged in" })
     const isReadOnly = list.status === "COMPLETED"
     const isPlanningMode = list.status === "PLANNING"
     const isShoppingMode = list.status === "SHOPPING"
-    const isLockHolder = !isShoppingMode || list.assignedTo === session?.user?.id
+    const isLockHolder = !isShoppingMode || list.assignedTo === oidc.decodedIdToken.sub
     const isShoppingLockedForOtherUser = isShoppingMode && !isLockHolder
 
     useScreenWakeLock(isShoppingMode)
@@ -302,7 +301,7 @@ export function ListEditor({ list }: ListEditorProps) {
             {
                 onSuccess: () => {
                     toast.success("Trip completed!")
-                    router.push("/lists")
+                    router.navigate({ to: "/lists" })
                 },
             }
         )

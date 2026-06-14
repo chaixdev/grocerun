@@ -1,17 +1,19 @@
 import { Injectable, ForbiddenException, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
-import { SseBroadcastService } from '../sync/sse-broadcast.service';
+import { AccessService } from '../shared/access.service';
+import { NotificationService } from '../shared/notification.service';
 import { CreateSectionDto, UpdateSectionDto, ReorderSectionsDto } from './dto/section.dto';
 
 @Injectable()
 export class SectionsService {
   constructor(
     private prisma: PrismaService,
-    private sseBroadcast: SseBroadcastService,
+    private access: AccessService,
+    private notify: NotificationService,
   ) {}
 
   async getSections(storeId: string, userId: string) {
-    await this.verifyStoreAccess(storeId, userId);
+    await this.access.verifyStoreAccess(storeId, userId);
 
     return this.prisma.section.findMany({
       where: { storeId, deleted: false },
@@ -20,7 +22,7 @@ export class SectionsService {
   }
 
   async createSection(dto: CreateSectionDto, userId: string) {
-    await this.verifyStoreAccess(dto.storeId, userId);
+    await this.access.verifyStoreAccess(dto.storeId, userId);
 
     // If order is provided, shift everything down (only non-deleted sections)
     if (dto.order !== undefined) {
@@ -54,7 +56,7 @@ export class SectionsService {
       },
     });
 
-    this.notifyHouseholdMembers(dto.storeId);
+    this.notify.byStore(dto.storeId, ['section'], 'section-mutation');
 
     return section;
   }
@@ -68,14 +70,14 @@ export class SectionsService {
       throw new NotFoundException('Section not found');
     }
 
-    await this.verifyStoreAccess(section.storeId, userId);
+    await this.access.verifyStoreAccess(section.storeId, userId);
 
     await this.prisma.section.update({
       where: { id: sectionId },
       data: { name: dto.name },
     });
 
-    this.notifyHouseholdMembers(section.storeId);
+    this.notify.byStore(section.storeId, ['section'], 'section-mutation');
 
     return { success: true };
   }
@@ -89,7 +91,7 @@ export class SectionsService {
       throw new NotFoundException('Section not found');
     }
 
-    await this.verifyStoreAccess(section.storeId, userId);
+    await this.access.verifyStoreAccess(section.storeId, userId);
 
     const now = new Date();
 
@@ -106,13 +108,13 @@ export class SectionsService {
       });
     });
 
-    this.notifyHouseholdMembers(section.storeId);
+    this.notify.byStore(section.storeId, ['section'], 'section-mutation');
 
     return { success: true };
   }
 
   async reorderSections(storeId: string, dto: ReorderSectionsDto, userId: string) {
-    await this.verifyStoreAccess(storeId, userId);
+    await this.access.verifyStoreAccess(storeId, userId);
 
     // Security check: verify all IDs belong to the store and are not deleted
     const count = await this.prisma.section.count({
@@ -136,59 +138,8 @@ export class SectionsService {
       )
     );
 
-    this.notifyHouseholdMembers(storeId);
+    this.notify.byStore(storeId, ['section'], 'section-mutation');
 
     return { success: true };
-  }
-
-  private async verifyStoreAccess(storeId: string, userId: string) {
-    const store = await this.prisma.store.findFirst({
-      where: { id: storeId, deleted: false },
-      select: {
-        household: {
-          select: {
-            users: {
-              where: { id: userId },
-              select: { id: true },
-            },
-          },
-        },
-      },
-    });
-
-    if (!store) {
-      throw new NotFoundException('Store not found');
-    }
-
-    if (store.household.users.length === 0) {
-      throw new ForbiddenException('Access denied');
-    }
-  }
-
-  /**
-   * Fire-and-forget: resolve all household members for the store and
-   * send a RESYNC event to their open SSE connections.
-   */
-  private notifyHouseholdMembers(storeId: string) {
-    this.prisma.store
-      .findUnique({
-        where: { id: storeId },
-        select: {
-          household: {
-            select: {
-              users: { select: { id: true } },
-            },
-          },
-        },
-      })
-      .then((store) => {
-        if (store) {
-          const userIds = store.household.users.map((u) => u.id);
-          this.sseBroadcast.notify(userIds);
-        }
-      })
-      .catch(() => {
-        // Best-effort — don't fail the mutation if notification fails
-      });
   }
 }

@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react"
 import { useMutation } from "@/core/lib/useMutation"
+import { useRxMutation } from "@/core/lib/useRxMutation"
 import { api } from "@/core/lib/api"
-import { getRxDb, resyncItems, resyncListItems, resyncLists } from "@/core/rxdb"
+import { getRxDb, resyncListItems, resyncLists } from "@/core/rxdb"
 import { toast } from "sonner"
 
 // ----- Types -----
@@ -151,17 +152,32 @@ export function useListDetail(listId: string) {
       .then(async (db) => {
         if (cancelled) return
 
-        const recompute = async () => {
-          const listDoc = await db.lists.findOne(listId).exec()
-          if (!listDoc) {
-            // Not yet replicated — stay in loading state until SSE/pull delivers it.
+        let activeStoreId: string | null = null
+        let detailUnsubscribes: Array<() => void> = []
+
+        const clearDetailSubscriptions = () => {
+          detailUnsubscribes.forEach((unsubscribe) => {
+            unsubscribe()
+          })
+          detailUnsubscribes = []
+        }
+
+        const recompute = async (storeId: string) => {
+          const currentList = await db.lists.findOne(listId).exec()
+          if (!currentList) {
+            const remoteList = await api.get<ListDetail>(`/lists/${listId}`)
+            if (!cancelled) {
+              setData(remoteList)
+              setIsLoading(false)
+              setError(null)
+            }
             return
           }
 
           const [sectionDocs, listItemDocs, itemDocs, storeDoc] = await Promise.all([
             db.sections
               .find({
-                selector: { storeId: { $eq: listDoc.storeId } },
+                selector: { storeId: { $eq: storeId } },
                 sort: [{ order: 'asc' }],
               })
               .exec(),
@@ -173,10 +189,10 @@ export function useListDetail(listId: string) {
               .exec(),
             db.items
               .find({
-                selector: { storeId: { $eq: listDoc.storeId } },
+                selector: { storeId: { $eq: storeId } },
               })
               .exec(),
-            db.stores.findOne(listDoc.storeId).exec(),
+            db.stores.findOne(storeId).exec(),
           ])
 
           const itemMap = new Map(
@@ -208,13 +224,13 @@ export function useListDetail(listId: string) {
             .filter(Boolean) as ListDetailListItem[]
 
           const nextData: ListDetail = {
-            id: listDoc.id,
-            name: listDoc.name,
-            status: listDoc.status,
-            assignedTo: listDoc.assignedTo ?? null,
-            updatedAt: listDoc.updatedAt,
+            id: currentList.id,
+            name: currentList.name,
+            status: currentList.status,
+            assignedTo: currentList.assignedTo ?? null,
+            updatedAt: currentList.updatedAt,
             store: {
-              id: listDoc.storeId,
+              id: currentList.storeId,
               name: storeDoc?.name ?? 'Store',
               sections: sectionDocs.map((doc) => ({
                 id: doc.id,
@@ -232,18 +248,45 @@ export function useListDetail(listId: string) {
           }
         }
 
-        const listSub = db.lists.findOne(listId).$.subscribe(() => void recompute())
-        const listItemSub = db.listItems.find({ selector: { listId: { $eq: listId } } }).$.subscribe(() => void recompute())
-        const itemSub = db.items.find().$.subscribe(() => void recompute())
-        const sectionSub = db.sections.find().$.subscribe(() => void recompute())
+        const ensureDetailSubscriptions = (storeId: string) => {
+          if (activeStoreId === storeId && detailUnsubscribes.length > 0) return
+          clearDetailSubscriptions()
+          activeStoreId = storeId
 
+          const listItemSub = db.listItems.find({ selector: { listId: { $eq: listId } } }).$.subscribe(() => void recompute(storeId))
+          const itemSub = db.items.find({ selector: { storeId: { $eq: storeId } } }).$.subscribe(() => void recompute(storeId))
+          const sectionSub = db.sections.find({ selector: { storeId: { $eq: storeId } } }).$.subscribe(() => void recompute(storeId))
+
+          detailUnsubscribes = [
+            () => listItemSub.unsubscribe(),
+            () => itemSub.unsubscribe(),
+            () => sectionSub.unsubscribe(),
+          ]
+        }
+
+        const hydrate = async () => {
+          const listDoc = await db.lists.findOne(listId).exec()
+          if (!listDoc) {
+            resyncLists()
+            const remoteList = await api.get<ListDetail>(`/lists/${listId}`)
+            if (!cancelled) {
+              setData(remoteList)
+              setIsLoading(false)
+              setError(null)
+            }
+            return
+          }
+
+          ensureDetailSubscriptions(listDoc.storeId)
+          await recompute(listDoc.storeId)
+        }
+
+        const listSub = db.lists.findOne(listId).$.subscribe(() => void hydrate())
         unsubscribes = [
           () => listSub.unsubscribe(),
-          () => listItemSub.unsubscribe(),
-          () => itemSub.unsubscribe(),
-          () => sectionSub.unsubscribe(),
+          clearDetailSubscriptions,
         ]
-        await recompute()
+        await hydrate()
       })
       .catch((err) => {
         if (!cancelled) {
@@ -254,11 +297,13 @@ export function useListDetail(listId: string) {
 
     return () => {
       cancelled = true
-      unsubscribes.forEach((unsubscribe) => unsubscribe())
+      unsubscribes.forEach((unsubscribe) => {
+        unsubscribe()
+      })
     }
   }, [listId])
 
-  return { data, isLoading, error }
+  return { data, isLoading, error, isError: !!error }
 }
 
 // ----- Mutations -----
@@ -269,6 +314,7 @@ export function useCreateList() {
       api.post<{ id: string }>("/lists", data),
     onSuccess: () => {
       resyncLists()
+      resyncListItems()
     },
     onError: () => {
       toast.error("Failed to create list")
@@ -329,7 +375,7 @@ export function useAddItem() {
           id: newLocalId(),
           name,
           storeId: list.storeId,
-          ...(data.sectionId !== undefined ? { sectionId: data.sectionId ?? undefined } : {}),
+          ...(data.sectionId ? { sectionId: data.sectionId } : {}),
           ...(data.unit ? { defaultUnit: data.unit } : {}),
           purchaseCount: 0,
           updatedAt: now,
@@ -397,37 +443,17 @@ interface ToggleItemInput {
 }
 
 export function useToggleItem() {
-  return useMutation({
-    mutationFn: async ({ itemId, isChecked, purchasedQuantity }: ToggleItemInput) => {
-      const db = await getRxDb()
-      const doc = await db.listItems.findOne(itemId).exec()
-      if (!doc) {
-        throw new Error('List item not found in local database')
+  return useRxMutation<ToggleItemInput>({
+    collection: "listItems",
+    deriveDocId: (v) => v.itemId,
+    derivePatch: ({ isChecked, purchasedQuantity }, doc) => {
+      let final = purchasedQuantity
+      if (final === undefined) {
+        final = isChecked && doc.purchasedQuantity === undefined ? (doc.quantity as number) : (doc.purchasedQuantity as number | undefined)
       }
-
-      let finalPurchasedQuantity: number | undefined = purchasedQuantity
-      if (finalPurchasedQuantity === undefined) {
-        if (isChecked && doc.purchasedQuantity === undefined) {
-          finalPurchasedQuantity = doc.quantity
-        } else {
-          finalPurchasedQuantity = doc.purchasedQuantity
-        }
-      }
-
-      await doc.incrementalPatch({
-        isChecked,
-        purchasedQuantity: finalPurchasedQuantity,
-        updatedAt: new Date().toISOString(),
-      })
-
-      return { success: true }
+      return { isChecked, purchasedQuantity: final }
     },
-    onSuccess: () => {
-      // Local write + push replication handles sync; no explicit resync needed.
-    },
-    onError: () => {
-      toast.error("Failed to update item")
-    },
+    onError: () => toast.error("Failed to update item"),
   })
 }
 
@@ -439,49 +465,25 @@ interface UpdateQuantityInput {
 }
 
 export function useUpdateItemQuantity() {
-  return useMutation({
-    mutationFn: async ({ listItemId, quantity, unit }: UpdateQuantityInput) => {
-      const db = await getRxDb()
-      const doc = await db.listItems.findOne(listItemId).exec()
-      if (!doc) {
-        throw new Error('List item not found in local database')
-      }
-
-      await doc.incrementalPatch({
-        quantity,
-        ...(unit !== undefined ? { unit } : {}),
-        updatedAt: new Date().toISOString(),
-      })
-
-      return { success: true }
+  return useRxMutation<UpdateQuantityInput>({
+    collection: "listItems",
+    deriveDocId: (v) => v.listItemId,
+    derivePatch: ({ quantity, unit }) => {
+      const patch: Record<string, unknown> = { quantity }
+      if (unit !== undefined) patch.unit = unit
+      return patch
     },
-    onSuccess: () => {
-      // Local write + push replication handles sync; no explicit resync needed.
-    },
-    onError: () => {
-      toast.error("Failed to update quantity")
-    },
+    onError: () => toast.error("Failed to update quantity"),
   })
 }
 
 export function useRemoveItem() {
-  return useMutation({
-    mutationFn: async ({ listItemId }: { listItemId: string; listId: string }) => {
-      const db = await getRxDb()
-      const doc = await db.listItems.findOne(listItemId).exec()
-      if (!doc) {
-        throw new Error('List item not found in local database')
-      }
-      await doc.remove()
-      return { success: true }
-    },
-    onSuccess: () => {
-      // Local write + push replication handles sync; no explicit resync needed.
-      toast.success("Item removed")
-    },
-    onError: () => {
-      toast.error("Failed to remove item")
-    },
+  return useRxMutation<{ listItemId: string; listId: string }>({
+    collection: "listItems",
+    mode: "remove",
+    deriveDocId: (v) => v.listItemId,
+    onSuccess: () => toast.success("Item removed"),
+    onError: () => toast.error("Failed to remove item"),
   })
 }
 
@@ -498,6 +500,7 @@ export function useStartShopping() {
       api.post<{ success: boolean }>(`/lists/${listId}/start-shopping`, {}),
     onSuccess: () => {
       resyncLists()
+      resyncListItems()
     },
     onError: () => {
       toast.error("Failed to start shopping")
@@ -511,6 +514,7 @@ export function useCancelShopping() {
       api.post<{ success: boolean }>(`/lists/${listId}/cancel-shopping`, {}),
     onSuccess: () => {
       resyncLists()
+      resyncListItems()
     },
     onError: () => {
       toast.error("Failed to cancel shopping")
@@ -524,7 +528,7 @@ export function useCompleteList() {
       api.post<{ success: boolean }>(`/lists/${listId}/complete`, {}),
     onSuccess: () => {
       resyncLists()
-      resyncItems()
+      resyncListItems()
     },
     onError: () => {
       toast.error("Failed to complete trip")

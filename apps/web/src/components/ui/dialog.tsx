@@ -1,4 +1,3 @@
-"use client"
 
 import * as React from "react"
 import * as DialogPrimitive from "@radix-ui/react-dialog"
@@ -12,7 +11,7 @@ const DialogTrigger = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Trigger>,
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Trigger>
 >((props, ref) => (
-  <DialogPrimitive.Trigger ref={ref} {...props} suppressHydrationWarning />
+  <DialogPrimitive.Trigger ref={ref} {...props} />
 ))
 DialogTrigger.displayName = DialogPrimitive.Trigger.displayName
 

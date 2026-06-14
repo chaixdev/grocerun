@@ -1,6 +1,5 @@
-"use client"
 
-import { useRouter } from "next/navigation"
+import { useRouter } from "@tanstack/react-router"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
@@ -26,7 +25,7 @@ interface StoreSettingsFormProps {
 export function StoreSettingsForm({ store }: StoreSettingsFormProps) {
     const router = useRouter()
     const updateStore = useUpdateStore(store.id, {
-        onSuccess: () => router.push("/stores"),
+        onSuccess: () => router.navigate({ to: "/stores" }),
     })
 
     const form = useForm<z.infer<typeof UpdateStoreSchema>>({
