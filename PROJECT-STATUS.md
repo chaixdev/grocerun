@@ -1,4 +1,4 @@
-# Grocerun Project Status - January 8, 2026
+# Grocerun Project Status - March 18, 2026
 
 ## Executive Summary
 
@@ -58,29 +58,33 @@ grocerun-local/
 │  Next.js (Port 3000)            │
 │  ┌──────────────────────────┐  │
 │  │  Server Actions          │  │
-│  │  (Direct Prisma calls)   │  │  ← CURRENT STATE
+│  │  (apiClient calls)       │  │  ← CURRENT STATE (Phase 2 complete)
 │  └───────────┬──────────────┘  │
-│              │                  │
-│              ▼                  │
+└──────────────┼──────────────────┘
+               │ HTTP (JWT auth)
+               ▼
+┌─────────────────────────────────┐
+│  NestJS (Port 3001)             │
 │  ┌──────────────────────────┐  │
-│  │  Prisma Client           │  │
+│  │  REST Controllers        │  │
+│  │  + Prisma Service        │  │
 │  └───────────┬──────────────┘  │
-│              │                  │
 └──────────────┼──────────────────┘
                │
                ▼
        ┌──────────────┐
        │  SQLite DB   │
-       │  (apps/web)  │
+       │(apps/web/    │
+       │ dev.db)      │
        └──────────────┘
 ```
 
 **Key Characteristics:**
-- Server Actions directly query the database via Prisma
-- Tight coupling between UI and data layer
-- No API boundary between frontend and backend
-- Google OAuth working on localhost:3000
-- Reverse proxy configured: `/api/v1/*` → `http://localhost:3001/*` (infrastructure ready, not yet used)
+- Server Actions call NestJS via `apiClient` (JWT-authenticated REST)
+- Clean API boundary between frontend and backend
+- All domains fully migrated: items, stores, sections, lists, households, users, invitations, dashboard/directory
+- Prisma remains only in auth infrastructure (`auth.ts` via `PrismaAdapter`) — intentional
+- E2E test suite: 129 passing, 36 skipped (pre-existing)
 
 ---
 
@@ -120,78 +124,84 @@ We abandoned a ground-up rewrite approach in favor of incremental migration to:
 
 ---
 
-#### 🔄 **Phase 2: API Proxy Layer** (IN PROGRESS)
+#### ✅ **Phase 2: API Proxy Layer** (COMPLETED - March 2026)
 
 **Goal:** Decouple frontend from database by introducing API boundary
 
-**Strategy: Inverted Feature Flags**
-- All 38 server actions inventoried and flagged
-- Start with all flags `true` (use Prisma)
-- Migrate domain by domain, flip flag to `false` (use API)
-- Remove flag and old code once confident
-- Progress is measurable: count down from 38 to 0
+**What Was Done:**
 
-**What Will Change:**
+All Prisma calls removed from `apps/web` actions and pages layer. Every domain now routes through the NestJS backend via `apiClient`.
 
 ```
 BEFORE (Phase 1):
 Server Action → Prisma → SQLite
 
-DURING (Phase 2):
-Server Action → [FLAG CHECK] → Prisma OR API
-
 AFTER (Phase 2):
-Server Action → HTTP Fetch → NestJS API → Prisma → SQLite
+Server Action → HTTP Fetch (JWT) → NestJS API → Prisma → SQLite
 ```
 
-**Migration Scope:** 8 domains, 38 server actions
-- Items: 3 actions
-- Stores: 5 actions  
-- Sections: 5 actions
-- Lists: 11 actions
-- Households: 5 actions + 1 (createDefaultHousehold)
-- Users: 1 action
-- Invitations: 4 actions
-- Dashboard/Directory: 2 read queries
+**Domains Migrated:** All 8 domains complete
+- Items ✅ (3 actions)
+- Stores ✅ (5 actions)
+- Sections ✅ (5 actions)
+- Lists ✅ (11 actions)
+- Households ✅ (6 actions)
+- Users ✅ (1 action)
+- Invitations ✅ (4 actions)
+- Dashboard/Directory ✅ (2 read queries → `/household-overview`)
+- Pages layer ✅ (`settings/page.tsx`, `stores/[storeId]/page.tsx`)
 
-**Current Progress:** 0/38 actions migrated 🔴
+**Key Technical Decisions:**
+- No feature flags — direct replacement per domain
+- JWT signing pattern: `SignJWT` from `jose`, signed with `AUTH_SECRET`
+- Shared DTOs (`packages/dto`) kept clean — web-only fields (e.g. `storeId` for revalidation) use local `.extend()` in action files
+- `GET /household-overview` reused for both `getDashboardData()` and `getStoreDirectoryData()`
+- Auth infrastructure (`PrismaAdapter` in `auth.ts`) intentionally kept — NextAuth sessions still use Prisma directly
 
-**Detailed Checklist:** See [PHASE-2-MIGRATION.md](apps/web/wiki/planning/PHASE-2-MIGRATION.md)  
-**Original Plan:** See [phase-2-api-proxy.md](apps/web/wiki/planning/phase-2-api-proxy.md)
+**Validation:**
+- ✅ TypeScript typecheck passes (`npx tsc --noEmit`)
+- ✅ E2E test suite: 129 passing, 36 skipped (same as baseline)
 
-**Next Steps:**
-1. Create API client infrastructure (`api-client.ts`)
-2. Create health check endpoint (proof of concept)
-3. Migrate Users domain (simplest: 1 action)
-4. Migrate Items domain (simple CRUD: 3 actions)
-5. Continue through remaining domains
-6. Remove all flags once complete
-
-**Estimated Effort:** 12-20 hours (38 actions × 20-30 min each)
+**Detailed Checklist:** See [PHASE-2-MIGRATION.md](wiki/planning/PHASE-2-MIGRATION.md)
 
 ---
 
-#### 📋 **Phase 3: Client Fetch** (NOT STARTED)
+#### 🔄 **Phase 3: Client Fetch** (NEXT UP)
 
-**Goal:** Replace Server Actions with client-side data fetching
+**Goal:** Drop SSR, make all pages client-rendered, replace Server Actions with React Query
 
-**Why:** Prepare for RxDB integration by moving data fetching to the client
+**Why:** Simplify the architecture to a single data-fetching pattern. Next.js becomes a static
+shell (router + auth), all data flows through React Query on the client. This also prepares
+for Phase 4 (RxDB) where all data access must be client-side anyway.
+
+**Key architectural decision:** No SSR for data. Pages render a loading skeleton on first paint,
+then React Query fetches data client-side through the `/api/v1/*` proxy. For a personal grocery
+app behind auth, the SSR performance benefit is negligible and the complexity cost is not worth it.
 
 **Approach:**
-- Install React Query or SWR
-- Create custom hooks for each domain
-- Replace Server Actions with client-side API calls
+- Install React Query (`@tanstack/react-query`)
+- Convert page components from async Server Components to client components
+- Create custom hooks for each domain (`useStores`, `useLists`, etc.)
+- Move `apiClient` to browser-side (calls `/api/v1/*`, proxied to NestJS by Next.js rewrite)
+- Replace Server Actions with `useMutation` calls
 - Add loading states, error handling, optimistic updates
+- Remove `getAuthJwt()` and `jose` from web app (auth handled via session cookie → API)
+- Delete all `actions/*.ts` files
 
 **What Will Change:**
 
 ```
-BEFORE (Phase 2):
-Component → Server Action → API → NestJS
+BEFORE (Phase 2 — SSR + Server Actions):
+Browser → Next.js SSR → Server Action → getAuthJwt() → NestJS → SQLite
 
-AFTER (Phase 3):
-Component → useQuery/useMutation → API → NestJS
+AFTER (Phase 3 — Client-rendered + React Query):
+Browser → static shell (Next.js) → React Query → /api/v1/* → NestJS → SQLite
 ```
+
+**Prerequisites:**
+- ✅ Phase 2 complete (clean API boundary exists)
+- ✅ Phase 2.5 stabilization complete (JWT helper, env vars, deployment config)
+- Consider whether `@prisma/client` deps can be removed from `apps/web/package.json` now that no runtime Prisma calls exist (blocked by NextAuth PrismaAdapter)
 
 ---
 
@@ -425,16 +435,19 @@ npx prisma migrate dev
 - ✅ Google OAuth working
 - ✅ Database operational
 
-### Phase 2 (In Progress)
-- [ ] API client utility created
-- [ ] All domains have NestJS endpoints
-- [ ] All Server Actions use API (no direct Prisma)
-- [ ] UI functionality unchanged
-- [ ] Database consolidated to apps/server
+### Phase 2 (Completed ✅)
+- ✅ API client utility created (`apps/web/src/core/lib/api-client.ts`)
+- ✅ All domains have NestJS endpoints
+- ✅ All Server Actions use apiClient (no direct Prisma in actions/pages)
+- ✅ UI functionality unchanged (E2E: 129 passing)
+- ⏳ Database consolidated to `apps/server/dev.db` (deferred — both share same file path currently)
 
-### Phase 3 (Future)
+### Phase 3 (Next Up)
+- [ ] SSR dropped — all pages are client-rendered shells
 - [ ] React Query integrated
-- [ ] All data fetching client-side
+- [ ] All data fetching client-side via `/api/v1/*` proxy
+- [ ] Server Actions deleted (`actions/*.ts` removed)
+- [ ] `getAuthJwt()` and `jose` removed from web app
 - [ ] Loading states & error handling implemented
 
 ### Phase 4 (Future)
@@ -447,14 +460,9 @@ npx prisma migrate dev
 
 ## Contact & Context
 
-**Last Updated:** January 8, 2026
-**Session Context:** Planning Phase 2 migration strategy
-**Documentation:** All documentation in `apps/web/wiki/`
-
-For questions or clarifications, refer to:
-- [monorepo-architecture.md](apps/web/wiki/developer-guide/monorepo-architecture.md) for setup
-- [phase-2-api-proxy.md](apps/web/wiki/planning/phase-2-api-proxy.md) for next steps
-- [agentic-workflow.md](apps/web/wiki/developer-guide/agentic-workflow.md) for AI collaboration
+**Last Updated:** March 22, 2026
+**Session Context:** Phase 2.5 stabilization complete — JWT helper extracted, Prisma types removed, env vars fixed, unified Dockerfile created
+**Documentation:** See [PHASE-2-MIGRATION.md](wiki/planning/PHASE-2-MIGRATION.md) for full details
 
 ---
 

@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { createSection } from "@/actions/section"
+import { useCreateSection } from "@/features/stores"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
@@ -22,14 +22,15 @@ export function SectionForm({ storeId }: { storeId: string }) {
         },
     })
 
+    const createSection = useCreateSection(storeId)
+
     async function onSubmit(values: z.infer<typeof formSchema>) {
         try {
-            await createSection({ ...values, storeId })
+            await createSection.mutateAsync(values)
             form.reset()
             toast.success("Section added")
-        } catch (error) {
-            console.error(error)
-            toast.error("Failed to add section")
+        } catch {
+            // Error toast handled by the mutation hook
         }
     }
 
@@ -48,7 +49,7 @@ export function SectionForm({ storeId }: { storeId: string }) {
                         </FormItem>
                     )}
                 />
-                <Button type="submit" size="icon">
+                <Button type="submit" size="icon" disabled={createSection.isPending}>
                     <Plus className="h-4 w-4" />
                 </Button>
             </form>

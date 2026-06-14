@@ -1,4 +1,6 @@
 import { z } from 'zod'
+import { auth } from '@/core/auth'
+import { SignJWT } from 'jose'
 
 /**
  * API Client for Phase 2 Migration
@@ -7,11 +9,27 @@ import { z } from 'zod'
  * See ADR 001 for rationale: https://github.com/grocerun/wiki/adr/001-phase2-api-approach.md
  * 
  * Usage:
- *   const items = await apiClient.get('/items', ItemsSchema)
- *   const item = await apiClient.post('/items', data, ItemSchema)
+ *   const jwt = await getAuthJwt()
+ *   const items = await apiClient.get('/items', ItemsSchema, jwt)
  */
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
+const API_BASE_URL = process.env.API_URL || 'http://localhost:3001'
+
+/**
+ * Get a signed JWT for the current session. Returns null if not authenticated.
+ */
+export async function getAuthJwt(): Promise<string | null> {
+    const session = await auth()
+    if (!session?.user?.id) return null
+
+    const token = (session as any).accessToken
+    if (!token?.sub) return null
+
+    const secret = new TextEncoder().encode(process.env.AUTH_SECRET)
+    return new SignJWT(token)
+        .setProtectedHeader({ alg: 'HS256' })
+        .sign(secret)
+}
 
 /**
  * Custom error class for API errors with status code and details

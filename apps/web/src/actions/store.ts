@@ -1,149 +1,36 @@
 "use server"
 
-import { auth } from "@/core/auth"
-import { prisma } from "@/core/db"
 import { revalidatePath } from "next/cache"
-import { redirect } from "next/navigation"
 import { z } from "zod"
 
-import { verifyHouseholdAccess, verifyStoreAccess } from "@/core/auth"
-import { StoreSchema } from "@/core/schemas"
+import { CreateStoreSchema, UpdateStoreSchema } from "@grocerun/dto"
 import { type ActionResult, success, failure } from "@/core/types"
-import type { Household } from "@/core/db"
-import { usePrisma } from "@/core/config/migration"
-import { apiClient } from "@/core/lib/api-client"
-import { SignJWT } from 'jose'
+import { apiClient, getAuthJwt } from "@/core/lib/api-client"
 
 /**
  * Pure query - returns stores for the user's household.
  * Returns empty array if user has no households (caller should handle onboarding).
  */
 export async function getStores(householdId?: string) {
-    const session = await auth()
-    if (!session?.user?.id) return []
+    const jwt = await getAuthJwt()
+    if (!jwt) return []
 
-    if (usePrisma.stores) {
-        // OLD PATH: Direct Prisma
-        const user = await prisma.user.findUnique({
-            where: { id: session.user.id },
-            include: { households: true },
-        })
-
-        if (!user || user.households.length === 0) return []
-
-        let targetHouseholdId = householdId
-
-        // If no specific household requested, or requested one not found in user's list
-        if (!targetHouseholdId || !user.households.find((h: { id: string }) => h.id === targetHouseholdId)) {
-            targetHouseholdId = user.households[0]?.id
-        }
-
-        const stores = await prisma.store.findMany({
-            where: { householdId: targetHouseholdId },
-            orderBy: { createdAt: "desc" },
-        })
-
-        return stores
-    } else {
-        // NEW PATH: API call
-        const token = (session as any).accessToken
-        if (!token?.sub) return []
-
-        const secret = new TextEncoder().encode(process.env.AUTH_SECRET)
-        const jwt = await new SignJWT(token)
-            .setProtectedHeader({ alg: 'HS256' })
-            .sign(secret)
-
-        try {
-            const url = householdId ? `/stores?householdId=${householdId}` : '/stores'
-            const stores = await apiClient.get(
-                url,
-                z.array(z.any()),
-                jwt
-            )
-            return stores
-        } catch (error) {
-            console.error('Failed to fetch stores:', error)
-            return []
-        }
+    try {
+        const url = householdId ? `/stores?householdId=${householdId}` : '/stores'
+        return await apiClient.get(url, z.array(z.any()), jwt)
+    } catch (error) {
+        console.error('Failed to fetch stores:', error)
+        return []
     }
 }
 
-/**
- * Creates a default household for a user during onboarding.
- * Should be called explicitly, not as a side effect of reads.
- */
-export async function createDefaultHousehold(): Promise<ActionResult<Household>> {
-    const session = await auth()
-    if (!session?.user?.id) return failure("Unauthorized")
+export async function createStore(data: z.infer<typeof CreateStoreSchema>): Promise<ActionResult<void>> {
+    const jwt = await getAuthJwt()
+    if (!jwt) return failure("Unauthorized")
 
     try {
-        const user = await prisma.user.findUnique({
-            where: { id: session.user.id },
-            include: { households: true },
-        })
-
-        if (!user) return failure("User not found")
-
-        // Don't create if user already has households
-        if (user.households.length > 0) {
-            return success(user.households[0])
-        }
-
-        const household = await prisma.household.create({
-            data: {
-                name: "My Household",
-                users: { connect: { id: session.user.id } },
-                ownerId: session.user.id,
-            },
-        })
-
-        revalidatePath("/stores")
-        revalidatePath("/households")
-        return success(household)
-    } catch (error: unknown) {
-        console.error("Failed to create default household:", error)
-        return failure("Failed to create household")
-    }
-}
-
-export async function createStore(data: z.infer<typeof StoreSchema>): Promise<ActionResult<void>> {
-    const session = await auth()
-    if (!session?.user?.id) return failure("Unauthorized")
-
-    try {
-        const validated = StoreSchema.parse(data)
-
-        if (usePrisma.stores) {
-            // OLD PATH: Direct Prisma
-            // Verify access to household
-            const hasAccess = await verifyHouseholdAccess(session.user.id, validated.householdId)
-            if (!hasAccess) return failure("Unauthorized access to household")
-
-            await prisma.store.create({
-                data: {
-                    name: validated.name,
-                    location: validated.location,
-                    householdId: validated.householdId,
-                },
-            })
-        } else {
-            // NEW PATH: API call
-            const token = (session as any).accessToken
-            if (!token?.sub) throw new Error('No valid session token')
-
-            const secret = new TextEncoder().encode(process.env.AUTH_SECRET)
-            const jwt = await new SignJWT(token)
-                .setProtectedHeader({ alg: 'HS256' })
-                .sign(secret)
-
-            await apiClient.post(
-                '/stores',
-                validated,
-                z.object({ success: z.boolean() }),
-                jwt
-            )
-        }
+        const validated = CreateStoreSchema.parse(data)
+        await apiClient.post('/stores', validated, z.object({ success: z.boolean() }), jwt)
 
         revalidatePath("/stores")
         return success(undefined)
@@ -154,32 +41,11 @@ export async function createStore(data: z.infer<typeof StoreSchema>): Promise<Ac
 }
 
 export async function deleteStore(id: string): Promise<ActionResult<void>> {
-    const session = await auth()
-    if (!session?.user?.id) return failure("Unauthorized")
+    const jwt = await getAuthJwt()
+    if (!jwt) return failure("Unauthorized")
 
     try {
-        if (usePrisma.stores) {
-            // OLD PATH: Direct Prisma
-            // Verify ownership via household
-            await verifyStoreAccess(id, session.user.id)
-
-            await prisma.store.delete({ where: { id } })
-        } else {
-            // NEW PATH: API call
-            const token = (session as any).accessToken
-            if (!token?.sub) throw new Error('No valid session token')
-
-            const secret = new TextEncoder().encode(process.env.AUTH_SECRET)
-            const jwt = await new SignJWT(token)
-                .setProtectedHeader({ alg: 'HS256' })
-                .sign(secret)
-
-            await apiClient.delete(
-                `/stores/${id}`,
-                z.object({ success: z.boolean() }),
-                jwt
-            )
-        }
+        await apiClient.delete(`/stores/${id}`, z.object({ success: z.boolean() }), jwt)
 
         revalidatePath("/stores")
         return success(undefined)
@@ -190,102 +56,42 @@ export async function deleteStore(id: string): Promise<ActionResult<void>> {
 }
 
 export async function getStore(id: string) {
-    const session = await auth()
-    if (!session?.user?.id) return null
+    const jwt = await getAuthJwt()
+    if (!jwt) return null
 
-    if (usePrisma.stores) {
-        // OLD PATH: Direct Prisma
-        try {
-            await verifyStoreAccess(id, session.user.id)
-        } catch {
+    try {
+        return await apiClient.get(
+            `/stores/${id}`,
+            z.object({
+                id: z.string(),
+                name: z.string(),
+                location: z.string().nullable(),
+                imageUrl: z.string().nullable(),
+                householdId: z.string(),
+            }),
+            jwt
+        )
+    } catch (error) {
+        if (error instanceof Error && 'status' in error && (error as any).status === 404) {
             return null
         }
-
-        return prisma.store.findUnique({
-            where: { id },
-            select: {
-                id: true,
-                name: true,
-                location: true,
-                imageUrl: true,
-                householdId: true
-            }
-        })
-    } else {
-        // NEW PATH: API call
-        const token = (session as any).accessToken
-        if (!token?.sub) return null
-
-        const secret = new TextEncoder().encode(process.env.AUTH_SECRET)
-        const jwt = await new SignJWT(token)
-            .setProtectedHeader({ alg: 'HS256' })
-            .sign(secret)
-
-        try {
-            const store = await apiClient.get(
-                `/stores/${id}`,
-                z.object({
-                    id: z.string(),
-                    name: z.string(),
-                    location: z.string().nullable(),
-                    imageUrl: z.string().nullable(),
-                    householdId: z.string(),
-                }),
-                jwt
-            )
-            return store
-        } catch (error) {
-            // Silently return null for 404s (store not found/deleted)
-            // Only log unexpected errors
-            if (error instanceof Error && 'status' in error && (error as any).status === 404) {
-                return null
-            }
-            console.error('Failed to fetch store:', error)
-            return null
-        }
+        console.error('Failed to fetch store:', error)
+        return null
     }
 }
 
-export async function updateStore(id: string, data: z.infer<typeof StoreSchema>): Promise<ActionResult<void>> {
-    const session = await auth()
-    if (!session?.user?.id) return failure("Unauthorized")
+export async function updateStore(id: string, data: z.infer<typeof UpdateStoreSchema>): Promise<ActionResult<void>> {
+    const jwt = await getAuthJwt()
+    if (!jwt) return failure("Unauthorized")
 
     try {
-        const validated = StoreSchema.parse(data)
-
-        if (usePrisma.stores) {
-            // OLD PATH: Direct Prisma
-            await verifyStoreAccess(id, session.user.id)
-
-            await prisma.store.update({
-                where: { id },
-                data: {
-                    name: validated.name,
-                    location: validated.location,
-                    imageUrl: validated.imageUrl,
-                }
-            })
-        } else {
-            // NEW PATH: API call
-            const token = (session as any).accessToken
-            if (!token?.sub) throw new Error('No valid session token')
-
-            const secret = new TextEncoder().encode(process.env.AUTH_SECRET)
-            const jwt = await new SignJWT(token)
-                .setProtectedHeader({ alg: 'HS256' })
-                .sign(secret)
-
-            await apiClient.patch(
-                `/stores/${id}`,
-                {
-                    name: validated.name,
-                    location: validated.location,
-                    imageUrl: validated.imageUrl,
-                },
-                z.object({ success: z.boolean() }),
-                jwt
-            )
-        }
+        const validated = UpdateStoreSchema.parse(data)
+        await apiClient.patch(
+            `/stores/${id}`,
+            { name: validated.name, location: validated.location, imageUrl: validated.imageUrl },
+            z.object({ success: z.boolean() }),
+            jwt
+        )
 
         revalidatePath("/stores")
         revalidatePath(`/stores/${id}/settings`)
@@ -295,4 +101,3 @@ export async function updateStore(id: string, data: z.infer<typeof StoreSchema>)
         return failure("Failed to update store")
     }
 }
-

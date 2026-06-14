@@ -1,25 +1,22 @@
-import { auth } from "@/core/auth"
-import { getStoreDirectoryData } from "@/actions/store-directory"
+"use client"
+
+import { PageLoading } from "@/components/ui/page-loading"
 import { HouseholdStoreGroup } from "@/features/stores"
-import { redirect } from "next/navigation"
 import { CreateFirstHousehold } from "@/features/households"
+import { useStoreDirectory } from "@/features/stores/hooks/useStoreDirectory"
 
-export default async function StoresPage() {
-    const session = await auth()
-    if (!session?.user) redirect("/login")
+export default function StoresPage() {
+    const { data: households, isLoading, isError } = useStoreDirectory()
 
-    let households = []
+    if (isLoading) return <PageLoading />
 
-    try {
-        households = await getStoreDirectoryData()
-    } catch (error) {
-        console.error("Store directory error:", error)
+    if (isError) {
         return (
             <div className="container max-w-4xl mx-auto py-12 px-4 text-center">
                 <div className="p-8 border rounded-lg bg-destructive/10 border-destructive/20">
                     <h2 className="text-lg font-semibold text-destructive mb-2">Something went wrong</h2>
                     <p className="text-muted-foreground mb-4">
-                        We couldn't load your stores. Please try again later.
+                        We couldn&apos;t load your stores. Please try again later.
                     </p>
                 </div>
             </div>
@@ -36,7 +33,7 @@ export default async function StoresPage() {
             </div>
 
             <div className="space-y-12">
-                {households.length === 0 ? (
+                {!households || households.length === 0 ? (
                     <CreateFirstHousehold />
                 ) : (
                     households.map((household) => (

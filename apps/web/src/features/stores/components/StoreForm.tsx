@@ -1,5 +1,11 @@
 "use client"
 
+import { useState } from "react"
+import { useForm } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
+import { z } from "zod"
+import { Plus } from "lucide-react"
+
 import { Button } from "@/components/ui/button"
 import {
     Dialog,
@@ -11,14 +17,8 @@ import {
     DialogTrigger,
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
-import { createStore } from "@/actions/store"
-import { useState } from "react"
-import { useForm } from "react-hook-form"
-import { zodResolver } from "@hookform/resolvers/zod"
-import { z } from "zod"
-import { Plus } from "lucide-react"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
-import { toast } from "sonner"
+import { useCreateStore } from "../hooks/useStoreDirectory"
 
 const formSchema = z.object({
     name: z.string().min(1, "Name is required"),
@@ -27,6 +27,8 @@ const formSchema = z.object({
 
 export function StoreForm({ householdId, trigger }: { householdId: string, trigger?: React.ReactNode }) {
     const [open, setOpen] = useState(false)
+    const createStore = useCreateStore()
+
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
         defaultValues: {
@@ -35,16 +37,16 @@ export function StoreForm({ householdId, trigger }: { householdId: string, trigg
         },
     })
 
-    async function onSubmit(values: z.infer<typeof formSchema>) {
-        const result = await createStore({ ...values, householdId })
-        if (result.success) {
-            setOpen(false)
-            form.reset()
-            toast.success("Store created")
-        } else {
-            console.error("Failed to create store", result.error)
-            toast.error(result.error || "Failed to create store")
-        }
+    function onSubmit(values: z.infer<typeof formSchema>) {
+        createStore.mutate(
+            { ...values, householdId },
+            {
+                onSuccess: () => {
+                    setOpen(false)
+                    form.reset()
+                },
+            },
+        )
     }
 
     return (
@@ -92,7 +94,9 @@ export function StoreForm({ householdId, trigger }: { householdId: string, trigg
                             )}
                         />
                         <DialogFooter>
-                            <Button type="submit">Save changes</Button>
+                            <Button type="submit" disabled={createStore.isPending}>
+                                {createStore.isPending ? "Creating..." : "Save changes"}
+                            </Button>
                         </DialogFooter>
                     </form>
                 </Form>

@@ -7,7 +7,6 @@ import {
     CardHeader,
     CardTitle,
 } from "@/components/ui/card"
-import { deleteHousehold } from "@/actions/household"
 import { MoreHorizontal, Pencil, Trash2 } from "lucide-react"
 import { HouseholdForm } from "./HouseholdForm"
 import {
@@ -16,14 +15,11 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-
-interface Household {
-    id: string
-    name: string
-    createdAt: Date
-}
+import { useDeleteHousehold, type Household } from "../hooks/useHouseholds"
 
 export function HouseholdList({ households }: { households: Household[] }) {
+    const deleteHousehold = useDeleteHousehold()
+
     if (households.length === 0) {
         return (
             <div className="text-center p-8 border rounded-lg border-dashed text-muted-foreground">
@@ -66,18 +62,13 @@ export function HouseholdList({ households }: { households: Household[] }) {
                                         </DropdownMenuItem>
                                     }
                                 />
-                                <form
-                                    action={async () => {
-                                        await deleteHousehold(household.id)
-                                    }}
+                                <DropdownMenuItem
+                                    className="text-destructive focus:text-destructive"
+                                    onClick={() => deleteHousehold.mutate(household.id)}
                                 >
-                                    <DropdownMenuItem asChild className="text-destructive focus:text-destructive">
-                                        <button className="w-full flex items-center cursor-pointer">
-                                            <Trash2 className="mr-2 h-4 w-4" />
-                                            Delete Household
-                                        </button>
-                                    </DropdownMenuItem>
-                                </form>
+                                    <Trash2 className="mr-2 h-4 w-4" />
+                                    Delete Household
+                                </DropdownMenuItem>
                             </DropdownMenuContent>
                         </DropdownMenu>
                     </CardHeader>

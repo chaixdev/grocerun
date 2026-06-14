@@ -1,61 +1,28 @@
-import { auth } from "@/core/auth";
-import { prisma } from "@/core/db";
-import { SettingsForm } from "@/components/settings-form";
-import { redirect } from "next/navigation";
+"use client"
 
-import { appConfig } from "@/core/config";
+import { useSession } from "next-auth/react"
+import { PageLoading } from "@/components/ui/page-loading"
+import { SettingsForm } from "@/components/settings-form"
+import { useSettingsHouseholds } from "@/features/households/hooks/useInvitations"
 
-export default async function SettingsPage() {
-    const session = await auth();
+const INVITATION_TIMEOUT_MINUTES = Number(process.env.NEXT_PUBLIC_INVITATION_TIMEOUT_MINUTES) || 1440
+
+export default function SettingsPage() {
+    const { data: session, status } = useSession()
+    const { data: households, isLoading: householdsLoading } = useSettingsHouseholds()
+
+    if (status === "loading" || householdsLoading) return <PageLoading />
 
     if (!session?.user?.id) {
-        redirect("/login");
+        return null // Auth middleware will redirect
     }
 
-    let user;
-    try {
-        user = await prisma.user.findUnique({
-            where: { id: session.user.id },
-            include: {
-                households: {
-                    include: { _count: { select: { users: true } } }
-                }
-            },
-        });
-    } catch (error) {
-        console.error("Settings page - failed to fetch user:", error);
-        redirect("/login");
+    const user = {
+        id: session.user.id,
+        name: session.user.name ?? null,
+        email: session.user.email ?? null,
+        image: session.user.image ?? null,
     }
-
-    // If user doesn't exist in database but has valid session, it means the database
-    // was reset or JWT token is stale. Show a message and force logout via client-side.
-    if (!user) {
-        console.error("Settings page - user not found in database:", session.user.id);
-        return (
-            <div className="container max-w-2xl py-10 space-y-8">
-                <div className="flex flex-col items-center justify-center min-h-[50vh] space-y-4">
-                    <div className="p-8 border rounded-lg bg-destructive/10 border-destructive/20 text-center max-w-md">
-                        <h2 className="text-lg font-semibold text-destructive mb-2">Session Expired</h2>
-                        <p className="text-muted-foreground mb-4">
-                            Your session is no longer valid. Please sign in again.
-                        </p>
-                        <form action={async () => {
-                            "use server"
-                            const { signOut } = await import("@/core/auth")
-                            await signOut({ redirectTo: "/login" })
-                        }}>
-                            <button type="submit" className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2">
-                                Sign In Again
-                            </button>
-                        </form>
-                    </div>
-                </div>
-            </div>
-        );
-    }
-
-    // Settings page is accessible even without households
-    // Users can update profile and will see household invitation section
 
     return (
         <div className="container max-w-2xl py-10 space-y-8">
@@ -67,12 +34,12 @@ export default async function SettingsPage() {
             </div>
             <SettingsForm
                 user={user}
-                households={user.households}
-                invitationTimeoutMinutes={appConfig.invitation.expiresInMinutes}
+                households={households ?? []}
+                invitationTimeoutMinutes={INVITATION_TIMEOUT_MINUTES}
             />
             <div className="text-center text-xs text-muted-foreground pt-8">
                 v{process.env.NEXT_PUBLIC_APP_VERSION}
             </div>
         </div>
-    );
+    )
 }

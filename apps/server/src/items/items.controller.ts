@@ -1,50 +1,21 @@
-import { Body, Controller, Get, Post, Query, Patch, Param, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Query, Patch, Param, UseGuards } from '@nestjs/common';
+import { IsOptional, IsNotEmpty, IsNumber, IsString, Min } from 'class-validator';
 import { ItemsService } from './items.service';
-import { Item } from '../generated/prisma/client';
 import { AuthGuard, JwtPayload } from '../auth/auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
+import { UpdateItemDto } from './dto/update-item.dto';
+import { SearchItemsDto, GetTopItemsDto } from './dto/query-items.dto';
 
-export class UpdateItemDto {
-  name: string;
-  sectionId?: string;
-  defaultUnit?: string;
-}
-
-export class SearchItemsDto {
+interface SearchItemsParams {
   storeId: string;
   query: string;
-}
-
-export class GetTopItemsDto {
-  storeId: string;
-  limit?: number;
-  threshold?: number;
 }
 
 @Controller('items')
 export class ItemsController {
   constructor(private readonly itemsService: ItemsService) {}
 
-  // Legacy sync endpoints (keep for now)
-  @Get()
-  async pull(@Query('minUpdatedAt') minUpdatedAt?: string) {
-    const date = minUpdatedAt ? new Date(minUpdatedAt) : new Date(0);
-    const documents = await this.itemsService.pull(date);
-    return {
-      documents,
-      checkpoint: {
-        updatedAt: documents.length > 0 ? documents[documents.length - 1].updatedAt.toISOString() : date.toISOString(),
-      }
-    };
-  }
-
-  @Post()
-  async push(@Body() body: { items: Item[] }) {
-    await this.itemsService.push(body.items);
-    return { success: true };
-  }
-
-  // New Phase 2 endpoints
+  // Phase 2 endpoints
   @Patch(':id')
   @UseGuards(AuthGuard)
   async updateItem(
@@ -61,7 +32,8 @@ export class ItemsController {
     @Query() dto: SearchItemsDto,
     @CurrentUser() user: JwtPayload,
   ) {
-    return this.itemsService.searchItems(dto, user.sub);
+    // Cast explicitly because nestjs-zod DTOs behave slightly differently at compile time sometimes
+    return this.itemsService.searchItems(dto as SearchItemsParams, user.sub);
   }
 
   @Get('top')

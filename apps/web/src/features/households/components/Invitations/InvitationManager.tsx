@@ -1,12 +1,8 @@
-
 "use client"
 
 import { useState } from "react"
-import { createInvitation, joinHousehold, getInvitationDetails } from "@/actions/invitation"
-import { createHousehold, renameHousehold, leaveHousehold, deleteHousehold } from "@/actions/household"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { toast } from "sonner"
 import { Copy, Check, Loader2, UserPlus, Plus, Pencil, Shield, User, LogOut, Trash2 } from "lucide-react"
 import {
     Dialog,
@@ -19,188 +15,142 @@ import {
 } from "@/components/ui/dialog"
 import {
     Card,
-    CardContent,
     CardDescription,
     CardHeader,
     CardTitle,
 } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import {
+    useCreateInvitation,
+    useGetInvitationDetails,
+    useJoinHousehold,
+    type SettingsHousehold,
+} from "../../hooks/useInvitations"
+import {
+    useCreateHousehold,
+    useRenameHousehold,
+    useDeleteHousehold,
+} from "../../hooks/useHouseholds"
+import { useLeaveHousehold } from "../../hooks/useInvitations"
 
 interface InvitationManagerProps {
     userId: string
-    households: {
-        id: string
-        name: string
-        ownerId: string | null
-        _count: { users: number }
-    }[]
+    households: SettingsHousehold[]
     invitationTimeoutMinutes: number
 }
 
 export function InvitationManager({ userId, households, invitationTimeoutMinutes }: InvitationManagerProps) {
     const [inviteToken, setInviteToken] = useState<string | null>(null)
-    const [isGenerating, setIsGenerating] = useState(false)
     const [joinToken, setJoinToken] = useState("")
-    const [isJoining, setIsJoining] = useState(false)
     const [copied, setCopied] = useState(false)
 
     // Join Confirmation State
     const [joinDetails, setJoinDetails] = useState<{ householdName: string, ownerName: string } | null>(null)
-    const [isFetchingDetails, setIsFetchingDetails] = useState(false)
     const [showJoinDialog, setShowJoinDialog] = useState(false)
 
     // Create/Rename State
     const [showCreateDialog, setShowCreateDialog] = useState(false)
     const [newHouseholdName, setNewHouseholdName] = useState("")
-    const [isCreating, setIsCreating] = useState(false)
     const [editingHousehold, setEditingHousehold] = useState<{ id: string, name: string } | null>(null)
     const [renameValue, setRenameValue] = useState("")
-    const [isRenaming, setIsRenaming] = useState(false)
 
     // Leave/Delete State
     const [householdToLeave, setHouseholdToLeave] = useState<{ id: string, name: string } | null>(null)
-    const [isLeaving, setIsLeaving] = useState(false)
     const [householdToDelete, setHouseholdToDelete] = useState<{ id: string, name: string } | null>(null)
-    const [isDeleting, setIsDeleting] = useState(false)
 
     // Invite Dialog State
     const [activeInviteHouseholdId, setActiveInviteHouseholdId] = useState<string | null>(null)
 
-    async function handleGenerateInvite(householdId: string) {
-        setIsGenerating(true)
-        try {
-            const result = await createInvitation({ householdId })
-            if (result.success) {
-                if (result.data.token) {
-                    setInviteToken(result.data.token)
-                } else {
-                    toast.error("Error", { description: "No invitation token received" })
-                }
-            } else {
-                toast.error("Error", { description: result.error || "Failed to create invitation" })
-            }
-        } catch (error) {
-            toast.error("Error", { description: "An unexpected error occurred" })
-        } finally {
-            setIsGenerating(false)
-        }
+    // Mutations
+    const createInvitation = useCreateInvitation()
+    const getDetails = useGetInvitationDetails()
+    const joinHousehold = useJoinHousehold()
+    const createHousehold = useCreateHousehold()
+    const renameHousehold = useRenameHousehold()
+    const leaveHousehold = useLeaveHousehold()
+    const deleteHousehold = useDeleteHousehold()
+
+    function handleGenerateInvite(householdId: string) {
+        createInvitation.mutate(
+            { householdId },
+            {
+                onSuccess: (data) => {
+                    setInviteToken(data.token)
+                },
+            },
+        )
     }
 
-    async function handleInitiateJoin() {
+    function handleInitiateJoin() {
         if (!joinToken.trim()) return
-
-        setIsFetchingDetails(true)
-        try {
-            const details = await getInvitationDetails({ token: joinToken })
-            if (details.success) {
-                if (details.data.householdName) {
-                    setJoinDetails({
-                        householdName: details.data.householdName,
-                        ownerName: details.data.ownerName || "Unknown"
-                    })
-                    setShowJoinDialog(true)
-                } else {
-                    toast.error("Error", { description: "Invitation details incomplete" })
-                }
-            } else {
-                toast.error("Error", { description: details.error || "Invalid invitation code" })
-            }
-        } catch (error) {
-            toast.error("Error", { description: "Failed to verify invitation" })
-        } finally {
-            setIsFetchingDetails(false)
-        }
+        getDetails.mutate(joinToken, {
+            onSuccess: (data) => {
+                setJoinDetails({
+                    householdName: data.householdName,
+                    ownerName: data.ownerName || "Unknown",
+                })
+                setShowJoinDialog(true)
+            },
+        })
     }
 
-    async function handleConfirmJoin() {
-        setIsJoining(true)
-        try {
-            const result = await joinHousehold({ token: joinToken })
-            if (result.success) {
-                toast.success("Joined Household", {
-                    description: `You have successfully joined ${result.data.householdName} `
-                })
+    function handleConfirmJoin() {
+        joinHousehold.mutate(joinToken, {
+            onSuccess: () => {
                 setJoinToken("")
                 setShowJoinDialog(false)
                 setJoinDetails(null)
-            } else {
-                toast.error("Error", { description: result.error || "Failed to join household" })
-            }
-        } catch (error) {
-            toast.error("Error", { description: "An unexpected error occurred" })
-        } finally {
-            setIsJoining(false)
-        }
+            },
+        })
     }
 
-    async function handleCreateHousehold() {
+    function handleCreateHousehold() {
         if (!newHouseholdName.trim()) return
-        setIsCreating(true)
-        const result = await createHousehold({ name: newHouseholdName })
-        if (result.success) {
-            toast.success("Household Created")
-            setShowCreateDialog(false)
-            setNewHouseholdName("")
-        } else {
-            toast.error("Error", { description: result.error || "Failed to create household" })
-        }
-        setIsCreating(false)
+        createHousehold.mutate(
+            { name: newHouseholdName },
+            {
+                onSuccess: () => {
+                    setShowCreateDialog(false)
+                    setNewHouseholdName("")
+                },
+            },
+        )
     }
 
-    async function handleRenameHousehold() {
+    function handleRenameHousehold() {
         if (!editingHousehold || !renameValue.trim()) return
-        setIsRenaming(true)
-        const result = await renameHousehold({ householdId: editingHousehold.id, name: renameValue })
-        if (result.success) {
-            toast.success("Household Renamed")
-            setEditingHousehold(null)
-        } else {
-            toast.error("Error", { description: result.error || "Failed to rename household" })
-        }
-        setIsRenaming(false)
+        renameHousehold.mutate(
+            { householdId: editingHousehold.id, name: renameValue },
+            {
+                onSuccess: () => {
+                    setEditingHousehold(null)
+                },
+            },
+        )
     }
 
-    async function handleLeaveHousehold() {
+    function handleLeaveHousehold() {
         if (!householdToLeave) return
-        setIsLeaving(true)
-        try {
-            const result = await leaveHousehold(householdToLeave.id)
-            if (result.success) {
-                toast.success("Left Household", { description: `You have left ${householdToLeave.name}` })
+        leaveHousehold.mutate(householdToLeave.id, {
+            onSuccess: () => {
                 setHouseholdToLeave(null)
-            } else {
-                toast.error("Error", { description: result.error })
-            }
-        } catch (error) {
-            toast.error("Error", { description: "Failed to leave household" })
-        } finally {
-            setIsLeaving(false)
-        }
+            },
+        })
     }
 
-    async function handleDeleteHousehold() {
+    function handleDeleteHousehold() {
         if (!householdToDelete) return
-        setIsDeleting(true)
-        try {
-            const result = await deleteHousehold(householdToDelete.id)
-            if (result.success) {
-                toast.success("Household Deleted", { description: `${householdToDelete.name} has been deleted` })
+        deleteHousehold.mutate(householdToDelete.id, {
+            onSuccess: () => {
                 setHouseholdToDelete(null)
-            } else {
-                toast.error("Error", { description: result.error })
-            }
-        } catch (error) {
-            toast.error("Error", { description: "Failed to delete household" })
-        } finally {
-            setIsDeleting(false)
-        }
+            },
+        })
     }
 
     function copyToClipboard() {
         if (inviteToken) {
             navigator.clipboard.writeText(inviteToken)
             setCopied(true)
-            toast.success("Copied", { description: "Invitation code copied to clipboard" })
             setTimeout(() => setCopied(false), 2000)
         }
     }
@@ -214,8 +164,8 @@ export function InvitationManager({ userId, households, invitationTimeoutMinutes
                     value={joinToken}
                     onChange={(e) => setJoinToken(e.target.value)}
                 />
-                <Button onClick={handleInitiateJoin} disabled={isFetchingDetails || !joinToken.trim()}>
-                    {isFetchingDetails ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                <Button onClick={handleInitiateJoin} disabled={getDetails.isPending || !joinToken.trim()}>
+                    {getDetails.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                     Join Household
                 </Button>
             </div>
@@ -238,8 +188,8 @@ export function InvitationManager({ userId, households, invitationTimeoutMinutes
                         onChange={(e) => setNewHouseholdName(e.target.value)}
                     />
                     <DialogFooter>
-                        <Button onClick={handleCreateHousehold} disabled={isCreating || !newHouseholdName.trim()}>
-                            {isCreating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                        <Button onClick={handleCreateHousehold} disabled={createHousehold.isPending || !newHouseholdName.trim()}>
+                            {createHousehold.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                             Create
                         </Button>
                     </DialogFooter>
@@ -267,7 +217,7 @@ export function InvitationManager({ userId, households, invitationTimeoutMinutes
                                             )}
                                         </div>
                                         <CardDescription className="text-xs">
-                                            ID: {household.id} • {memberCount} member{memberCount !== 1 ? 's' : ''}
+                                            ID: {household.id} &bull; {memberCount} member{memberCount !== 1 ? 's' : ''}
                                         </CardDescription>
                                     </div>
                                     <div className="flex gap-2">
@@ -294,8 +244,8 @@ export function InvitationManager({ userId, households, invitationTimeoutMinutes
                                                         onChange={(e) => setRenameValue(e.target.value)}
                                                     />
                                                     <DialogFooter>
-                                                        <Button onClick={handleRenameHousehold} disabled={isRenaming || !renameValue.trim()}>
-                                                            {isRenaming ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                                                        <Button onClick={handleRenameHousehold} disabled={renameHousehold.isPending || !renameValue.trim()}>
+                                                            {renameHousehold.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                                                             Save
                                                         </Button>
                                                     </DialogFooter>
@@ -329,7 +279,7 @@ export function InvitationManager({ userId, households, invitationTimeoutMinutes
                                                     </DialogDescription>
                                                 </DialogHeader>
 
-                                                {isGenerating ? (
+                                                {createInvitation.isPending ? (
                                                     <div className="flex justify-center p-4">
                                                         <Loader2 className="h-6 w-6 animate-spin" />
                                                     </div>
@@ -348,7 +298,7 @@ export function InvitationManager({ userId, households, invitationTimeoutMinutes
                                                     </div>
                                                 ) : (
                                                     <div className="text-center text-sm text-muted-foreground p-4">
-                                                        Click "Invite" to generate code.
+                                                        Click &quot;Invite&quot; to generate code.
                                                     </div>
                                                 )}
                                             </DialogContent>
@@ -396,8 +346,8 @@ export function InvitationManager({ userId, households, invitationTimeoutMinutes
                     </DialogHeader>
                     <DialogFooter>
                         <Button variant="outline" onClick={() => setShowJoinDialog(false)}>Cancel</Button>
-                        <Button onClick={handleConfirmJoin} disabled={isJoining}>
-                            {isJoining ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                        <Button onClick={handleConfirmJoin} disabled={joinHousehold.isPending}>
+                            {joinHousehold.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                             Confirm & Join
                         </Button>
                     </DialogFooter>
@@ -415,8 +365,8 @@ export function InvitationManager({ userId, households, invitationTimeoutMinutes
                     </DialogHeader>
                     <DialogFooter>
                         <Button variant="outline" onClick={() => setHouseholdToLeave(null)}>Cancel</Button>
-                        <Button variant="destructive" onClick={handleLeaveHousehold} disabled={isLeaving}>
-                            {isLeaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                        <Button variant="destructive" onClick={handleLeaveHousehold} disabled={leaveHousehold.isPending}>
+                            {leaveHousehold.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                             Leave
                         </Button>
                     </DialogFooter>
@@ -434,8 +384,8 @@ export function InvitationManager({ userId, households, invitationTimeoutMinutes
                     </DialogHeader>
                     <DialogFooter>
                         <Button variant="outline" onClick={() => setHouseholdToDelete(null)}>Cancel</Button>
-                        <Button variant="destructive" onClick={handleDeleteHousehold} disabled={isDeleting}>
-                            {isDeleting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                        <Button variant="destructive" onClick={handleDeleteHousehold} disabled={deleteHousehold.isPending}>
+                            {deleteHousehold.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                             Delete
                         </Button>
                     </DialogFooter>
@@ -444,4 +394,3 @@ export function InvitationManager({ userId, households, invitationTimeoutMinutes
         </div>
     )
 }
-

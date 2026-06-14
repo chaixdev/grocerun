@@ -1,17 +1,6 @@
 import { Injectable, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
-
-type CreateStoreDto = {
-  name: string;
-  location?: string;
-  householdId: string;
-}
-
-type UpdateStoreDto = {
-  name: string;
-  location?: string;
-  imageUrl?: string;
-}
+import { CreateStoreDto, UpdateStoreDto } from './dto/store.dto';
 
 @Injectable()
 export class StoresService {

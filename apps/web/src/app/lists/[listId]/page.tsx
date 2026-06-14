@@ -1,23 +1,30 @@
-import { auth } from "@/core/auth"
-import { getList } from "@/actions/list"
-import { notFound, redirect } from "next/navigation"
+"use client"
+
+import { useParams } from "next/navigation"
+import { useListDetail } from "@/features/lists/hooks/useLists"
 import { ListEditor } from "@/features/lists"
+import { PageLoading } from "@/components/ui/page-loading"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { ArrowLeft, ScrollText } from "lucide-react"
 import Link from "next/link"
 
-export default async function ListDetailsPage({
-    params,
-}: {
-    params: Promise<{ listId: string }>
-}) {
-    const session = await auth()
-    if (!session?.user?.id) redirect("/login")
+export default function ListDetailsPage() {
+    const { listId } = useParams<{ listId: string }>()
+    const { data: list, isLoading, error } = useListDetail(listId)
 
-    const { listId } = await params
-    const list = await getList(listId)
-    if (!list) notFound()
+    if (isLoading) return <PageLoading />
+
+    if (error || !list) {
+        return (
+            <div className="container py-10 max-w-2xl mx-auto text-center">
+                <p className="text-muted-foreground">List not found.</p>
+                <Button variant="ghost" asChild className="mt-4">
+                    <Link href="/lists">Back to Lists</Link>
+                </Button>
+            </div>
+        )
+    }
 
     return (
         <div className="container py-10 space-y-8 max-w-2xl mx-auto">
@@ -36,9 +43,9 @@ export default async function ListDetailsPage({
                             <ScrollText className="h-3 w-3" />
                             <span>List</span>
                         </span>
-                        <span className="text-muted-foreground/40">•</span>
+                        <span className="text-muted-foreground/40">&bull;</span>
                         <span suppressHydrationWarning>{new Date(list.updatedAt).toLocaleDateString()}</span>
-                        <span className="text-muted-foreground/40">•</span>
+                        <span className="text-muted-foreground/40">&bull;</span>
                         {list.status === "PLANNING" && (
                             <Badge variant="outline" className="text-[9px] font-bold uppercase tracking-wider border-primary/20 text-primary">
                                 Planning

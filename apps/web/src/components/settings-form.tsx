@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { updateProfile } from "@/actions/user"
 import { Button } from "@/components/ui/button"
 import {
     Form,
@@ -18,11 +17,12 @@ import { Input } from "@/components/ui/input"
 import { ModeToggle } from "@/components/mode-toggle"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
-import { toast } from "sonner"
 import { signOut } from "next-auth/react"
 import { LogOut } from "lucide-react"
-import { ProfileSchema, type ProfileFormValues } from "@/core/schemas"
+import { UpdateProfileSchema, type UpdateProfileDto } from "@grocerun/dto"
 import { InvitationManager } from "@/features/households"
+import { useUpdateProfile } from "@/hooks/useProfile"
+import type { SettingsHousehold } from "@/features/households/hooks/useInvitations"
 
 interface SettingsFormProps {
     user: {
@@ -31,52 +31,28 @@ interface SettingsFormProps {
         email?: string | null
         image?: string | null
     }
-    households: {
-        id: string
-        name: string
-        ownerId: string | null
-        _count: { users: number }
-    }[]
+    households: SettingsHousehold[]
     invitationTimeoutMinutes: number
 }
 
 export function SettingsForm({ user, households, invitationTimeoutMinutes }: SettingsFormProps) {
-    const [isLoading, setIsLoading] = useState(false)
     const [mounted, setMounted] = useState(false)
+    const updateProfile = useUpdateProfile()
 
     useEffect(() => {
         setMounted(true)
     }, [])
 
-    const form = useForm<ProfileFormValues>({
-        resolver: zodResolver(ProfileSchema),
+    const form = useForm<UpdateProfileDto>({
+        resolver: zodResolver(UpdateProfileSchema),
         defaultValues: {
             name: user.name || "",
             image: user.image || "",
         },
     })
 
-    async function onSubmit(values: ProfileFormValues) {
-        setIsLoading(true)
-        try {
-            const result = await updateProfile(values)
-
-            if (result.success) {
-                toast.success("Profile updated", {
-                    description: "Your profile has been updated successfully.",
-                })
-            } else {
-                toast.error("Error", {
-                    description: result.error || "Failed to update profile.",
-                })
-            }
-        } catch (error) {
-            toast.error("Error", {
-                description: "An unexpected error occurred.",
-            })
-        } finally {
-            setIsLoading(false)
-        }
+    function onSubmit(values: UpdateProfileDto) {
+        updateProfile.mutate(values)
     }
 
     if (!mounted) {
@@ -124,8 +100,8 @@ export function SettingsForm({ user, households, invitationTimeoutMinutes }: Set
                                     </FormItem>
                                 )}
                             />
-                            <Button type="submit" disabled={isLoading}>
-                                {isLoading ? "Saving..." : "Save Changes"}
+                            <Button type="submit" disabled={updateProfile.isPending}>
+                                {updateProfile.isPending ? "Saving..." : "Save Changes"}
                             </Button>
                         </form>
                     </Form>
@@ -181,6 +157,6 @@ export function SettingsForm({ user, households, invitationTimeoutMinutes }: Set
                     </Button>
                 </CardContent>
             </Card>
-        </div >
+        </div>
     )
 }

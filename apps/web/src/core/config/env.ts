@@ -9,6 +9,9 @@ const envSchema = z.object({
     AUTH_GOOGLE_ID: z.string().min(1, 'AUTH_GOOGLE_ID is required'),
     AUTH_GOOGLE_SECRET: z.string().min(1, 'AUTH_GOOGLE_SECRET is required'),
 
+    // API
+    API_URL: z.string().url().optional(),
+
     // Optional
     AUTH_TRUST_HOST: z.string().optional(),
     NEXT_PUBLIC_APP_VERSION: z.string().optional(),

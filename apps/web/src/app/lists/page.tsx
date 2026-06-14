@@ -1,28 +1,25 @@
-import { auth } from "@/core/auth";
-import { getDashboardData } from "@/actions/dashboard";
-import { HouseholdListGroup } from "@/features/lists";
-import { redirect } from "next/navigation";
+"use client"
 
-export default async function ListsPage() {
-    const session = await auth();
-    if (!session?.user) redirect("/login");
+import { PageLoading } from "@/components/ui/page-loading"
+import { HouseholdListGroup } from "@/features/lists"
+import { useDashboard } from "@/features/lists/hooks/useDashboard"
 
-    let households = [];
+export default function ListsPage() {
+    const { data: households, isLoading, isError } = useDashboard()
 
-    try {
-        households = await getDashboardData();
-    } catch (error) {
-        console.error("Dashboard page error:", error);
+    if (isLoading) return <PageLoading />
+
+    if (isError) {
         return (
             <div className="container max-w-4xl mx-auto py-12 px-4 text-center">
                 <div className="p-8 border rounded-lg bg-destructive/10 border-destructive/20">
                     <h2 className="text-lg font-semibold text-destructive mb-2">Something went wrong</h2>
                     <p className="text-muted-foreground mb-4">
-                        We couldn't load your lists. Please try again later.
+                        We couldn&apos;t load your lists. Please try again later.
                     </p>
                 </div>
             </div>
-        );
+        )
     }
 
     return (
@@ -35,7 +32,7 @@ export default async function ListsPage() {
             </div>
 
             <div className="space-y-12">
-                {households.length === 0 ? (
+                {!households || households.length === 0 ? (
                     <div className="text-center py-12 border rounded-lg bg-muted/20 border-dashed">
                         <p className="text-lg font-medium">No households found</p>
                         <p className="text-muted-foreground mt-1">
@@ -52,5 +49,5 @@ export default async function ListsPage() {
                 )}
             </div>
         </div>
-    );
+    )
 }

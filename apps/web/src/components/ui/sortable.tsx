@@ -96,13 +96,13 @@ export function SortableList<T extends { id: string }>({
         >
             <SortableListContext.Provider value={{ activeId }}>
                 <SortableContext items={items} strategy={verticalListSortingStrategy}>
-                    {children}
+                    {children as any}
                 </SortableContext>
             </SortableListContext.Provider>
 
             {renderOverlay && (
                 <DragOverlay dropAnimation={dropAnimation}>
-                    {activeItem ? renderOverlay(activeItem) : null}
+                    {(activeItem ? renderOverlay(activeItem) : null) as any}
                 </DragOverlay>
             )}
         </DndContext>
@@ -148,7 +148,7 @@ export const SortableItem = React.forwardRef<HTMLDivElement, SortableItemProps>(
                 }}
                 className={cn(isDragging && "opacity-50", className)}
                 {...attributes}
-                {...props}
+                {...props as any}
             >
                 {/* We pass listeners to children via a specific handle or the whole item if desired */}
                 {/* Actually, for maximum flexibility, we should probably expose listeners via context or render prop, 

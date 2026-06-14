@@ -1,10 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
-
-export interface UpdateProfileDto {
-  name: string;
-  image?: string;
-}
+import { UpdateProfileDto } from './dto/user.dto';
 
 @Injectable()
 export class UsersService {

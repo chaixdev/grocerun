@@ -1,10 +1,8 @@
 "use client"
 
-import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { deleteStore } from "@/actions/store"
 import {
     AlertDialog,
     AlertDialogAction,
@@ -16,7 +14,7 @@ import {
     AlertDialogTitle,
     AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
-import { toast } from "sonner"
+import { useDeleteStore } from "../../hooks/useStore"
 
 interface StoreDeleteSectionProps {
     storeId: string
@@ -25,20 +23,9 @@ interface StoreDeleteSectionProps {
 
 export function StoreDeleteSection({ storeId, storeName }: StoreDeleteSectionProps) {
     const router = useRouter()
-    const [isDeleting, setIsDeleting] = useState(false)
-
-    async function handleDelete() {
-        setIsDeleting(true)
-        try {
-            await deleteStore(storeId)
-            toast.success("Store deleted")
-            router.push("/stores")
-            router.refresh()
-        } catch (error) {
-            toast.error("Failed to delete store")
-            setIsDeleting(false)
-        }
-    }
+    const deleteStore = useDeleteStore(storeId, {
+        onSuccess: () => router.push("/stores"),
+    })
 
     return (
         <div className="flex items-center justify-between">
@@ -50,7 +37,7 @@ export function StoreDeleteSection({ storeId, storeName }: StoreDeleteSectionPro
             </div>
             <AlertDialog>
                 <AlertDialogTrigger asChild>
-                    <Button variant="destructive" disabled={isDeleting}>
+                    <Button variant="destructive" disabled={deleteStore.isPending}>
                         <Trash2 className="mr-2 h-4 w-4" />
                         Delete Store
                     </Button>
@@ -67,10 +54,10 @@ export function StoreDeleteSection({ storeId, storeName }: StoreDeleteSectionPro
                     <AlertDialogFooter>
                         <AlertDialogCancel>Cancel</AlertDialogCancel>
                         <AlertDialogAction
-                            onClick={handleDelete}
+                            onClick={() => deleteStore.mutate()}
                             className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                         >
-                            {isDeleting ? "Deleting..." : "Delete Store"}
+                            {deleteStore.isPending ? "Deleting..." : "Delete Store"}
                         </AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>

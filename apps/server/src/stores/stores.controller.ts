@@ -2,18 +2,7 @@ import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UseGuards } f
 import { StoresService } from './stores.service';
 import { AuthGuard, JwtPayload } from '../auth/auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
-
-export class CreateStoreDto {
-  name: string;
-  location?: string;
-  householdId: string;
-}
-
-export class UpdateStoreDto {
-  name: string;
-  location?: string;
-  imageUrl?: string;
-}
+import { CreateStoreDto, UpdateStoreDto } from './dto/store.dto';
 
 @Controller('stores')
 @UseGuards(AuthGuard)

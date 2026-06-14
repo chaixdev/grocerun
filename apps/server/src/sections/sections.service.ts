@@ -1,19 +1,6 @@
 import { Injectable, ForbiddenException, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
-
-type CreateSectionDto = {
-  name: string;
-  storeId: string;
-  order?: number;
-}
-
-type UpdateSectionDto = {
-  name: string;
-}
-
-type ReorderSectionsDto = {
-  orderedIds: string[];
-}
+import { CreateSectionDto, UpdateSectionDto, ReorderSectionsDto } from './dto/section.dto';
 
 @Injectable()
 export class SectionsService {

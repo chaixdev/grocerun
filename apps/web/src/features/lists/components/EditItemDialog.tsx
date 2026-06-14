@@ -18,8 +18,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select"
-import { updateItem } from "@/actions/item"
-import { toast } from "sonner"
+import { useUpdateItem } from "../hooks/useItems"
 
 interface Section {
     id: string
@@ -36,36 +35,37 @@ interface Item {
 interface EditItemDialogProps {
     item: Item
     sections: Section[]
+    listId: string
     open: boolean
     onOpenChange: (open: boolean) => void
     onSuccess?: () => void
 }
 
-export function EditItemDialog({ item, sections, open, onOpenChange, onSuccess }: EditItemDialogProps) {
+export function EditItemDialog({ item, sections, listId, open, onOpenChange, onSuccess }: EditItemDialogProps) {
     const [name, setName] = useState(item.name)
     const [sectionId, setSectionId] = useState(item.sectionId || "uncategorized")
     const [defaultUnit, setDefaultUnit] = useState(item.defaultUnit || "")
-    const [isSubmitting, setIsSubmitting] = useState(false)
 
-    const handleSave = async () => {
+    const updateItem = useUpdateItem()
+
+    const handleSave = () => {
         if (!name.trim()) return
 
-        setIsSubmitting(true)
-        const result = await updateItem({
-            itemId: item.id,
-            name: name.trim(),
-            sectionId: sectionId === "uncategorized" ? undefined : sectionId,
-            defaultUnit: defaultUnit.trim() || undefined,
-        })
-
-        if (result.success) {
-            toast.success("Item updated")
-            onOpenChange(false)
-            onSuccess?.()
-        } else {
-            toast.error(result.error || "Failed to update item")
-        }
-        setIsSubmitting(false)
+        updateItem.mutate(
+            {
+                itemId: item.id,
+                name: name.trim(),
+                sectionId: sectionId === "uncategorized" ? undefined : sectionId,
+                defaultUnit: defaultUnit.trim() || undefined,
+                listId,
+            },
+            {
+                onSuccess: () => {
+                    onOpenChange(false)
+                    onSuccess?.()
+                },
+            }
+        )
     }
 
     return (
@@ -113,7 +113,7 @@ export function EditItemDialog({ item, sections, open, onOpenChange, onSuccess }
                     <Button variant="outline" onClick={() => onOpenChange(false)}>
                         Cancel
                     </Button>
-                    <Button onClick={handleSave} disabled={isSubmitting}>
+                    <Button onClick={handleSave} disabled={updateItem.isPending}>
                         Save Changes
                     </Button>
                 </DialogFooter>

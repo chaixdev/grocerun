@@ -6,17 +6,17 @@ services:
     ports:
       - "3000:3000"
     environment:
-      # Use a file-based SQLite database
       - DATABASE_URL=file:/app/data/prod.db
       - AUTH_SECRET=${AUTH_SECRET}
       - AUTH_GOOGLE_ID=${AUTH_GOOGLE_ID}
       - AUTH_GOOGLE_SECRET=${AUTH_GOOGLE_SECRET}
       - AUTH_TRUST_HOST=true
       - HOSTNAME=0.0.0.0
+      # Internal: API server runs in same container
+      - API_URL=http://localhost:3001
     env_file:
       - .env
     volumes:
-      # Persist the SQLite database file
       - grocerun_data:/app/data
 
 volumes:

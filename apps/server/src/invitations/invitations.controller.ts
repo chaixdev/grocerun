@@ -2,18 +2,7 @@ import { Body, Controller, Get, Param, Patch, Post, UseGuards } from '@nestjs/co
 import { InvitationsService } from './invitations.service';
 import { AuthGuard, JwtPayload } from '../auth/auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
-
-export class CreateInvitationDto {
-  householdId: string;
-}
-
-export class JoinHouseholdDto {
-  token: string;
-}
-
-export class RevokeInvitationDto {
-  invitationId: string;
-}
+import { CreateInvitationDto, JoinHouseholdDto, RevokeInvitationDto } from './dto/invitation.dto';
 
 @Controller('invitations')
 @UseGuards(AuthGuard)

@@ -1,13 +1,6 @@
 import { Injectable, ForbiddenException, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
-
-type CreateHouseholdDto = {
-  name: string;
-}
-
-type RenameHouseholdDto = {
-  name: string;
-}
+import { CreateHouseholdDto, UpdateHouseholdDto } from './dto/household.dto';
 
 @Injectable()
 export class HouseholdsService {
@@ -39,7 +32,7 @@ export class HouseholdsService {
     return { success: true };
   }
 
-  async renameHousehold(householdId: string, dto: RenameHouseholdDto, userId: string) {
+  async renameHousehold(householdId: string, dto: UpdateHouseholdDto, userId: string) {
     const household = await this.prisma.household.findUnique({
       where: { id: householdId },
       select: { ownerId: true }

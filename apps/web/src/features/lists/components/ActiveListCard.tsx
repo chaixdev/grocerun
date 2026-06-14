@@ -10,7 +10,7 @@ interface ActiveListCardProps {
         name: string
         status: string
         _count: { items: number }
-        updatedAt: Date
+        updatedAt: string | Date
     }
     storeName: string
 }
