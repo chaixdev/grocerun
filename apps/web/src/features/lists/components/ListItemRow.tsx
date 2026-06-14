@@ -31,6 +31,7 @@ interface ListItem {
 interface ListItemRowProps {
     listItem: ListItem
     isReadOnly: boolean
+    isLocked?: boolean
     isHighlighted: boolean
     isPlanningMode: boolean
     onToggle: (id: string, checked: boolean, purchasedQuantity?: number) => void
@@ -43,6 +44,7 @@ interface ListItemRowProps {
 export function ListItemRow({
     listItem,
     isReadOnly,
+    isLocked = false,
     isHighlighted,
     isPlanningMode,
     onToggle,
@@ -63,14 +65,15 @@ export function ListItemRow({
 
     // "Shopping Mode" for UI purposes implies not planning mode and not read only
     const isShoppingMode = !isPlanningMode && !isReadOnly
+    const isInteractionDisabled = isReadOnly || isLocked
 
     return (
         <div
             ref={itemRef}
             data-testid={`list-item-row-${listItem.item.name.toLowerCase().replace(/\s+/g, '-')}`}
-            className={`group flex items-center gap-3 p-3 border-b last:border-0 transition-all duration-200 ${isPlanningMode ? "" : "hover:bg-muted/30 cursor-pointer"} ${listItem.isChecked ? "opacity-50" : ""} ${isHighlighted ? "bg-primary/10" : ""}`}
+            className={`group flex items-center gap-3 p-3 border-b last:border-0 transition-all duration-200 ${isPlanningMode || isInteractionDisabled ? "" : "hover:bg-muted/30 cursor-pointer"} ${listItem.isChecked ? "opacity-50" : ""} ${isHighlighted ? "bg-primary/10" : ""} ${isLocked ? "opacity-70" : ""}`}
             onClick={() => {
-                if (!isReadOnly && !isPlanningMode) {
+                if (!isInteractionDisabled && !isPlanningMode) {
                     // Implicit toggle: Bought = Planned (reset purchasedQuantity to null if unchecking)
                     onToggle(listItem.id, !listItem.isChecked, undefined)
                 }
@@ -81,7 +84,7 @@ export function ListItemRow({
                 <Checkbox
                     checked={listItem.isChecked}
                     onCheckedChange={() => { }} // Handled by div click
-                    disabled={isReadOnly}
+                    disabled={isInteractionDisabled}
                     className="h-5 w-5 rounded-[4px] border-muted-foreground/30 data-[state=checked]:bg-primary data-[state=checked]:border-primary transition-all shrink-0"
                 />
             )}
@@ -98,6 +101,9 @@ export function ListItemRow({
                         unit={listItem.unit}
                         plannedValue={isShoppingMode ? listItem.quantity : undefined}
                         onChange={(qty, unit) => {
+                            if (isInteractionDisabled) {
+                                return
+                            }
                             if (isPlanningMode) {
                                 onUpdateQuantity?.(listItem.id, qty, unit)
                             } else {
@@ -122,7 +128,7 @@ export function ListItemRow({
             </div>
 
             {/* 4. Actions (Desktop: Hover, Mobile: Dropdown) */}
-            {isPlanningMode && !isReadOnly && (
+            {isPlanningMode && !isInteractionDisabled && (
                 <div onClick={(e) => e.stopPropagation()}>
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>

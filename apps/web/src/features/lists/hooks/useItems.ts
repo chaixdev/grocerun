@@ -1,7 +1,7 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query"
+import { useMutation } from "@/core/lib/useMutation"
 import { api } from "@/core/lib/api"
+import { getRxDb, resyncItems } from "@/core/rxdb"
 import { toast } from "sonner"
-import { listKeys } from "./useLists"
 
 // ----- Types -----
 
@@ -18,9 +18,25 @@ export interface SearchResult {
 // so these are plain async functions, not React Query hooks.
 
 export async function searchItems(storeId: string, query: string): Promise<SearchResult[]> {
-  return api.get<SearchResult[]>(
-    `/items/search?storeId=${storeId}&query=${encodeURIComponent(query)}`
-  )
+  const db = await getRxDb()
+  const docs = await db.items
+    .find({
+      selector: {
+        storeId: { $eq: storeId },
+        name: { $regex: query.trim() ? query.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&") : ".*" },
+      },
+      sort: [{ purchaseCount: 'desc' }, { name: 'asc' }],
+      limit: 20,
+    })
+    .exec()
+
+  return docs.map((doc) => ({
+    id: doc.id,
+    name: doc.name,
+    sectionId: doc.sectionId ?? null,
+    defaultUnit: doc.defaultUnit ?? null,
+    purchaseCount: doc.purchaseCount,
+  }))
 }
 
 export async function getTopItemsForStore(
@@ -28,9 +44,25 @@ export async function getTopItemsForStore(
   limit = 5,
   threshold = 1
 ): Promise<SearchResult[]> {
-  return api.get<SearchResult[]>(
-    `/items/top?storeId=${storeId}&limit=${limit}&threshold=${threshold}`
-  )
+  const db = await getRxDb()
+  const docs = await db.items
+    .find({
+      selector: {
+        storeId: { $eq: storeId },
+        purchaseCount: { $gte: threshold },
+      },
+      sort: [{ purchaseCount: 'desc' }, { name: 'asc' }],
+      limit,
+    })
+    .exec()
+
+  return docs.map((doc) => ({
+    id: doc.id,
+    name: doc.name,
+    sectionId: doc.sectionId ?? null,
+    defaultUnit: doc.defaultUnit ?? null,
+    purchaseCount: doc.purchaseCount,
+  }))
 }
 
 // ----- Mutations -----
@@ -44,8 +76,6 @@ interface UpdateItemInput {
 }
 
 export function useUpdateItem() {
-  const queryClient = useQueryClient()
-
   return useMutation({
     mutationFn: ({ itemId, name, sectionId, defaultUnit }: UpdateItemInput) =>
       api.patch<{ status: "UPDATED" }>(`/items/${itemId}`, {
@@ -54,7 +84,7 @@ export function useUpdateItem() {
         defaultUnit,
       }),
     onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: listKeys.detail(variables.listId) })
+      resyncItems()
       toast.success("Item updated")
     },
     onError: () => {

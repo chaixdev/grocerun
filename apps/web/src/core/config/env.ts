@@ -21,32 +21,29 @@ const envSchema = z.object({
 })
 
 function validateEnv() {
-    // Allow skipping validation in test/build environments if needed, 
-    // but strictly we want to fail fast. 
-    // However, during CI build, sometimes not all secrets are present (e.g. docker build args).
-    // For now, full strict validation.
+    // Skip validation at Next.js build time — secrets are not available in the
+    // build container and are not needed (no requests are served during build).
+    if (process.env.NEXT_PHASE === 'phase-production-build') {
+        return {} as z.infer<typeof envSchema>
+    }
 
-    // Note: process.env is a regular object, safeParse works fine.
     const result = envSchema.safeParse(process.env)
 
     if (!result.success) {
         console.error('❌ Invalid environment variables:')
         console.error(JSON.stringify(result.error.flatten().fieldErrors, null, 2))
-        // Don't throw during build time if we want to allow 'next build' without secrets?
-        // Usually 'next build' requires database url for prisma generation maybe?
-        // Let's throw.
-        if (process.env.NODE_ENV !== 'test') {
-            throw new Error('Invalid environment variables')
+
+        if (process.env.NODE_ENV === 'test') {
+            return {
+                DATABASE_URL: 'file:./test.db',
+                AUTH_SECRET: 'test-secret',
+                AUTH_GOOGLE_ID: 'test-client-id',
+                AUTH_GOOGLE_SECRET: 'test-client-secret',
+                NODE_ENV: 'test'
+            } as z.infer<typeof envSchema>
         }
 
-        // Return mock values for test environment if actual env vars are missing
-        return {
-            DATABASE_URL: 'file:./test.db',
-            AUTH_SECRET: 'test-secret',
-            AUTH_GOOGLE_ID: 'test-client-id',
-            AUTH_GOOGLE_SECRET: 'test-client-secret',
-            NODE_ENV: 'test'
-        } as z.infer<typeof envSchema>
+        throw new Error('Invalid environment variables')
     }
 
     return result.data

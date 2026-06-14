@@ -8,7 +8,7 @@ export class HealthController {
       status: 'ok',
       timestamp: new Date().toISOString(),
       service: 'grocerun-api',
-      version: '1.0.0',
+      version: process.env.APP_VERSION ?? 'dev',
     };
   }
 }

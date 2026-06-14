@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Copy, Check, Loader2, UserPlus, Plus, Pencil, Shield, User, LogOut, Trash2 } from "lucide-react"
@@ -56,7 +57,7 @@ export function InvitationManager({ userId, households, invitationTimeoutMinutes
 
     // Leave/Delete State
     const [householdToLeave, setHouseholdToLeave] = useState<{ id: string, name: string } | null>(null)
-    const [householdToDelete, setHouseholdToDelete] = useState<{ id: string, name: string } | null>(null)
+    const [householdToDelete, setHouseholdToDelete] = useState<{ id: string, name: string, memberCount: number } | null>(null)
 
     // Invite Dialog State
     const [activeInviteHouseholdId, setActiveInviteHouseholdId] = useState<string | null>(null)
@@ -140,6 +141,12 @@ export function InvitationManager({ userId, households, invitationTimeoutMinutes
 
     function handleDeleteHousehold() {
         if (!householdToDelete) return
+        if (householdToDelete.memberCount > 1) {
+            toast.error("Cannot delete household with other members", {
+                description: "Remove or transfer the other members first.",
+            })
+            return
+        }
         deleteHousehold.mutate(householdToDelete.id, {
             onSuccess: () => {
                 setHouseholdToDelete(null)
@@ -311,7 +318,7 @@ export function InvitationManager({ userId, households, invitationTimeoutMinutes
                                                 size="icon"
                                                 className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
                                                 disabled={memberCount > 1}
-                                                onClick={() => setHouseholdToDelete(household)}
+                                                onClick={() => setHouseholdToDelete({ id: household.id, name: household.name, memberCount })}
                                                 title={memberCount > 1 ? "Cannot delete household with other members" : "Delete Household"}
                                             >
                                                 <Trash2 className="h-4 w-4" />
@@ -379,12 +386,14 @@ export function InvitationManager({ userId, households, invitationTimeoutMinutes
                     <DialogHeader>
                         <DialogTitle>Delete Household</DialogTitle>
                         <DialogDescription>
-                            Are you sure you want to delete <strong>{householdToDelete?.name}</strong>? This action cannot be undone.
+                            {householdToDelete?.memberCount && householdToDelete.memberCount > 1
+                                ? <>You cannot delete <strong>{householdToDelete?.name}</strong> while it still has other members.</>
+                                : <>Are you sure you want to delete <strong>{householdToDelete?.name}</strong>? This action cannot be undone.</>}
                         </DialogDescription>
                     </DialogHeader>
                     <DialogFooter>
                         <Button variant="outline" onClick={() => setHouseholdToDelete(null)}>Cancel</Button>
-                        <Button variant="destructive" onClick={handleDeleteHousehold} disabled={deleteHousehold.isPending}>
+                        <Button variant="destructive" onClick={handleDeleteHousehold} disabled={deleteHousehold.isPending || (householdToDelete?.memberCount ?? 0) > 1}>
                             {deleteHousehold.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                             Delete
                         </Button>

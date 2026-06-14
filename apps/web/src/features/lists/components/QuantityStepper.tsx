@@ -10,6 +10,7 @@ interface QuantityStepperProps {
     plannedValue?: number
     onChange: (value: number, unit?: string) => void
     min?: number
+    disabled?: boolean
 }
 
 export function QuantityStepper({
@@ -17,7 +18,8 @@ export function QuantityStepper({
     unit,
     plannedValue,
     onChange,
-    min = 0.1
+    min = 0.1,
+    disabled = false,
 }: QuantityStepperProps) {
     const formatQty = (qty: number, u?: string | null) => (
         <span>
@@ -32,11 +34,12 @@ export function QuantityStepper({
     const hasDeviation = plannedValue !== undefined && plannedValue !== value
 
     return (
-        <div className="flex items-center bg-muted/50 rounded-lg p-0.5 shadow-sm border border-transparent hover:bg-muted/70 transition-colors" onClick={(e) => e.stopPropagation()}>
+        <div className={`flex items-center rounded-lg p-0.5 shadow-sm border border-transparent transition-colors ${disabled ? "bg-muted/30 opacity-70" : "bg-muted/50 hover:bg-muted/70"}`} onClick={(e) => e.stopPropagation()}>
             <Button
                 variant="ghost"
                 size="icon"
                 className="h-7 w-7 rounded-md hover:bg-background hover:shadow-sm"
+                disabled={disabled}
                 onClick={(e) => {
                     e.stopPropagation()
                     // Round up current to get clean ceiling, then subtract 1
@@ -52,9 +55,9 @@ export function QuantityStepper({
             <QuantityPicker
                 quantity={value}
                 unit={unit}
-                onChange={onChange}
+                onChange={disabled ? () => {} : onChange}
             >
-                <button className="px-2 min-w-[3rem] text-center text-sm font-medium hover:text-primary transition-colors">
+                <button className="px-2 min-w-[3rem] text-center text-sm font-medium hover:text-primary transition-colors" disabled={disabled}>
                     {hasDeviation ? (
                         <span className="flex items-center gap-1">
                             <span className="line-through opacity-50 text-[10px]">{plannedValue}</span>
@@ -70,6 +73,7 @@ export function QuantityStepper({
                 variant="ghost"
                 size="icon"
                 className="h-7 w-7 rounded-md hover:bg-background hover:shadow-sm"
+                disabled={disabled}
                 onClick={(e) => {
                     e.stopPropagation()
                     // Round down current to get clean floor, then add 1

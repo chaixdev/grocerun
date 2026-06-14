@@ -11,9 +11,9 @@ export { TripSummary } from './components/TripSummary'
 
 // Hooks
 export { useListNavigation } from './hooks/useListNavigation'
-export { useStoreLists, useCreateList, useListDetail, useAddItem, useToggleItem, useRemoveItem, useUpdateItemQuantity, useStartShopping, useCancelShopping, useCompleteList, listKeys } from './hooks/useLists'
+export { useStoreLists, useCreateList, useListDetail, useAddItem, useToggleItem, useRemoveItem, useUpdateItemQuantity, useStartShopping, useCancelShopping, useCompleteList } from './hooks/useLists'
 export type { List, ListDetail, ListDetailItem, ListDetailListItem, ListDetailSection } from './hooks/useLists'
-export { useDashboard, dashboardKeys } from './hooks/useDashboard'
+export { useDashboard } from './hooks/useDashboard'
 export type { DashboardHousehold, DashboardStore, DashboardList } from './hooks/useDashboard'
 export { useUpdateItem, searchItems, getTopItemsForStore } from './hooks/useItems'
 export type { SearchResult } from './hooks/useItems'

@@ -34,9 +34,9 @@ export default function ListsPage() {
             <div className="space-y-12">
                 {!households || households.length === 0 ? (
                     <div className="text-center py-12 border rounded-lg bg-muted/20 border-dashed">
-                        <p className="text-lg font-medium">No households found</p>
+                        <p className="text-lg font-medium">No active lists found</p>
                         <p className="text-muted-foreground mt-1">
-                            Create or join a household to get started.
+                            Start a new list in one of your stores to see it here.
                         </p>
                     </div>
                 ) : (

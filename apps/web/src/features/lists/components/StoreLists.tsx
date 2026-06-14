@@ -5,7 +5,7 @@ import { Plus, ShoppingCart, ChevronDown, ChevronRight } from "lucide-react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { formatDistanceToNow } from "date-fns"
+import { formatRelativeTime } from "@/core/lib/time"
 import {
     Collapsible,
     CollapsibleContent,
@@ -62,7 +62,7 @@ export function StoreLists({ storeId }: { storeId: string }) {
                                                 </CardTitle>
                                             </div>
                                             <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider bg-muted px-1.5 py-0.5 rounded-sm">
-                                                {formatDistanceToNow(new Date(list.createdAt))}
+                                                {formatRelativeTime(list.createdAt)}
                                             </span>
                                         </div>
                                         <CardDescription className="text-xs pl-10">

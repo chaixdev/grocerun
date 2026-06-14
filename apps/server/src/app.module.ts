@@ -12,6 +12,7 @@ import { SectionsModule } from './sections/sections.module';
 import { HouseholdOverviewModule } from './household-overview/household-overview.module';
 import { InvitationsModule } from './invitations/invitations.module';
 import { ListsModule } from './lists/lists.module';
+import { SyncModule } from './sync/sync.module';
 
 @Module({
   imports: [
@@ -25,7 +26,8 @@ import { ListsModule } from './lists/lists.module';
     SectionsModule,
     HouseholdOverviewModule,
     InvitationsModule,
-    ListsModule
+    ListsModule,
+    SyncModule,
   ],
   controllers: [AppController],
   providers: [AppService],

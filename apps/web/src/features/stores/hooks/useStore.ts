@@ -1,5 +1,7 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
+import { useEffect, useState } from "react"
+import { useMutation } from "@/core/lib/useMutation"
 import { api } from "@/core/lib/api"
+import { getRxDb, resyncStores } from "@/core/rxdb"
 import { toast } from "sonner"
 import { z } from "zod"
 
@@ -15,33 +17,73 @@ const StoreSchema = z.object({
 
 export type Store = z.infer<typeof StoreSchema>
 
-// ----- Query Keys -----
-
-export const storeKeys = {
-  all: ["stores"] as const,
-  detail: (id: string) => [...storeKeys.all, id] as const,
-}
-
-// ----- Queries -----
-
 export function useStore(storeId: string) {
-  return useQuery({
-    queryKey: storeKeys.detail(storeId),
-    queryFn: () => api.get<Store>(`/stores/${storeId}`, StoreSchema),
-  })
+  const [data, setData] = useState<Store | undefined>(undefined)
+  const [isLoading, setIsLoading] = useState(!!storeId)
+  const [error, setError] = useState<Error | null>(null)
+
+  useEffect(() => {
+    if (!storeId) {
+      setData(undefined)
+      setIsLoading(false)
+      return
+    }
+
+    let cancelled = false
+    let unsubscribe = () => {}
+
+    getRxDb()
+      .then(async (db) => {
+        if (cancelled) return
+        resyncStores()
+
+        const recompute = async () => {
+          const doc = await db.stores.findOne(storeId).exec()
+          if (!cancelled) {
+            setData(
+              doc
+                ? {
+                    id: doc.id,
+                    name: doc.name,
+                    location: doc.location ?? null,
+                    imageUrl: doc.imageUrl ?? null,
+                    householdId: doc.householdId,
+                  }
+                : undefined,
+            )
+            setIsLoading(false)
+            setError(null)
+          }
+        }
+
+        const sub = db.stores.find().$.subscribe(() => void recompute())
+        unsubscribe = () => sub.unsubscribe()
+        await recompute()
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          setError(err instanceof Error ? err : new Error('Failed to load store'))
+          setIsLoading(false)
+        }
+      })
+
+    return () => {
+      cancelled = true
+      unsubscribe()
+    }
+  }, [storeId])
+
+  return { data, isLoading, error, isError: !!error }
 }
 
 // ----- Mutations -----
 
 export function useUpdateStore(storeId: string, options?: { onSuccess?: () => void }) {
-  const queryClient = useQueryClient()
-
   return useMutation({
     mutationFn: (data: { name: string; location?: string; imageUrl?: string }) =>
       api.patch<Store>(`/stores/${storeId}`, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: storeKeys.detail(storeId) })
-      queryClient.invalidateQueries({ queryKey: storeKeys.all })
+      resyncStores()
       toast.success("Store updated successfully")
       options?.onSuccess?.()
     },
@@ -52,12 +94,10 @@ export function useUpdateStore(storeId: string, options?: { onSuccess?: () => vo
 }
 
 export function useDeleteStore(storeId: string, options?: { onSuccess?: () => void }) {
-  const queryClient = useQueryClient()
-
   return useMutation({
     mutationFn: () => api.delete(`/stores/${storeId}`),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: storeKeys.all })
+      resyncStores()
       toast.success("Store deleted")
       options?.onSuccess?.()
     },

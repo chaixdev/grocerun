@@ -1,7 +1,19 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
+import { useEffect, useState } from "react"
+import { useMutation } from "@/core/lib/useMutation"
 import { api } from "@/core/lib/api"
+import { removeHouseholdSubtreeFromLocalDb } from "@/core/rxdb/cleanup"
+import {
+  getRxDb,
+  resetRxDb,
+  resyncHouseholds,
+  resyncStores,
+  resyncLists,
+  resyncListItems,
+  resyncItems,
+  resyncSections,
+} from "@/core/rxdb"
+import { ApiError } from "@/core/lib/api"
 import { toast } from "sonner"
-import { householdKeys, settingsHouseholdKeys } from "./keys"
 
 // ----- Types -----
 
@@ -26,14 +38,55 @@ export interface SettingsHousehold {
   _count: { users: number }
 }
 
-// Query keys defined in ./keys.ts to break circular dependency
-export { settingsHouseholdKeys } from "./keys"
-
 export function useSettingsHouseholds() {
-  return useQuery({
-    queryKey: settingsHouseholdKeys.all,
-    queryFn: () => api.get<SettingsHousehold[]>("/households"),
-  })
+  const [data, setData] = useState<SettingsHousehold[] | undefined>(undefined)
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<Error | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+    let unsubscribe = () => {}
+
+    getRxDb()
+      .then(async (db) => {
+        if (cancelled) return
+        resyncHouseholds()
+        resyncStores()
+
+        const recompute = async () => {
+          const docs = await db.households.find({ sort: [{ updatedAt: 'desc' }] }).exec()
+          if (!cancelled) {
+            setData(
+              docs.map((doc) => ({
+                id: doc.id,
+                name: doc.name,
+                ownerId: doc.ownerId ?? null,
+                _count: { users: doc.memberCount },
+              })),
+            )
+            setIsLoading(false)
+            setError(null)
+          }
+        }
+
+        const sub = db.households.find().$.subscribe(() => void recompute())
+        unsubscribe = () => sub.unsubscribe()
+        await recompute()
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          setError(err instanceof Error ? err : new Error('Failed to load households'))
+          setIsLoading(false)
+        }
+      })
+
+    return () => {
+      cancelled = true
+      unsubscribe()
+    }
+  }, [])
+
+  return { data, isLoading, error, isError: !!error }
 }
 
 // ----- Invitation Mutations -----
@@ -59,32 +112,43 @@ export function useGetInvitationDetails() {
 }
 
 export function useJoinHousehold() {
-  const queryClient = useQueryClient()
-
   return useMutation({
     mutationFn: (token: string) =>
       api.post<{ householdName: string }>("/invitations/join", { token }),
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: householdKeys.all })
-      queryClient.invalidateQueries({ queryKey: settingsHouseholdKeys.all })
+    onSuccess: async (data) => {
+      await resetRxDb()
+      await getRxDb()
       toast.success("Joined Household", {
         description: `You have successfully joined ${data.householdName}`,
       })
+      window.location.reload()
     },
-    onError: () => {
+    onError: async (error) => {
+      if (error instanceof ApiError && error.status === 400 && String(error.message).includes('already a member')) {
+        await resetRxDb()
+        await getRxDb()
+        toast.success("Household already linked", {
+          description: "Refreshing your local data.",
+        })
+        window.location.reload()
+        return
+      }
       toast.error("Failed to join household")
     },
   })
 }
 
 export function useLeaveHousehold() {
-  const queryClient = useQueryClient()
-
   return useMutation({
     mutationFn: (id: string) => api.post(`/households/${id}/leave`, {}),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: householdKeys.all })
-      queryClient.invalidateQueries({ queryKey: settingsHouseholdKeys.all })
+    onSuccess: async (_data, householdId) => {
+      await removeHouseholdSubtreeFromLocalDb(householdId)
+      resyncHouseholds()
+      resyncStores()
+      resyncLists()
+      resyncListItems()
+      resyncItems()
+      resyncSections()
       toast.success("Left household")
     },
     onError: () => {

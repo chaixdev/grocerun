@@ -9,10 +9,9 @@ function removeIfExists(filePath: string) {
 }
 
 async function globalSetup() {
-  // Both web and server are configured (via playwright.config.ts webServer) to point at
-  // the same SQLite file under apps/web.
-  const webAppDir = path.resolve(__dirname, '../web');
-  const testDbPath = path.resolve(webAppDir, 'test.db');
+  // The server app owns migrations; point Prisma at apps/server for migrate deploy.
+  const serverAppDir = path.resolve(__dirname, '../server');
+  const testDbPath = path.resolve(serverAppDir, 'test.db');
 
   // Clean up any existing DB + SQLite sidecar files.
   removeIfExists(testDbPath);
@@ -20,9 +19,9 @@ async function globalSetup() {
   removeIfExists(`${testDbPath}-wal`);
   removeIfExists(`${testDbPath}-shm`);
 
-  // Recreate schema via migrations (apps/web is the package that owns migrations).
+  // Recreate schema via migrations (apps/server owns the Prisma schema and migrations).
   execSync('npx prisma migrate deploy', {
-    cwd: webAppDir,
+    cwd: serverAppDir,
     stdio: 'inherit',
     env: {
       ...process.env,

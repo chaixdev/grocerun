@@ -6,8 +6,8 @@ import { GripVertical, Trash2 } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { SortableList, SortableItem, SortableDragHandle } from "@/components/ui/sortable"
 import { useListNavigation } from "@/features/lists"
+import { debounce } from "@/core/lib/debounce"
 import { cn } from "@/lib/utils"
-import { debounce } from "lodash"
 import {
     useSections, useCreateSection, useUpdateSection,
     useDeleteSection, useReorderSections,

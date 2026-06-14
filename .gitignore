@@ -62,3 +62,5 @@ playwright/.cache/
 # logs
 *.log
 job-logs.txt
+
+deploy-staging.sh

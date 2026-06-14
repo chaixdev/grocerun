@@ -1,14 +1,26 @@
 import { Injectable, ForbiddenException, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
-import { customAlphabet } from 'nanoid';
+import { SseBroadcastService } from '../sync/sse-broadcast.service';
+import { randomInt } from 'crypto';
 import { CreateInvitationDto, JoinHouseholdDto, RevokeInvitationDto } from './dto/invitation.dto';
 
 // Use a readable alphabet for tokens (no confusing chars like 0/O, 1/l)
-const generateToken = customAlphabet('23456789ABCDEFGHJKLMNPQRSTUVWXYZ', 8);
+const TOKEN_ALPHABET = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
+
+function generateToken(): string {
+  let token = '';
+  for (let i = 0; i < 8; i += 1) {
+    token += TOKEN_ALPHABET[randomInt(0, TOKEN_ALPHABET.length)];
+  }
+  return token;
+}
 
 @Injectable()
 export class InvitationsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private sseBroadcast: SseBroadcastService,
+  ) {}
 
   async createInvitation(dto: CreateInvitationDto, userId: string) {
     // Verify user is a member of the household
@@ -87,6 +99,7 @@ export class InvitationsService {
       this.prisma.household.update({
         where: { id: invitation.householdId },
         data: {
+          updatedAt: new Date(),
           users: {
             connect: { id: userId }
           }
@@ -97,6 +110,8 @@ export class InvitationsService {
         data: { status: 'COMPLETED' }
       })
     ]);
+
+    this.notifyHouseholdMembers(invitation.householdId);
 
     return { householdName: invitation.household.name };
   }
@@ -155,5 +170,21 @@ export class InvitationsService {
       ownerName: invitation.household.owner?.name || 'Unknown',
       creatorName: invitation.creator.name || 'Unknown'
     };
+  }
+
+  private notifyHouseholdMembers(householdId: string) {
+    this.prisma.household
+      .findUnique({
+        where: { id: householdId },
+        select: { users: { select: { id: true } } },
+      })
+      .then((household) => {
+        if (household) {
+          this.sseBroadcast.notify(household.users.map((u) => u.id));
+        }
+      })
+      .catch(() => {
+        // Best-effort
+      });
   }
 }
