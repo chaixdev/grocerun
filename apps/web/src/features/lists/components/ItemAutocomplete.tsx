@@ -1,7 +1,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react"
 import { Input } from "@/components/ui/input"
-import { searchItems, getTopItemsForStore } from "../hooks/useItems"
+import { searchItems, getTopItemsForStore } from "../hooks/data-access"
 import { Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 

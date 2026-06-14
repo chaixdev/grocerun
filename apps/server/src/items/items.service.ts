@@ -1,5 +1,5 @@
 import { z } from 'zod'; // Import z from zod
-import { SearchItemsSchema } from '@grocerun/dto';
+import { SearchItemsSchema, GetTopItemsSchema } from '@grocerun/dto';
 
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
@@ -9,11 +9,7 @@ import { UpdateItemDto } from './dto/update-item.dto';
 
 type SearchItemsParams = z.infer<typeof SearchItemsSchema>;
 
-type GetTopItemsDto = {
-  storeId: string;
-  limit: number;
-  threshold: number;
-}
+type GetTopItemsParams = z.infer<typeof GetTopItemsSchema>;
 
 @Injectable()
 export class ItemsService {
@@ -81,7 +77,7 @@ export class ItemsService {
     return items;
   }
 
-  async getTopItems(dto: GetTopItemsDto, userId: string) {
+  async getTopItems(dto: GetTopItemsParams, userId: string) {
     // Verify access to store
     await this.access.verifyStoreAccess(dto.storeId, userId);
 

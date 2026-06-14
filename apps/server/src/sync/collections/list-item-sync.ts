@@ -13,6 +13,8 @@
 import { BadRequestException, ForbiddenException, Logger } from '@nestjs/common';
 import { Prisma } from '../../generated/prisma/client';
 import { SyncDeps } from '../sync-deps';
+import { checkShoppingLock } from '../../shared/shopping-lock';
+import { pullByAccess } from '../sync-helpers';
 
 const logger = new Logger('ListItemSync');
 import {
@@ -29,55 +31,15 @@ export async function pullListItems(
   limit: number,
   userId: string,
 ): Promise<PullResponse> {
-  const accessibleStoreIds = await deps.getAccessibleStoreIdsForSync(userId);
-
-  if (accessibleStoreIds.length === 0) {
-    return { documents: [], checkpoint: null };
-  }
-
-  const tombstoneWindow = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-
-  const where: Record<string, unknown> = {
-    list: { storeId: { in: accessibleStoreIds } },
-    AND: [
-      {
-        OR: [
-          { deleted: false },
-          { deletedAt: { gte: tombstoneWindow } },
-        ],
-      },
-    ],
-  };
-
-  if (checkpoint) {
-    (where.AND as Array<Record<string, unknown>>).push({
-      OR: [
-        { updatedAt: { gt: new Date(checkpoint.updatedAt) } },
-        {
-          updatedAt: { equals: new Date(checkpoint.updatedAt) },
-          id: { gt: checkpoint.id },
-        },
-      ],
-    });
-  }
-
-  const rows = await deps.prisma.listItem.findMany({
-    where,
-    orderBy: [{ updatedAt: 'asc' }, { id: 'asc' }],
-    take: limit,
+  return pullByAccess({
+    deps, checkpoint, limit, userId,
+    model: deps.prisma.listItem,
+    toDoc: listItemToSyncDoc,
+    buildBaseFilter: async (d, u) => {
+      const ids = await d.getAccessibleStoreIdsForSync(u);
+      return ids.length === 0 ? null : { list: { storeId: { in: ids } } };
+    },
   });
-
-  const documents: SyncDocument[] = rows.map(listItemToSyncDoc);
-
-  const newCheckpoint: SyncCheckpoint | null =
-    rows.length > 0
-      ? {
-          id: rows[rows.length - 1].id,
-          updatedAt: rows[rows.length - 1].updatedAt.toISOString(),
-        }
-      : checkpoint;
-
-  return { documents, checkpoint: newCheckpoint };
 }
 
 export async function pushListItems(
@@ -121,20 +83,19 @@ export async function pushListItems(
 
     // Enforce shopping lock: completed lists are immutable;
     // SHOPPING lists locked by another user are read-only.
-    if (list.status === 'COMPLETED') {
-      conflicts.push({ id, updatedAt: new Date().toISOString(), _deleted: true });
-      continue;
-    }
-
-    if (list.status === 'SHOPPING') {
-      if (!list.assignedTo) {
+    const lockResult = checkShoppingLock(list, shoppingLockId)
+    if (!lockResult.allowed) {
+      // Narrowed: lockResult is { allowed: false; reason: ... }
+      const { reason } = lockResult as { allowed: false; reason: 'COMPLETED' | 'LOCKED_BY_OTHER' | 'MISSING_LOCK' }
+      if (reason === 'COMPLETED' || reason === 'LOCKED_BY_OTHER') {
+        conflicts.push({ id, updatedAt: new Date().toISOString(), _deleted: true })
+        continue
+      }
+      if (reason === 'MISSING_LOCK') {
         // Server-side inconsistency — warn but allow the push to proceed.
         logger.warn(
           `pushListItems: list ${listId} is SHOPPING but has no assignedTo. Allowing push for userId=${userId}.`,
-        );
-      } else if (list.assignedTo !== shoppingLockId) {
-        conflicts.push({ id, updatedAt: new Date().toISOString(), _deleted: true });
-        continue;
+        )
       }
     }
 

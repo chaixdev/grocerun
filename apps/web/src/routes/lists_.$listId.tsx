@@ -1,7 +1,7 @@
 import { createFileRoute, lazyRouteComponent } from "@tanstack/react-router"
 import { useParams, Link } from "@tanstack/react-router"
 import { enforceLogin } from "@/core/auth/oidc"
-import { useListDetail } from "@/features/lists/hooks/useLists"
+import { useListDetail } from "@/features/lists/hooks/useListQueries"
 import { ListEditor } from "@/features/lists"
 import { PageLoading } from "@/components/ui/page-loading"
 import { Button } from "@/components/ui/button"

@@ -1,5 +1,6 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException, ConflictException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
+import { checkShoppingLock } from './shopping-lock';
 
 @Injectable()
 export class AccessService {
@@ -55,5 +56,27 @@ export class AccessService {
     if (household.users.length === 0) {
       throw new ForbiddenException('Access denied');
     }
+  }
+
+  /**
+   * Assert that a list mutation is allowed. If the list is SHOPPING,
+   * only the lock holder can mutate it. COMPLETED lists are immutable.
+   */
+  assertShoppingLock(
+    list: { status: string; assignedTo?: string | null },
+    lockId: string,
+    message?: string,
+  ): void {
+    const result = checkShoppingLock(list, lockId)
+    if (result.allowed) return
+
+    const { reason } = result as { allowed: false; reason: 'COMPLETED' | 'LOCKED_BY_OTHER' | 'MISSING_LOCK' }
+    if (reason === 'COMPLETED') {
+      throw new BadRequestException('List is completed')
+    }
+    if (reason === 'MISSING_LOCK') {
+      throw new ConflictException('Shopping lock is missing. Refresh and try again.')
+    }
+    throw new ForbiddenException(message ?? 'This list is locked by another shopper')
   }
 }

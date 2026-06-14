@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react"
+import { useRxQuery } from "@/core/lib/useRxQuery"
 import { useMutation } from "@/core/lib/useMutation"
 import { api } from "@/core/lib/api"
-import { getRxDb, resyncStores } from "@/core/rxdb"
+import { resyncStores } from "@/core/rxdb"
 import { toast } from "sonner"
 import { z } from "zod"
 
@@ -18,68 +18,37 @@ const StoreSchema = z.object({
 export type Store = z.infer<typeof StoreSchema>
 
 export function useStore(storeId: string) {
-  const [data, setData] = useState<Store | undefined>(undefined)
-  const [isLoading, setIsLoading] = useState(!!storeId)
-  const [error, setError] = useState<Error | null>(null)
-
-  useEffect(() => {
-    if (!storeId) {
-      setData(undefined)
-      setIsLoading(false)
-      return
-    }
-
-    let cancelled = false
-    let unsubscribe = () => {}
-
-    getRxDb()
-      .then(async (db) => {
-        if (cancelled) return
-        resyncStores()
-
-        const recompute = async () => {
+  return useRxQuery<Store>(
+    {
+      setup: async (db, triggerUpdate) => {
+        const compute = async () => {
           const doc = await db.stores.findOne(storeId).exec()
-          if (!cancelled) {
-            if (doc) {
-              setData({
-                id: doc.id,
-                name: doc.name,
-                location: doc.location ?? null,
-                imageUrl: doc.imageUrl ?? null,
-                householdId: doc.householdId,
-              })
-            } else {
-              // The user may navigate immediately after a REST mutation, before
-              // RxDB has pulled the destination store. Fall back to the API so
-              // the route renders immediately; replication will replace this
-              // with the local document once it arrives.
-              const remoteStore = await api.get<Store>(`/stores/${storeId}`)
-              if (cancelled) return
-              setData(remoteStore)
+          if (doc) {
+            return {
+              id: doc.id,
+              name: doc.name,
+              location: doc.location ?? null,
+              imageUrl: doc.imageUrl ?? null,
+              householdId: doc.householdId,
             }
-            setIsLoading(false)
-            setError(null)
           }
+          // The user may navigate immediately after a REST mutation, before
+          // RxDB has pulled the destination store. Fall back to the API so
+          // the route renders immediately; replication will replace this
+          // with the local document once it arrives.
+          const remoteStore = await api.get<Store>(`/stores/${storeId}`)
+          return remoteStore
         }
-
-        const sub = db.stores.findOne(storeId).$.subscribe(() => void recompute())
-        unsubscribe = () => sub.unsubscribe()
-        await recompute()
-      })
-      .catch((err) => {
-        if (!cancelled) {
-          setError(err instanceof Error ? err : new Error('Failed to load store'))
-          setIsLoading(false)
-        }
-      })
-
-    return () => {
-      cancelled = true
-      unsubscribe()
-    }
-  }, [storeId])
-
-  return { data, isLoading, error, isError: !!error }
+        const sub = db.stores.findOne(storeId).$.subscribe(() => void triggerUpdate())
+        return { subscriptions: [() => sub.unsubscribe()], compute }
+      },
+      init: async () => {
+        resyncStores()
+      },
+      errorMsg: 'Failed to load store',
+    },
+    [storeId],
+  )
 }
 
 // ----- Mutations -----

@@ -4,6 +4,7 @@ export { StoreSettingsForm, StoreDeleteSection } from './components/StoreSetting
 export { HouseholdStoreGroup, StoreCard } from './components/StoreDirectory'
 export { SectionForm } from './components/SectionForm'
 export { SectionList } from './components/SectionList'
+export { useListNavigation } from './useListNavigation'
 
 // Hooks
 export { useStore, useUpdateStore, useDeleteStore } from './hooks/useStore'

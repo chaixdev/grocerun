@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react"
-import { getRxDb, resyncHouseholds, resyncStores, resyncLists, resyncListItems } from "@/core/rxdb"
+import { useRxQuery } from "@/core/lib/useRxQuery"
+import { resyncHouseholds, resyncStores, resyncLists, resyncListItems } from "@/core/rxdb"
 
 // ----- Types -----
 
@@ -25,24 +25,10 @@ export interface DashboardHousehold {
 }
 
 export function useDashboard() {
-  const [data, setData] = useState<DashboardHousehold[] | undefined>(undefined)
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<Error | null>(null)
-
-  useEffect(() => {
-    let cancelled = false
-    let unsubscribes: Array<() => void> = []
-
-    getRxDb()
-      .then(async (db) => {
-        if (cancelled) return
-
-        resyncHouseholds()
-        resyncStores()
-        resyncLists()
-        resyncListItems()
-
-        const recompute = async () => {
+  return useRxQuery<DashboardHousehold[]>(
+    {
+      setup: async (db, triggerUpdate) => {
+        const compute = async () => {
           const [households, stores, lists, listItems] = await Promise.all([
             db.households.find().exec(),
             db.stores.find().exec(),
@@ -55,7 +41,7 @@ export function useDashboard() {
             itemCountByListId.set(listItem.listId, (itemCountByListId.get(listItem.listId) ?? 0) + 1)
           }
 
-          const next = households
+          return households
             .map((household) => ({
               id: household.id,
               name: household.name,
@@ -80,40 +66,30 @@ export function useDashboard() {
             }))
             .filter((household) => household.stores.length > 0)
             .sort((a, b) => a.name.localeCompare(b.name))
-
-          if (!cancelled) {
-            setData(next)
-            setIsLoading(false)
-            setError(null)
-          }
         }
 
-        const householdSub = db.households.find().$.subscribe(() => void recompute())
-        const storeSub = db.stores.find().$.subscribe(() => void recompute())
-        const listSub = db.lists.find().$.subscribe(() => void recompute())
-        const listItemSub = db.listItems.find().$.subscribe(() => void recompute())
-
-        unsubscribes = [
-          () => householdSub.unsubscribe(),
-          () => storeSub.unsubscribe(),
-          () => listSub.unsubscribe(),
-          () => listItemSub.unsubscribe(),
-        ]
-
-        await recompute()
-      })
-      .catch((err) => {
-        if (!cancelled) {
-          setError(err instanceof Error ? err : new Error('Failed to load dashboard'))
-          setIsLoading(false)
+        const householdSub = db.households.find().$.subscribe(() => void triggerUpdate())
+        const storeSub = db.stores.find().$.subscribe(() => void triggerUpdate())
+        const listSub = db.lists.find().$.subscribe(() => void triggerUpdate())
+        const listItemSub = db.listItems.find().$.subscribe(() => void triggerUpdate())
+        return {
+          subscriptions: [
+            () => householdSub.unsubscribe(),
+            () => storeSub.unsubscribe(),
+            () => listSub.unsubscribe(),
+            () => listItemSub.unsubscribe(),
+          ],
+          compute,
         }
-      })
-
-    return () => {
-      cancelled = true
-      unsubscribes.forEach((unsubscribe) => unsubscribe())
-    }
-  }, [])
-
-  return { data, isLoading, error, isError: !!error }
+      },
+      init: async () => {
+        resyncHouseholds()
+        resyncStores()
+        resyncLists()
+        resyncListItems()
+      },
+      errorMsg: 'Failed to load dashboard',
+    },
+    [],
+  )
 }

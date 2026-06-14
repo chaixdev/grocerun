@@ -3,14 +3,14 @@ import { ItemsService } from './items.service';
 import { AuthGuard, JwtPayload } from '../auth/auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
 import { UpdateItemDto } from './dto/update-item.dto';
-import { SearchItemsDto } from './dto/query-items.dto';
+import { SearchItemsDto, GetTopItemsDto } from './dto/query-items.dto';
 
 @Controller('items')
+@UseGuards(AuthGuard)
 export class ItemsController {
   constructor(private readonly itemsService: ItemsService) {}
 
   @Patch(':id')
-  @UseGuards(AuthGuard)
   async updateItem(
     @Param('id') itemId: string,
     @Body() dto: UpdateItemDto,
@@ -20,7 +20,6 @@ export class ItemsController {
   }
 
   @Get('search')
-  @UseGuards(AuthGuard)
   async searchItems(
     @Query() dto: SearchItemsDto,
     @CurrentUser() user: JwtPayload,
@@ -29,20 +28,10 @@ export class ItemsController {
   }
 
   @Get('top')
-  @UseGuards(AuthGuard)
   async getTopItems(
     @CurrentUser() user: JwtPayload,
-    @Query('storeId') storeId: string,
-    @Query('limit') limit?: string,
-    @Query('threshold') threshold?: string,
+    @Query() dto: GetTopItemsDto,
   ) {
-    return this.itemsService.getTopItems(
-      {
-        storeId,
-        limit: limit ? parseInt(limit) : 5,
-        threshold: threshold ? parseInt(threshold) : 1,
-      },
-      user.userId!,
-    );
+    return this.itemsService.getTopItems(dto, user.userId!);
   }
 }

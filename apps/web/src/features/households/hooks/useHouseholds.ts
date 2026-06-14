@@ -1,8 +1,8 @@
-import { useEffect, useState } from "react"
+import { useRxQuery } from "@/core/lib/useRxQuery"
 import { useMutation } from "@/core/lib/useMutation"
 import { api } from "@/core/lib/api"
-import { removeHouseholdSubtreeFromLocalDb } from "@/core/rxdb/cleanup"
-import { getRxDb, resyncHouseholds, resyncStores } from "@/core/rxdb"
+import { resyncHouseholds, resyncStores } from "@/core/rxdb"
+import { removeHouseholdSubtreeFromLocalDb } from "@/core/rxdb/database"
 import { toast } from "sonner"
 
 // ----- Types -----
@@ -16,47 +16,28 @@ export interface Household {
 // ----- Queries -----
 
 export function useHouseholds() {
-  const [data, setData] = useState<Household[] | undefined>(undefined)
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<Error | null>(null)
-
-  useEffect(() => {
-    let cancelled = false
-    let unsubscribe = () => {}
-
-    getRxDb()
-      .then(async (db) => {
-        if (cancelled) return
+  return useRxQuery<Household[]>(
+    {
+      setup: async (db, triggerUpdate) => {
+        const compute = async () => {
+          const docs = await db.households.find({ sort: [{ updatedAt: 'desc' }] }).exec()
+          return docs.map((doc) => ({
+            id: doc.id,
+            name: doc.name,
+            createdAt: doc.updatedAt,
+          }))
+        }
+        const sub = db.households.find().$.subscribe(() => void triggerUpdate())
+        return { subscriptions: [() => sub.unsubscribe()], compute }
+      },
+      init: async () => {
         resyncHouseholds()
         resyncStores()
-
-        const recompute = async () => {
-          const docs = await db.households.find({ sort: [{ updatedAt: 'desc' }] }).exec()
-          if (!cancelled) {
-            setData(docs.map((doc) => ({ id: doc.id, name: doc.name, createdAt: doc.updatedAt })))
-            setIsLoading(false)
-            setError(null)
-          }
-        }
-
-        const sub = db.households.find().$.subscribe(() => void recompute())
-        unsubscribe = () => sub.unsubscribe()
-        await recompute()
-      })
-      .catch((err) => {
-        if (!cancelled) {
-          setError(err instanceof Error ? err : new Error('Failed to load households'))
-          setIsLoading(false)
-        }
-      })
-
-    return () => {
-      cancelled = true
-      unsubscribe()
-    }
-  }, [])
-
-  return { data, isLoading, error, isError: !!error }
+      },
+      errorMsg: 'Failed to load households',
+    },
+    [],
+  )
 }
 
 // ----- Mutations -----

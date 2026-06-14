@@ -215,11 +215,26 @@ We abandoned a ground-up rewrite approach in favor of incremental migration to:
 - 4 new migrations: unique constraint fix, ownerId backfill + non-nullable, FK indexes
 - `--accept-data-loss` flag on `prisma db push` for staging deploys
 
-**Branch:** `feature/phase-5-sync-simplification` (12 commits for audit fixes, ~65 total)  
+*Phase 5c — Codebase-wide audit fixes (19 findings across 5 slices):*
+
+See [codebase-audit-jun-2026.md](../../planning/codebase-audit-jun-2026.md) for full 26-finding audit.
+
+| Slice | Domain | Commit | Net Δ | Key change |
+|-------|--------|--------|-------|------------|
+| A | Web queries | `751b39b` | -86 | `useRxQuery` hook centralizes RxDB subscription lifecycle; 8 hooks migrated |
+| B | Web mutations | `f73ef42` | +43 | `useAddItem` extracted to local-first pattern; household cleanup helpers |
+| C | Server lock | `c6d1023` | +48 | Identity fix (assignedTo uses userId not sub); shared `checkShoppingLock()` |
+| D | Server consistency | `80923ff` | -164 | Error model standardized; DTOs unified; 6 sync pull handlers deduplicated |
+| E | Cross-cutting | `a25caf8` | -15 | Form schemas derived from `@grocerun/dto`; server polish (L2-L5) |
+
+*Resolved by severity:* 7/7 HIGH, 7/11 MEDIUM, 5/8 LOW.
+
+**Branch:** `feature/phase-5-sync-simplification` (17 commits for audit fixes, ~70 total)  
 **Tests:** 15/15 pass (3 suites)  
 **Version:** `1.0.0-rc.1`  
-**Audit:** [domain-model-audit.md](../../planning/reviews/2026-06-10_domain-model-audit.md)  
-**Fix Plan:** [domain-model-audit-fixes.md](2026-06-10T003629_domain-model-audit-fixes.md)  
+**Domain audit:** [domain-model-audit.md](../../planning/reviews/2026-06-10_domain-model-audit.md)  
+**Domain fix plan:** [domain-model-audit-fixes.md](2026-06-10T003629_domain-model-audit-fixes.md)  
+**Codebase audit:** [codebase-audit-jun-2026.md](../../planning/codebase-audit-jun-2026.md)  
 **Migration Strategy:** [data-migration-strategy.md](2026-06-10T230536_data-migration-strategy.md)
 
 ---
@@ -325,19 +340,22 @@ PORT=3001
 | # | Item | Status |
 |---|------|--------|
 | 1 | Deploy to staging and smoke test | ⬜ Not done |
-| 2 | Production data migration strategy | 📋 Planned (see ticket) |
-| 3 | Dependency cleanup audit | 📋 Planned (see ticket) |
-| 4 | Add unit tests for shared services | ⬜ Not done |
+| 2 | Run Playwright e2e tests | ⬜ Not done |
+| 3 | Production data migration strategy | 📋 Planned (see ticket) |
+| 4 | UI jitter reduction (Step 6) | ⬜ Not done |
+| 5 | Add unit tests for shared services | ⬜ Not done |
+| 6 | Dependency cleanup audit | 📋 Planned (see ticket) |
 
 ---
 
 ## Next Steps
 
-1. **Deploy to staging** — smoke-test the domain model audit fixes end-to-end
-2. **Update PROJECT-STATUS.md** after any new changes (this file is the source of truth)
-3. **Data migration strategy** — plan production migration from pre-Phase-1 schema to current (see [data-migration-strategy.md](2026-06-10T230536_data-migration-strategy.md))
-4. **Potential next audits** — dependency cleanup (see [dependency-cleanup-audit.md](2026-06-09T225645_dependency-cleanup-audit.md))
+1. **Deploy to staging** — smoke-test both domain-model and codebase audit fixes end-to-end
+2. **Run e2e tests** — validate autocomplete → add item → toggle → complete trip flows with real browsers
+3. **Phase 5 Step 6 (UI jitter)** — pending-write tracking, narrow subscriptions, flicker reduction (see [PHASE-5-SIMPLIFICATION.md](PHASE-5-SIMPLIFICATION.md))
+4. **Data migration strategy** — plan production migration from pre-Phase-1 schema to current (see [data-migration-strategy.md](2026-06-10T230536_data-migration-strategy.md))
 5. **Improve test coverage** — add unit tests for shared services (`AccessService`, `NotificationService`, `cascadeSoftDelete`)
+6. **Dependency cleanup audit** — review stale dependencies (see [dependency-cleanup-audit.md](2026-06-09T225645_dependency-cleanup-audit.md))
 
 ---
 
@@ -345,15 +363,15 @@ PORT=3001
 
 **Current Branch:** `feature/phase-5-sync-simplification`
 
-**Last Commit:** `88e3b5f` — "refactor: extract notifyHouseholdMembers into NotificationService + document SyncService exception semantics"
+**Last Commit:** `a25caf8` — "refactor(slice-E): derive form schemas from shared DTOs + server polish"
 
 **Branch History:**
 - `feature/evolutive-architecture` — Phase 1 + Phase 2 (merged)
 - `feature/phase-3-client-fetch` — Phase 3 (19 commits, merged)
 - `feature/phase-4-rxdb` — Phase 4 (merged into phase-5)
-- `feature/phase-5-sync-simplification` — Phase 5 (12 commits for audit fixes on top of ~53 sync/phase-4 commits, current)
+- `feature/phase-5-sync-simplification` — Phase 5 (17 commits on top of ~53 sync/phase-4 commits, current)
 
-**Working Tree:** Clean (all audit fixes committed)
+**Working Tree:** Clean
 
 ---
 
@@ -412,19 +430,26 @@ npx prisma migrate dev
 ### Phase 5 (In Progress)
 - ✅ Sync invalidation simplified (single path)
 - ✅ Tombstone delivery for cascaded deletes
-- ✅ Domain model audit: 17/17 findings resolved
+- ✅ Domain model audit: 17/17 findings resolved (Phase 5b)
 - ✅ Shared services extracted (Access, Cascade, Notify)
 - ✅ Schema hardening (non-null ownerId, FK indexes)
-- ✅ 15/15 tests passing (3 suites)
+- ✅ Codebase audit: 19/26 findings resolved across 5 slices (Phase 5c)
+- ✅ `useRxQuery` centralized hook (8 query hooks migrated, -86 lines)
+- ✅ `useAddItem` local-first pattern (no misleading REST wrapper)
+- ✅ Shopping lock identity fix (`userId` not `sub`) + single `checkShoppingLock()`
+- ✅ Sync pull handlers deduplicated (6 handlers → 2 helpers, -164 lines)
+- ✅ Form schemas derived from shared `@grocerun/dto` schemas
+- ✅ 15/15 tests passing (3 suites), 0 tsc errors in both apps
 - [ ] Deploy to staging and smoke test
 - [ ] Production data migration strategy executed
+- [ ] UI jitter reduction (Phase 5 plan Step 6 — pending-write tracking, flicker fix)
 
 ---
 
 ## Contact & Context
 
-**Last Updated:** June 10, 2026  
-**Current Phase:** Phase 5 — Sync Simplification + Domain Model Audit Fixes  
+**Last Updated:** June 13, 2026  
+**Current Phase:** Phase 5 — Sync Simplification + Codebase Audit Fixes  
 **Documentation:** All documentation in `wiki/`
 
 For details on specific phases:

@@ -16,10 +16,10 @@
  * local write + push replication) once the PoC is validated end-to-end.
  */
 
-import { useState, useEffect } from 'react'
+import { useRxQuery } from "@/core/lib/useRxQuery"
 import { useMutation } from '@/core/lib/useMutation'
 import { api } from '@/core/lib/api'
-import { getRxDb, resyncStores } from '@/core/rxdb'
+import { resyncStores } from '@/core/rxdb'
 import { toast } from 'sonner'
 
 // ----- Types -----
@@ -44,48 +44,29 @@ export interface Section {
  * arrives. After that, updates are instant (no network round-trip).
  */
 export function useSections(storeId: string): { data: Section[]; isLoading: boolean } {
-  const [data, setData] = useState<Section[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-
-  useEffect(() => {
-    if (!storeId) return
-
-    let cancelled = false
-    let subscription: { unsubscribe(): void } | null = null
-
-    getRxDb().then((db) => {
-      if (cancelled) return
-
-      // RxDB query — reactive: emits on every local change
-      const query = db.sections
-        .find({
+  const { data, isLoading } = useRxQuery<Section[]>(
+    {
+      setup: async (db, triggerUpdate) => {
+        const query = db.sections.find({
           selector: { storeId: { $eq: storeId } },
           sort: [{ order: 'asc' }],
         })
-
-      subscription = query.$.subscribe((docs) => {
-        if (cancelled) return
-        setData(
-          docs.map((d) => ({
+        const compute = async () => {
+          const docs = await query.exec()
+          return docs.map((d) => ({
             id: d.id,
             name: d.name,
             order: d.order,
-          })),
-        )
-        setIsLoading(false)
-      })
-    }).catch((err) => {
-      console.error('[useSections] RxDB init failed:', err)
-      setIsLoading(false)
-    })
-
-    return () => {
-      cancelled = true
-      subscription?.unsubscribe()
-    }
-  }, [storeId])
-
-  return { data, isLoading }
+          }))
+        }
+        const sub = query.$.subscribe(() => void triggerUpdate())
+        return { subscriptions: [() => sub.unsubscribe()], compute }
+      },
+      errorMsg: 'Failed to load sections',
+    },
+    [storeId],
+  )
+  return { data: data ?? [], isLoading }
 }
 
 // ---------------------------------------------------------------------------

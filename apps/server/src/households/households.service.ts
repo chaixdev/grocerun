@@ -37,7 +37,7 @@ export class HouseholdsService {
 
     this.notify.byHousehold(household.id, ['household', 'store'], 'household-mutation');
 
-    return { success: true };
+    return household;
   }
 
   async renameHousehold(householdId: string, dto: UpdateHouseholdDto, userId: string) {

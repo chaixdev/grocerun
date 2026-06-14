@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button"
 import { GripVertical, Trash2 } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { SortableList, SortableItem, SortableDragHandle } from "@/components/ui/sortable"
-import { useListNavigation } from "@/features/lists"
+import { useListNavigation } from "../useListNavigation"
 import { debounce } from "@/core/lib/debounce"
 import { cn } from "@/lib/utils"
 import {

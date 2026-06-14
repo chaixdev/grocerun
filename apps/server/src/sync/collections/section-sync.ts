@@ -11,6 +11,7 @@ import {
   SyncCheckpoint,
   SyncDocument,
 } from '../sync.types';
+import { pullByAccess } from '../sync-helpers';
 
 export async function pullSections(
   deps: SyncDeps,
@@ -18,55 +19,15 @@ export async function pullSections(
   limit: number,
   userId: string,
 ): Promise<PullResponse> {
-  const accessibleStoreIds = await deps.getAccessibleStoreIdsForSync(userId);
-
-  if (accessibleStoreIds.length === 0) {
-    return { documents: [], checkpoint: null };
-  }
-
-  const tombstoneWindow = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-
-  const where: Record<string, unknown> = {
-    storeId: { in: accessibleStoreIds },
-    AND: [
-      {
-        OR: [
-          { deleted: false },
-          { deletedAt: { gte: tombstoneWindow } },
-        ],
-      },
-    ],
-  };
-
-  if (checkpoint) {
-    (where.AND as Array<Record<string, unknown>>).push({
-      OR: [
-        { updatedAt: { gt: new Date(checkpoint.updatedAt) } },
-        {
-          updatedAt: { equals: new Date(checkpoint.updatedAt) },
-          id: { gt: checkpoint.id },
-        },
-      ],
-    });
-  }
-
-  const rows = await deps.prisma.section.findMany({
-    where,
-    orderBy: [{ updatedAt: 'asc' }, { id: 'asc' }],
-    take: limit,
+  return pullByAccess({
+    deps, checkpoint, limit, userId,
+    model: deps.prisma.section,
+    toDoc: sectionToSyncDoc,
+    buildBaseFilter: async (d, u) => {
+      const ids = await d.getAccessibleStoreIdsForSync(u);
+      return ids.length === 0 ? null : { storeId: { in: ids } };
+    },
   });
-
-  const documents: SyncDocument[] = rows.map(sectionToSyncDoc);
-
-  const newCheckpoint: SyncCheckpoint | null =
-    rows.length > 0
-      ? {
-          id: rows[rows.length - 1].id,
-          updatedAt: rows[rows.length - 1].updatedAt.toISOString(),
-        }
-      : checkpoint;
-
-  return { documents, checkpoint: newCheckpoint };
 }
 
 function sectionToSyncDoc(row: {
