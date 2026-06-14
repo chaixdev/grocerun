@@ -1,4 +1,4 @@
-import { BadRequestException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException } from '@nestjs/common';
 import { SyncDeps } from '../sync-deps';
 import {
   PullResponse,
@@ -68,11 +68,19 @@ export async function pushSections(
       throw new BadRequestException(`Missing storeId in document ${id}`);
     }
 
-    await deps.verifyStoreAccess(storeId, userId);
+    try {
+      await deps.verifyStoreAccess(storeId, userId);
+    } catch (err) {
+      if (err instanceof ForbiddenException) {
+        conflicts.push({ id, updatedAt: new Date().toISOString(), _deleted: true });
+        continue;
+      }
+      throw err;
+    }
 
     const current = await deps.prisma.section.findUnique({ where: { id } });
 
-    if (current && assumedMasterState !== null) {
+    if (current && assumedMasterState != null) {
       const assumedAt = new Date(assumedMasterState.updatedAt as string).getTime();
       const actualAt = current.updatedAt.getTime();
       if (assumedAt !== actualAt) {

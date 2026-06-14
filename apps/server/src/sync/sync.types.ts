@@ -25,7 +25,7 @@ export interface PullResponse {
 // (assumedMasterState) plus the new state they want to write (newDocumentState).
 export interface PushRow {
   newDocumentState: SyncDocument;
-  assumedMasterState: SyncDocument | null; // null = client believes record is new
+  assumedMasterState?: SyncDocument | null; // null/undefined = client believes record is new
 }
 
 // Push response: array of conflicting master states.

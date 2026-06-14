@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react"
+import { useCallback, useRef, useState } from "react"
 
 type MutationOptions<TData, TVariables> = {
   mutationFn: (variables: TVariables) => Promise<TData>
@@ -13,24 +13,27 @@ type MutateCallbacks<TData, TVariables> = {
 
 export function useMutation<TData, TVariables = void>(options: MutationOptions<TData, TVariables>) {
   const [isPending, setIsPending] = useState(false)
+  // Keep options in a ref so mutateAsync/mutate are stable across renders.
+  const optionsRef = useRef(options)
+  optionsRef.current = options
 
   const mutateAsync = useCallback(
     async (variables: TVariables, callbacks?: MutateCallbacks<TData, TVariables>) => {
       setIsPending(true)
       try {
-        const data = await options.mutationFn(variables)
-        await options.onSuccess?.(data, variables)
+        const data = await optionsRef.current.mutationFn(variables)
+        await optionsRef.current.onSuccess?.(data, variables)
         await callbacks?.onSuccess?.(data, variables)
         return data
       } catch (error) {
-        await options.onError?.(error, variables)
+        await optionsRef.current.onError?.(error, variables)
         await callbacks?.onError?.(error, variables)
         throw error
       } finally {
         setIsPending(false)
       }
     },
-    [options],
+    [], // stable — reads latest options via ref
   )
 
   const mutate = useCallback(

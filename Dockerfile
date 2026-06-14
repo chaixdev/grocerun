@@ -16,7 +16,7 @@ COPY apps/web/package.json ./apps/web/
 COPY apps/server/package.json ./apps/server/
 COPY packages/dto/package.json ./packages/dto/
 
-RUN npm ci
+RUN --mount=type=cache,target=/root/.npm npm ci
 
 # ── Stage 3: Build everything ──
 FROM base AS builder
@@ -27,19 +27,22 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/apps/web/node_modules ./apps/web/node_modules
 COPY --from=deps /app/apps/server/node_modules ./apps/server/node_modules
 
-# Copy full source
-COPY . .
-
 # DATABASE_URL needed for Prisma client generation at build time
 ENV DATABASE_URL="file:./db.sqlite"
+
+COPY apps/web/prisma ./apps/web/prisma
+COPY apps/web/prisma.config.ts ./apps/web/prisma.config.ts
+COPY apps/server/prisma ./apps/server/prisma
+COPY apps/server/prisma.config.ts ./apps/server/prisma.config.ts
 
 # Generate Prisma clients for both apps
 RUN npx prisma generate --schema=apps/web/prisma/schema.prisma
 RUN npx prisma generate --schema=apps/server/prisma/schema.prisma
 
+# Copy full source
+COPY . .
+
 # Build shared packages first, then apps (turbo handles ordering)
-ARG NEXT_PUBLIC_APP_VERSION
-ENV NEXT_PUBLIC_APP_VERSION=$NEXT_PUBLIC_APP_VERSION
 RUN npx turbo build
 
 # ── Stage 4: Production dependencies only ──
@@ -53,7 +56,7 @@ COPY apps/web/package.json ./apps/web/
 COPY apps/server/package.json ./apps/server/
 COPY packages/dto/package.json ./packages/dto/
 
-RUN npm ci --omit=dev && npm cache clean --force
+RUN --mount=type=cache,target=/root/.npm npm ci --omit=dev --workspace apps/server --include-workspace-root=false
 
 # ── Stage 5: Runner ──
 FROM base AS runner

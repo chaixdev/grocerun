@@ -71,18 +71,47 @@ export async function pushListItems(
 
     const list = await deps.prisma.list.findFirst({
       where: { id: listId, deleted: false },
-      select: { storeId: true },
+      select: { storeId: true, assignedTo: true, status: true },
     });
 
     if (!list) {
-      throw new ForbiddenException(`No access to list ${listId}`);
+      // List no longer exists (deleted) or user can't see it — treat as tombstone.
+      conflicts.push({ id, updatedAt: new Date().toISOString(), _deleted: true });
+      continue;
     }
 
-    await deps.verifyStoreAccess(list.storeId, userId);
+    try {
+      await deps.verifyStoreAccess(list.storeId, userId);
+    } catch (err) {
+      if (err instanceof ForbiddenException) {
+        conflicts.push({ id, updatedAt: new Date().toISOString(), _deleted: true });
+        continue;
+      }
+      throw err;
+    }
+
+    // Enforce shopping lock: completed lists are immutable;
+    // SHOPPING lists locked by another user are read-only.
+    if (list.status === 'COMPLETED') {
+      conflicts.push({ id, updatedAt: new Date().toISOString(), _deleted: true });
+      continue;
+    }
+
+    if (list.status === 'SHOPPING') {
+      if (!list.assignedTo) {
+        // Server-side inconsistency — warn but allow the push to proceed.
+        console.warn(
+          `pushListItems: list ${listId} is SHOPPING but has no assignedTo. Allowing push for userId=${userId}.`,
+        );
+      } else if (list.assignedTo !== userId) {
+        conflicts.push({ id, updatedAt: new Date().toISOString(), _deleted: true });
+        continue;
+      }
+    }
 
     const current = await deps.prisma.listItem.findUnique({ where: { id } });
 
-    if (current && assumedMasterState !== null) {
+    if (current && assumedMasterState != null) {
       const assumedAt = new Date(assumedMasterState.updatedAt as string).getTime();
       const actualAt = current.updatedAt.getTime();
       if (assumedAt !== actualAt) {
@@ -99,6 +128,14 @@ export async function pushListItems(
         });
       }
     } else if (current) {
+      // Pin updatedAt to what the client sent so assumedMasterState
+      // comparison on the next push doesn't false-conflict against
+      // Prisma's @updatedAt (which would use server time otherwise).
+      const clientUpdatedAt = newDocumentState.updatedAt;
+      const updatedAt = typeof clientUpdatedAt === 'string'
+        ? new Date(clientUpdatedAt)
+        : new Date();
+
       await deps.prisma.listItem.update({
         where: { id },
         data: {
@@ -109,9 +146,26 @@ export async function pushListItems(
             (newDocumentState.purchasedQuantity as number | undefined) ?? null,
           deleted: false,
           deletedAt: null,
+          updatedAt,
         },
       });
     } else {
+      // Guard against a duplicate (listId, itemId) created via a different code
+      // path (e.g. the REST addItem endpoint) before this push arrived.
+      const duplicate = await deps.prisma.listItem.findFirst({
+        where: { listId, itemId, deleted: false },
+      });
+      if (duplicate) {
+        // Return the canonical server row so the client can reconcile.
+        conflicts.push(listItemToSyncDoc(duplicate));
+        continue;
+      }
+
+      const clientUpdatedAt = newDocumentState.updatedAt;
+      const updatedAt = typeof clientUpdatedAt === 'string'
+        ? new Date(clientUpdatedAt)
+        : new Date();
+
       await deps.prisma.listItem.create({
         data: {
           id,
@@ -122,6 +176,7 @@ export async function pushListItems(
           unit: (newDocumentState.unit as string | undefined) ?? null,
           purchasedQuantity:
             (newDocumentState.purchasedQuantity as number | undefined) ?? null,
+          updatedAt,
         },
       });
     }

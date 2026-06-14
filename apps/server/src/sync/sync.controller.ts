@@ -9,6 +9,7 @@ import {
   Req,
   Res,
   HttpCode,
+  Logger,
 } from '@nestjs/common';
 import { Request, Response } from 'express';
 import { SyncService, SyncCollection } from './sync.service';
@@ -20,6 +21,8 @@ import { SyncCheckpoint, PushRow } from './sync.types';
 @Controller('sync')
 @UseGuards(AuthGuard)
 export class SyncController {
+  private readonly logger = new Logger(SyncController.name);
+
   constructor(
     private readonly syncService: SyncService,
     private readonly sseBroadcast: SseBroadcastService,
@@ -61,7 +64,29 @@ export class SyncController {
     @Body() rows: PushRow[],
     @CurrentUser() user: JwtPayload,
   ) {
-    return this.syncService.push(collection as SyncCollection, rows, user.sub);
+    try {
+      const conflicts = await this.syncService.push(
+        collection as SyncCollection,
+        rows,
+        user.sub,
+      );
+
+      if (rows.length > 0) {
+        const memberIds = await this.syncService.getHouseholdMemberIds(
+          collection as SyncCollection,
+          rows,
+        );
+        this.sseBroadcast.notify(memberIds.length > 0 ? memberIds : [user.sub]);
+      }
+
+      return conflicts;
+    } catch (err) {
+      this.logger.error(
+        `Push failed: ${collection} user=${user.sub} rows=${rows?.length ?? '?'}`,
+        err instanceof Error ? err.stack : String(err),
+      );
+      throw err;
+    }
   }
 
   // ---------------------------------------------------------------------------

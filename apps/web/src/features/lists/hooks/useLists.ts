@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react"
 import { useMutation } from "@/core/lib/useMutation"
 import { api } from "@/core/lib/api"
-import { getRxDb, resyncItems, resyncListItems, resyncLists, resyncSections, resyncStores } from "@/core/rxdb"
+import { getRxDb, resyncItems, resyncListItems, resyncLists } from "@/core/rxdb"
 import { toast } from "sonner"
 
 // ----- Types -----
@@ -75,10 +75,11 @@ export function useStoreLists(storeId: string) {
         resyncListItems()
 
         const recompute = async () => {
-          const [lists, listItems] = await Promise.all([
-            db.lists.find({ selector: { storeId: { $eq: storeId } } }).exec(),
-            db.listItems.find().exec(),
-          ])
+          const lists = await db.lists.find({ selector: { storeId: { $eq: storeId } } }).exec()
+          const listIds = lists.map((l) => l.id)
+          const listItems = listIds.length > 0
+            ? await db.listItems.find({ selector: { listId: { $in: listIds } } }).exec()
+            : []
 
           const itemCountByListId = new Map<string, number>()
           for (const listItem of listItems) {
@@ -103,7 +104,11 @@ export function useStoreLists(storeId: string) {
           }
         }
 
-        const listSub = db.lists.find().$.subscribe(() => void recompute())
+        // Subscribe to lists for this store. For listItems, subscribe to the
+        // whole collection but filtered: recompute fetches only relevant items.
+        // A listItem change for a different store won't match the listId filter
+        // in recompute, so data is stable; only the selector check is broad.
+        const listSub = db.lists.find({ selector: { storeId: { $eq: storeId } } }).$.subscribe(() => void recompute())
         const listItemSub = db.listItems.find().$.subscribe(() => void recompute())
         unsubscribe = () => {
           listSub.unsubscribe()
@@ -141,39 +146,15 @@ export function useListDetail(listId: string) {
 
     let cancelled = false
     let unsubscribes: Array<() => void> = []
-    let triedFallback = false
 
     getRxDb()
       .then(async (db) => {
         if (cancelled) return
 
-        // Kick all relevant collections once on page load so the local cache
-        // catches up quickly even on a cold browser start.
-        resyncLists()
-        resyncListItems()
-        resyncItems()
-        resyncSections()
-        resyncStores()
-
         const recompute = async () => {
           const listDoc = await db.lists.findOne(listId).exec()
           if (!listDoc) {
-            if (!triedFallback) {
-              triedFallback = true
-              try {
-                const rest = await api.get<ListDetail>(`/lists/${listId}`)
-                if (!cancelled) {
-                  setData(rest)
-                  setIsLoading(false)
-                  setError(null)
-                }
-              } catch (err) {
-                if (!cancelled) {
-                  setError(err instanceof Error ? err : new Error('Failed to load list'))
-                  setIsLoading(false)
-                }
-              }
-            }
+            // Not yet replicated — stay in loading state until SSE/pull delivers it.
             return
           }
 
@@ -251,8 +232,8 @@ export function useListDetail(listId: string) {
           }
         }
 
-        const listSub = db.lists.find().$.subscribe(() => void recompute())
-        const listItemSub = db.listItems.find().$.subscribe(() => void recompute())
+        const listSub = db.lists.findOne(listId).$.subscribe(() => void recompute())
+        const listItemSub = db.listItems.find({ selector: { listId: { $eq: listId } } }).$.subscribe(() => void recompute())
         const itemSub = db.items.find().$.subscribe(() => void recompute())
         const sectionSub = db.sections.find().$.subscribe(() => void recompute())
 
@@ -303,6 +284,10 @@ type AddItemResult =
   | { status: "NEEDS_SECTION" }
   | { status: "ERROR"; error: string }
 
+function newLocalId() {
+  return `c${crypto.randomUUID().replace(/-/g, '').slice(0, 24)}`
+}
+
 interface AddItemInput {
   listId: string
   name: string
@@ -313,13 +298,93 @@ interface AddItemInput {
 
 export function useAddItem() {
   return useMutation({
-    mutationFn: (data: AddItemInput) =>
-      api.post<AddItemResult>("/lists/items/add", data),
-    onSuccess: (result) => {
-      if (result.status === "ADDED") {
-        resyncItems()
-        resyncListItems()
+    mutationFn: async (data: AddItemInput) => {
+      const name = data.name.trim()
+      if (!name) {
+        return { status: 'ERROR', error: 'Item name is required' } as AddItemResult
       }
+
+      const db = await getRxDb()
+      const list = await db.lists.findOne(data.listId).exec()
+      if (!list) {
+        return { status: 'ERROR', error: 'List not found in local database' } as AddItemResult
+      }
+
+      const now = new Date().toISOString()
+      let item = await db.items
+        .findOne({
+          selector: {
+            storeId: { $eq: list.storeId },
+            name: { $eq: name },
+          },
+        })
+        .exec()
+
+      if (!item && data.sectionId === undefined) {
+        return { status: 'NEEDS_SECTION' } as AddItemResult
+      }
+
+      if (!item) {
+        item = await db.items.insert({
+          id: newLocalId(),
+          name,
+          storeId: list.storeId,
+          ...(data.sectionId !== undefined ? { sectionId: data.sectionId ?? undefined } : {}),
+          ...(data.unit ? { defaultUnit: data.unit } : {}),
+          purchaseCount: 0,
+          updatedAt: now,
+        })
+      } else if (data.unit && data.unit !== item.defaultUnit) {
+        await item.incrementalPatch({
+          defaultUnit: data.unit,
+          updatedAt: now,
+        })
+      }
+
+      const existingListItem = await db.listItems
+        .findOne({
+          selector: {
+            listId: { $eq: data.listId },
+            itemId: { $eq: item.id },
+          },
+        })
+        .exec()
+
+      if (existingListItem) {
+        return { status: 'ALREADY_EXISTS' } as AddItemResult
+      }
+
+      const listItemDoc = await db.listItems.insert({
+        id: newLocalId(),
+        listId: data.listId,
+        itemId: item.id,
+        isChecked: false,
+        quantity: data.quantity ?? 1,
+        createdAt: now,
+        ...(data.unit ? { unit: data.unit } : item.defaultUnit ? { unit: item.defaultUnit } : {}),
+        updatedAt: now,
+      })
+
+      return {
+        status: 'ADDED',
+        listItem: {
+          id: listItemDoc.id,
+          isChecked: listItemDoc.isChecked,
+          quantity: listItemDoc.quantity,
+          unit: listItemDoc.unit ?? null,
+          purchasedQuantity: listItemDoc.purchasedQuantity ?? null,
+          item: {
+            id: item.id,
+            name: item.name,
+            sectionId: item.sectionId ?? null,
+            defaultUnit: item.defaultUnit ?? null,
+            purchaseCount: item.purchaseCount,
+          },
+        },
+      } as AddItemResult
+    },
+    onSuccess: (_result) => {
+      // Local write + push replication handles sync; no explicit resync needed.
     },
   })
 }
@@ -333,14 +398,32 @@ interface ToggleItemInput {
 
 export function useToggleItem() {
   return useMutation({
-    mutationFn: ({ itemId, isChecked, purchasedQuantity }: ToggleItemInput) =>
-      api.patch<{ success: boolean }>("/lists/items/toggle", {
-        itemId,
+    mutationFn: async ({ itemId, isChecked, purchasedQuantity }: ToggleItemInput) => {
+      const db = await getRxDb()
+      const doc = await db.listItems.findOne(itemId).exec()
+      if (!doc) {
+        throw new Error('List item not found in local database')
+      }
+
+      let finalPurchasedQuantity: number | undefined = purchasedQuantity
+      if (finalPurchasedQuantity === undefined) {
+        if (isChecked && doc.purchasedQuantity === undefined) {
+          finalPurchasedQuantity = doc.quantity
+        } else {
+          finalPurchasedQuantity = doc.purchasedQuantity
+        }
+      }
+
+      await doc.incrementalPatch({
         isChecked,
-        purchasedQuantity,
-      }),
+        purchasedQuantity: finalPurchasedQuantity,
+        updatedAt: new Date().toISOString(),
+      })
+
+      return { success: true }
+    },
     onSuccess: () => {
-      resyncListItems()
+      // Local write + push replication handles sync; no explicit resync needed.
     },
     onError: () => {
       toast.error("Failed to update item")
@@ -357,14 +440,23 @@ interface UpdateQuantityInput {
 
 export function useUpdateItemQuantity() {
   return useMutation({
-    mutationFn: ({ listItemId, quantity, unit }: UpdateQuantityInput) =>
-      api.patch<{ success: boolean }>("/lists/items/quantity", {
-        listItemId,
+    mutationFn: async ({ listItemId, quantity, unit }: UpdateQuantityInput) => {
+      const db = await getRxDb()
+      const doc = await db.listItems.findOne(listItemId).exec()
+      if (!doc) {
+        throw new Error('List item not found in local database')
+      }
+
+      await doc.incrementalPatch({
         quantity,
-        unit,
-      }),
+        ...(unit !== undefined ? { unit } : {}),
+        updatedAt: new Date().toISOString(),
+      })
+
+      return { success: true }
+    },
     onSuccess: () => {
-      resyncListItems()
+      // Local write + push replication handles sync; no explicit resync needed.
     },
     onError: () => {
       toast.error("Failed to update quantity")
@@ -374,10 +466,17 @@ export function useUpdateItemQuantity() {
 
 export function useRemoveItem() {
   return useMutation({
-    mutationFn: ({ listItemId, listId }: { listItemId: string; listId: string }) =>
-      api.delete<{ success: boolean }>(`/lists/items/${listItemId}`),
+    mutationFn: async ({ listItemId }: { listItemId: string; listId: string }) => {
+      const db = await getRxDb()
+      const doc = await db.listItems.findOne(listItemId).exec()
+      if (!doc) {
+        throw new Error('List item not found in local database')
+      }
+      await doc.remove()
+      return { success: true }
+    },
     onSuccess: () => {
-      resyncListItems()
+      // Local write + push replication handles sync; no explicit resync needed.
       toast.success("Item removed")
     },
     onError: () => {

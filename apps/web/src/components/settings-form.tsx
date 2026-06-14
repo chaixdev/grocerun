@@ -18,7 +18,9 @@ import { ModeToggle } from "@/components/mode-toggle"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { signOut } from "next-auth/react"
-import { LogOut } from "lucide-react"
+import { LogOut, RefreshCw } from "lucide-react"
+import { resetRxDb } from "@/core/rxdb"
+import { Checkbox } from "@/components/ui/checkbox"
 import { UpdateProfileSchema, type UpdateProfileDto } from "@grocerun/dto"
 import { InvitationManager } from "@/features/households"
 import { useUpdateProfile } from "@/hooks/useProfile"
@@ -39,8 +41,11 @@ export function SettingsForm({ user, households, invitationTimeoutMinutes }: Set
     const [mounted, setMounted] = useState(false)
     const updateProfile = useUpdateProfile()
 
+    const [diagnosticsEnabled, setDiagnosticsEnabled] = useState(false)
+
     useEffect(() => {
         setMounted(true)
+        setDiagnosticsEnabled(localStorage.getItem('grocerun-diagnostics') === 'true')
     }, [])
 
     const form = useForm<UpdateProfileDto>({
@@ -138,6 +143,52 @@ export function SettingsForm({ user, households, invitationTimeoutMinutes }: Set
                 <Separator />
                 <InvitationManager userId={user.id} households={households} invitationTimeoutMinutes={invitationTimeoutMinutes} />
             </div>
+
+            <Card>
+                <CardHeader>
+                    <CardTitle>Developer</CardTitle>
+                    <CardDescription>
+                        Debugging tools for sync and replication.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <label className="flex items-center gap-3 cursor-pointer">
+                        <Checkbox
+                            checked={diagnosticsEnabled}
+                            onCheckedChange={(checked) => {
+                                const enabled = checked === true
+                                setDiagnosticsEnabled(enabled)
+                                localStorage.setItem('grocerun-diagnostics', String(enabled))
+                                window.dispatchEvent(new StorageEvent('storage', { key: 'grocerun-diagnostics', newValue: String(enabled) }))
+                            }}
+                        />
+                        <div className="space-y-1">
+                            <p className="font-medium text-sm">Sync diagnostics</p>
+                            <p className="text-xs text-muted-foreground">
+                                Show a floating overlay with SSE status, pull/push logs, and auth state.
+                            </p>
+                        </div>
+                    </label>
+                    <Separator className="my-4" />
+                    <div className="space-y-1">
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={async () => {
+                                if (!confirm('This will delete all local data and re-sync from the server. Continue?')) return
+                                await resetRxDb()
+                                window.location.reload()
+                            }}
+                        >
+                            <RefreshCw className="mr-2 h-4 w-4" />
+                            Force clean &amp; resync
+                        </Button>
+                        <p className="text-xs text-muted-foreground">
+                            Wipe local database and pull everything fresh from the server.
+                        </p>
+                    </div>
+                </CardContent>
+            </Card>
 
             <Card className="border-destructive/50">
                 <CardHeader>

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { UserNav } from "@/components/user-nav";
@@ -21,7 +22,10 @@ export function Sidebar({ user }: SidebarProps) {
     return (
         <aside className="hidden w-64 flex-col border-r bg-background md:flex">
             <div className="flex h-14 items-center border-b px-4">
-                <span className="text-lg font-semibold text-primary">Grocerun</span>
+                <Link href="/" className="flex items-center gap-2 hover:no-underline">
+                    <Image src="/icon.svg" alt="" width={28} height={28} className="h-7 w-7" />
+                    <span className="text-lg font-semibold text-primary">Grocerun</span>
+                </Link>
             </div>
             <nav className="flex-1 space-y-1 p-4">
                 {navigationItems.map((item) => (

@@ -56,7 +56,7 @@ export function useStore(storeId: string) {
           }
         }
 
-        const sub = db.stores.find().$.subscribe(() => void recompute())
+        const sub = db.stores.findOne(storeId).$.subscribe(() => void recompute())
         unsubscribe = () => sub.unsubscribe()
         await recompute()
       })

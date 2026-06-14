@@ -1,5 +1,6 @@
 import { ModeToggle } from "@/components/mode-toggle"
 import { UserNav } from "@/components/user-nav"
+import Image from "next/image"
 import Link from "next/link"
 import { User } from "next-auth"
 
@@ -13,6 +14,7 @@ export function Header({ user }: HeaderProps) {
             <div className="container flex h-14 items-center justify-between">
                 <div className="flex items-center gap-6 font-bold text-xl">
                     <Link href="/" className="flex items-center gap-2 hover:no-underline">
+                        <Image src="/icon.svg" alt="" width={28} height={28} className="h-7 w-7" />
                         <span className="text-primary">Grocerun</span>
                     </Link>
 

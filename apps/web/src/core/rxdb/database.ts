@@ -10,13 +10,14 @@
  * multiple React components — they all get the same promise-cached instance.
  */
 
-import { createRxDatabase, RxDatabase, RxCollection, addRxPlugin, RxReplicationPullStreamItem, RxStorage, removeRxDatabase } from 'rxdb'
+import { createRxDatabase, RxDatabase, RxCollection, addRxPlugin, RxReplicationPullStreamItem, RxStorage, removeRxDatabase, RxReplicationWriteToMasterRow, WithDeleted } from 'rxdb'
 import { RxDBDevModePlugin } from 'rxdb/plugins/dev-mode'
 import { wrappedValidateZSchemaStorage } from 'rxdb/plugins/validate-z-schema'
 import { getRxStorageDexie } from 'rxdb/plugins/storage-dexie'
 import { replicateRxCollection } from 'rxdb/plugins/replication'
 import { Subject } from 'rxjs'
-import { getToken } from '../lib/auth-token'
+import { getToken, refreshToken as forceTokenRefresh } from '../lib/auth-token'
+import { emitDiagnostic } from '../diagnostics/event-bus'
 import {
   sectionSchema,
   SectionDocType,
@@ -31,6 +32,32 @@ import {
   storeSchema,
   StoreDocType,
 } from './schema'
+
+// ---------------------------------------------------------------------------
+// JWT helpers for diagnostics (decode without verification)
+// ---------------------------------------------------------------------------
+function decodeJwtPayload(token: string | null): Record<string, unknown> | null {
+  if (!token) return null
+  try {
+    const parts = token.split('.')
+    if (parts.length !== 3) return null
+    return JSON.parse(atob(parts[1]))
+  } catch {
+    return null
+  }
+}
+
+function decodeJwtExp(token: string | null): number | null {
+  const payload = decodeJwtPayload(token)
+  if (!payload || typeof payload.exp !== 'number') return null
+  return payload.exp * 1000
+}
+
+function decodeJwtSub(token: string | null): string | null {
+  const payload = decodeJwtPayload(token)
+  if (!payload || typeof payload.sub !== 'string') return null
+  return payload.sub
+}
 
 // ---------------------------------------------------------------------------
 // Dev-mode plugin (stripped in production builds via tree-shaking)
@@ -73,7 +100,9 @@ export type GrocerunDatabase = RxDatabase<GrocerunCollections>
 let dbPromise: Promise<GrocerunDatabase> | null = null
 const RXDB_NAME = 'grocerun-v8'
 let sharedSyncStreamOpened = false
-let periodicResyncStarted = false
+let periodicResyncTimer: ReturnType<typeof setInterval> | null = null
+let visibilityListenerAdded = false
+let sseHealthy = false
 let sharedSyncEventSource: EventSource | null = null
 
 export function getRxDb(): Promise<GrocerunDatabase> {
@@ -93,7 +122,9 @@ export async function resetRxDb(): Promise<void> {
     sharedSyncEventSource.close()
     sharedSyncEventSource = null
   }
+  stopPeriodicResync()
   sharedSyncStreamOpened = false
+  sseHealthy = false
   sharedPullStreams.clear()
 
   if (dbPromise) {
@@ -243,6 +274,7 @@ function startItemReplication(collection: RxCollection<ItemDocType>) {
     basePath: '/api/v1/sync/item',
     replicationIdentifier: 'grocerun-item-sync-v1',
     pullStream$,
+    enablePush: true,
   })
 }
 
@@ -265,6 +297,7 @@ function startListItemReplication(collection: RxCollection<ListItemDocType>) {
     basePath: '/api/v1/sync/listItem',
     replicationIdentifier: 'grocerun-list-item-sync-v1',
     pullStream$,
+    enablePush: true,
   })
 }
 
@@ -295,8 +328,10 @@ function startPullReplication<DocType, Checkpoint extends { id: string; updatedA
   basePath: string
   replicationIdentifier: string
   pullStream$: Subject<RxReplicationPullStreamItem<DocType, Checkpoint>>
+  enablePush?: boolean
 }) {
-  const { collection, basePath, replicationIdentifier, pullStream$ } = args
+  const { collection, basePath, replicationIdentifier, pullStream$, enablePush = false } = args
+  const collectionName = basePath.split('/').pop() ?? basePath
 
   registerPullStream(pullStream$)
 
@@ -316,22 +351,96 @@ function startPullReplication<DocType, Checkpoint extends { id: string; updatedA
           params.set('id', checkpoint.id)
         }
 
+        const t0 = Date.now()
         const token = await getToken()
-        const res = await fetch(`${basePath}/pull?${params}`, {
+        emitDiagnostic({ type: 'auth', hasToken: !!token, expiresAt: decodeJwtExp(token), userId: decodeJwtSub(token), at: t0 })
+
+        let res = await fetch(`${basePath}/pull?${params}`, {
           cache: 'no-store',
           headers: token ? { Authorization: `Bearer ${token}` } : {},
         })
 
+        // On 401, force-refresh the token and retry once so RxDB
+        // doesn't loop with a stale cached token.
+        if (res.status === 401) {
+          const freshToken = await forceTokenRefresh()
+          if (freshToken) {
+            res = await fetch(`${basePath}/pull?${params}`, {
+              cache: 'no-store',
+              headers: { Authorization: `Bearer ${freshToken}` },
+            })
+          }
+        }
+
         if (!res.ok) {
+          emitDiagnostic({ type: 'pull', collection: collectionName, status: res.status, docCount: 0, checkpoint: null, durationMs: Date.now() - t0, error: `HTTP ${res.status}`, at: t0 })
           throw new Error(`Sync pull failed: ${res.status}`)
         }
 
         const data = await res.json()
+        emitDiagnostic({ type: 'pull', collection: collectionName, status: res.status, docCount: data.documents?.length ?? 0, checkpoint: data.checkpoint, durationMs: Date.now() - t0, at: t0 })
         return { documents: data.documents, checkpoint: data.checkpoint }
       },
       stream$: pullStream$.asObservable(),
     },
+    ...(enablePush
+      ? {
+          push: {
+            batchSize: 50,
+            async handler(rows: RxReplicationWriteToMasterRow<DocType>[]) {
+              const t0 = Date.now()
+              const token = await getToken()
+              let res = await fetch(`${basePath}/push`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                },
+                body: JSON.stringify(rows),
+              })
+
+              // On 401, force-refresh the token and retry once.
+              if (res.status === 401) {
+                const freshToken = await forceTokenRefresh()
+                if (freshToken) {
+                  res = await fetch(`${basePath}/push`, {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json',
+                      Authorization: `Bearer ${freshToken}`,
+                    },
+                    body: JSON.stringify(rows),
+                  })
+                }
+              }
+
+              if (!res.ok) {
+                emitDiagnostic({ type: 'push', collection: collectionName, status: res.status, rowCount: rows.length, conflictCount: 0, durationMs: Date.now() - t0, error: `HTTP ${res.status}`, at: t0 })
+                throw new Error(`Sync push failed: ${res.status}`)
+              }
+
+              const conflicts = (await res.json()) as WithDeleted<DocType>[]
+              emitDiagnostic({ type: 'push', collection: collectionName, status: res.status, rowCount: rows.length, conflictCount: conflicts.length, durationMs: Date.now() - t0, at: t0 })
+              return conflicts
+            },
+          },
+        }
+      : {}),
   })
+}
+
+/**
+ * Returns the direct SSE stream URL, bypassing Next.js rewrite buffering.
+ *
+ * EventSource connects to the NestJS API directly so that streaming
+ * chunks are never buffered or dropped by the dev proxy. Normal REST
+ * pull/push calls still use the Next.js rewrite path (/api/v1/...).
+ */
+function getSyncStreamUrl(): string {
+  const baseUrl =
+    process.env.NEXT_PUBLIC_API_URL ??
+    (process.env.NODE_ENV === 'development' ? 'http://localhost:3001' : '/api/v1')
+  return `${baseUrl.replace(/\/$/, '')}/sync/stream`
 }
 
 /**
@@ -346,29 +455,63 @@ function registerPullStream<DocType, Checkpoint>(
   subject: Subject<RxReplicationPullStreamItem<DocType, Checkpoint>>,
 ) {
   sharedPullStreams.add(subject as Subject<RxReplicationPullStreamItem<any, any>>)
-  if (!periodicResyncStarted) {
-    periodicResyncStarted = true
-    setInterval(() => {
-      for (const stream of sharedPullStreams) {
-        stream.next('RESYNC' as RxReplicationPullStreamItem<any, any>)
+  if (!visibilityListenerAdded) {
+    visibilityListenerAdded = true
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') {
+        emitDiagnostic({ type: 'resync', source: 'visibility', at: Date.now() })
+        for (const stream of sharedPullStreams) {
+          stream.next('RESYNC' as RxReplicationPullStreamItem<any, any>)
+        }
       }
-    }, 5_000)
+    })
   }
   if (!sharedSyncStreamOpened) {
     sharedSyncStreamOpened = true
-    void openSharedSyncStream('/api/v1/sync/stream')
+    void openSharedSyncStream(getSyncStreamUrl())
   }
 }
 
-async function openSharedSyncStream(url: string) {
-  const token = await getToken()
+function resyncAll() {
+  emitDiagnostic({ type: 'resync', source: 'periodic', at: Date.now() })
+  for (const stream of sharedPullStreams) {
+    stream.next('RESYNC' as RxReplicationPullStreamItem<any, any>)
+  }
+}
+
+function startPeriodicResync() {
+  if (periodicResyncTimer !== null) return
+  periodicResyncTimer = setInterval(resyncAll, 5_000)
+}
+
+function stopPeriodicResync() {
+  if (periodicResyncTimer !== null) {
+    clearInterval(periodicResyncTimer)
+    periodicResyncTimer = null
+  }
+}
+
+async function openSharedSyncStream(url: string, forceRefresh = false) {
+  const token = forceRefresh ? await forceTokenRefresh() : await getToken()
   // EventSource doesn't support custom headers — token is appended as a
   // query param. The Next.js rewrite proxies /api/v1 to the NestJS server,
   // which then validates it via the AuthGuard.
-  const src = new EventSource(token ? `${url}?token=${encodeURIComponent(token)}` : url)
+  const params = new URLSearchParams()
+  if (token) params.set('token', token)
+  const src = new EventSource(`${url}?${params.toString()}`)
   sharedSyncEventSource = src
 
+  emitDiagnostic({ type: 'sse', state: 'connecting', at: Date.now() })
+
   src.addEventListener('RESYNC', () => {
+    emitDiagnostic({ type: 'resync', source: 'sse', at: Date.now() })
+    for (const subject of sharedPullStreams) {
+      subject.next('RESYNC' as RxReplicationPullStreamItem<any, any>)
+    }
+  })
+
+  src.addEventListener('SYNC_CHANGED', () => {
+    emitDiagnostic({ type: 'resync', source: 'sse', at: Date.now() })
     for (const subject of sharedPullStreams) {
       subject.next('RESYNC' as RxReplicationPullStreamItem<any, any>)
     }
@@ -385,16 +528,27 @@ async function openSharedSyncStream(url: string) {
     }
   })
 
+  // SSE open = connection healthy: stop fallback timer.
+  src.onopen = () => {
+    sseHealthy = true
+    emitDiagnostic({ type: 'sse', state: 'open', at: Date.now() })
+    stopPeriodicResync()
+  }
+
   src.onerror = () => {
     src.close()
+    sseHealthy = false
+    emitDiagnostic({ type: 'sse', state: 'error', at: Date.now() })
     if (sharedSyncEventSource === src) {
       sharedSyncEventSource = null
     }
     sharedSyncStreamOpened = false
+    // SSE down: start fallback periodic resync so clients don't go stale.
+    startPeriodicResync()
     setTimeout(() => {
       if (!sharedSyncStreamOpened) {
         sharedSyncStreamOpened = true
-        void openSharedSyncStream(url)
+        void openSharedSyncStream(url, true /* force token refresh on reconnect */)
       }
     }, 5_000)
   }

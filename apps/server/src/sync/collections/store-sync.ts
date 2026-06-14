@@ -1,4 +1,4 @@
-import { BadRequestException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException } from '@nestjs/common';
 import { SyncDeps } from '../sync-deps';
 import {
   PullResponse,
@@ -68,11 +68,21 @@ export async function pushStores(
       throw new BadRequestException(`Missing householdId in document ${id}`);
     }
 
-    await deps.verifyHouseholdAccess(householdId, userId);
+    try {
+      await deps.verifyHouseholdAccess(householdId, userId);
+    } catch (err) {
+      if (err instanceof ForbiddenException) {
+        // User no longer has access to this household (e.g. left it).
+        // Return a tombstone conflict so RxDB stops retrying this row.
+        conflicts.push({ id, updatedAt: new Date().toISOString(), _deleted: true });
+        continue;
+      }
+      throw err;
+    }
 
     const current = await deps.prisma.store.findUnique({ where: { id } });
 
-    if (current && assumedMasterState !== null) {
+    if (current && assumedMasterState != null) {
       const assumedAt = new Date(assumedMasterState.updatedAt as string).getTime();
       const actualAt = current.updatedAt.getTime();
       if (assumedAt !== actualAt) {

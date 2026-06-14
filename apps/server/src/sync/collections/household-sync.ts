@@ -1,3 +1,4 @@
+import { ForbiddenException } from '@nestjs/common';
 import { SyncDeps } from '../sync-deps';
 import {
   PullResponse,
@@ -70,8 +71,18 @@ export async function pushHouseholds(
     const current = await deps.prisma.household.findUnique({ where: { id } });
 
     if (current) {
-      await deps.verifyHouseholdAccess(current.id, userId);
-      if (assumedMasterState !== null) {
+      try {
+        await deps.verifyHouseholdAccess(current.id, userId);
+      } catch (err) {
+        if (err instanceof ForbiddenException) {
+          // User no longer has access to this household (e.g. was removed).
+          // Return a tombstone conflict so RxDB stops retrying this row.
+          conflicts.push({ id, updatedAt: new Date().toISOString(), _deleted: true });
+          continue;
+        }
+        throw err;
+      }
+      if (assumedMasterState != null) {
         const assumedAt = new Date(assumedMasterState.updatedAt as string).getTime();
         const actualAt = current.updatedAt.getTime();
         if (assumedAt !== actualAt) {

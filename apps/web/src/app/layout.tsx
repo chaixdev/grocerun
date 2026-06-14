@@ -6,7 +6,17 @@ const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
 export const metadata: Metadata = {
   title: "Grocerun",
-  description: "A modern shopping list app",
+  description: "A modern shopping list app for households",
+  icons: {
+    icon: [
+      { url: "/favicon.ico", sizes: "48x48" },
+      { url: "/icon.svg", type: "image/svg+xml" },
+      { url: "/favicon-96x96.png", sizes: "96x96", type: "image/png" },
+    ],
+    apple: [
+      { url: "/apple-icon.png", type: "image/png" },
+    ],
+  },
 };
 
 import { ThemeProvider } from "@/components/theme-provider"
@@ -14,6 +24,7 @@ import { Providers } from "@/components/providers"
 import { Header } from "@/components/header"
 import { Toaster } from "@/components/ui/sonner"
 import { ResponsiveShell } from "@/components/layout/responsive-shell"
+import { DiagnosticsGate } from "@/components/diagnostics-gate"
 import { auth } from "@/core/auth"
 
 export default async function RootLayout({
@@ -38,6 +49,7 @@ export default async function RootLayout({
               {children}
             </ResponsiveShell>
             <Toaster />
+            <DiagnosticsGate />
           </Providers>
         </ThemeProvider>
       </body>
