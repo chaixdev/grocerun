@@ -1,9 +1,11 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { SseBroadcastService } from '../sync/sse-broadcast.service';
 
 @Injectable()
 export class NotificationService {
+  private readonly logger = new Logger(NotificationService.name);
+
   constructor(
     private prisma: PrismaService,
     private sse: SseBroadcastService,
@@ -31,8 +33,8 @@ export class NotificationService {
           );
         }
       })
-      .catch(() => {
-        // Best-effort — don't fail the mutation if notification fails
+      .catch((error) => {
+        this.logger.warn('Notification byStore failed', error instanceof Error ? error.message : String(error));
       });
   }
 
@@ -54,8 +56,8 @@ export class NotificationService {
           );
         }
       })
-      .catch(() => {
-        // Best-effort
+      .catch((error) => {
+        this.logger.warn('Notification byHousehold failed', error instanceof Error ? error.message : String(error));
       });
   }
 }

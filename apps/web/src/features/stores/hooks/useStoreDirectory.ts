@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react"
+import { useRxQuery } from "@/core/lib/useRxQuery"
 import { useMutation } from "@/core/lib/useMutation"
 import { api } from "@/core/lib/api"
-import { getRxDb, resyncHouseholds, resyncLists, resyncStores } from "@/core/rxdb"
+import { resyncHouseholds, resyncLists, resyncStores } from "@/core/rxdb"
 import { toast } from "sonner"
 
 // ----- Types -----
@@ -20,22 +20,10 @@ export interface DirectoryHousehold {
 }
 
 export function useStoreDirectory() {
-  const [data, setData] = useState<DirectoryHousehold[] | undefined>(undefined)
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<Error | null>(null)
-
-  useEffect(() => {
-    let cancelled = false
-    let unsubscribes: Array<() => void> = []
-
-    getRxDb()
-      .then(async (db) => {
-        if (cancelled) return
-        resyncHouseholds()
-        resyncStores()
-        resyncLists()
-
-        const recompute = async () => {
+  return useRxQuery<DirectoryHousehold[]>(
+    {
+      setup: async (db, triggerUpdate) => {
+        const compute = async () => {
           const [households, stores, lists] = await Promise.all([
             db.households.find().exec(),
             db.stores.find().exec(),
@@ -51,7 +39,7 @@ export function useStoreDirectory() {
             }
           }
 
-          const next = households
+          return households
             .map((household) => ({
               id: household.id,
               name: household.name,
@@ -65,40 +53,29 @@ export function useStoreDirectory() {
                 })),
             }))
             .sort((a, b) => a.name.localeCompare(b.name))
-
-          if (!cancelled) {
-            setData(next)
-            setIsLoading(false)
-            setError(null)
-          }
         }
 
-        const householdSub = db.households.find().$.subscribe(() => void recompute())
-        const storeSub = db.stores.find().$.subscribe(() => void recompute())
-        const listSub = db.lists.find().$.subscribe(() => void recompute())
-        unsubscribes = [
-          () => householdSub.unsubscribe(),
-          () => storeSub.unsubscribe(),
-          () => listSub.unsubscribe(),
-        ]
-        await recompute()
-      })
-      .catch((err) => {
-        if (!cancelled) {
-          setError(err instanceof Error ? err : new Error('Failed to load store directory'))
-          setIsLoading(false)
+        const householdSub = db.households.find().$.subscribe(() => void triggerUpdate())
+        const storeSub = db.stores.find().$.subscribe(() => void triggerUpdate())
+        const listSub = db.lists.find().$.subscribe(() => void triggerUpdate())
+        return {
+          subscriptions: [
+            () => householdSub.unsubscribe(),
+            () => storeSub.unsubscribe(),
+            () => listSub.unsubscribe(),
+          ],
+          compute,
         }
-      })
-
-    return () => {
-      cancelled = true
-      unsubscribes.forEach((u) => {
-        u()
-      })
-    }
-  }, [])
-
-  return { data, isLoading, error, isError: !!error }
+      },
+      init: async () => {
+        resyncHouseholds()
+        resyncStores()
+        resyncLists()
+      },
+      errorMsg: 'Failed to load store directory',
+    },
+    [],
+  )
 }
 
 // ----- Mutations -----

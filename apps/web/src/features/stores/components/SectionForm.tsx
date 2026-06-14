@@ -8,10 +8,9 @@ import { z } from "zod"
 import { Plus } from "lucide-react"
 import { Form, FormControl, FormField, FormItem, FormMessage } from "@/components/ui/form"
 import { toast } from "sonner"
+import { CreateSectionSchema } from "@grocerun/dto"
 
-const formSchema = z.object({
-    name: z.string().min(1, "Name is required"),
-})
+const formSchema = CreateSectionSchema.pick({ name: true })
 
 export function SectionForm({ storeId }: { storeId: string }) {
     const form = useForm<z.infer<typeof formSchema>>({

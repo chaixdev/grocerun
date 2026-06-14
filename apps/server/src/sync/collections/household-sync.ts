@@ -13,6 +13,7 @@ import {
   SyncCheckpoint,
   SyncDocument,
 } from '../sync.types';
+import { pullByAccess } from '../sync-helpers';
 
 export async function pullHouseholds(
   deps: SyncDeps,
@@ -20,55 +21,18 @@ export async function pullHouseholds(
   limit: number,
   userId: string,
 ): Promise<PullResponse> {
-  const tombstoneWindow = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-
-  const where: Record<string, unknown> = {
-    users: { some: { id: userId } },
-    AND: [
-      {
-        OR: [
-          { deleted: false },
-          { deletedAt: { gte: tombstoneWindow } },
-        ],
-      },
-    ],
-  };
-
-  if (checkpoint) {
-    (where.AND as Array<Record<string, unknown>>).push({
-      OR: [
-        { updatedAt: { gt: new Date(checkpoint.updatedAt) } },
-        {
-          updatedAt: { equals: new Date(checkpoint.updatedAt) },
-          id: { gt: checkpoint.id },
-        },
-      ],
-    });
-  }
-
-  const rows = await deps.prisma.household.findMany({
-    where,
-    orderBy: [{ updatedAt: 'asc' }, { id: 'asc' }],
-    take: limit,
-    include: { _count: { select: { users: true } } },
+  return pullByAccess({
+    deps, checkpoint, limit, userId,
+    model: deps.prisma.household,
+    toDoc: (row: any) => ({
+      id: row.id,
+      name: row.name,
+      ...(row.ownerId ? { ownerId: row.ownerId } : {}),
+      memberCount: row._count?.users ?? 0,
+      updatedAt: row.updatedAt.toISOString(),
+      _deleted: row.deleted,
+    }),
+    buildBaseFilter: async (_d, _u) => ({ users: { some: { id: userId } } }),
+    extra: { include: { _count: { select: { users: true } } } },
   });
-
-  const documents: SyncDocument[] = rows.map((row) => ({
-    id: row.id,
-    name: row.name,
-    ...(row.ownerId ? { ownerId: row.ownerId } : {}),
-    memberCount: row._count.users,
-    updatedAt: row.updatedAt.toISOString(),
-    _deleted: row.deleted,
-  }));
-
-  const newCheckpoint: SyncCheckpoint | null =
-    rows.length > 0
-      ? {
-          id: rows[rows.length - 1].id,
-          updatedAt: rows[rows.length - 1].updatedAt.toISOString(),
-        }
-      : checkpoint;
-
-  return { documents, checkpoint: newCheckpoint };
 }

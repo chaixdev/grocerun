@@ -74,7 +74,7 @@ async function addItem(listId: string, name: string, sectionId: string): Promise
     .post('/lists/items/add')
     .send({ listId, name, sectionId, quantity: 1 })
     .expect(201);
-  return res.body.listItem.id;
+  return res.body.id;
 }
 
 // ---------------------------------------------------------------------------
@@ -223,7 +223,7 @@ describe('4. re-add a removed item (upsert resurrection)', () => {
       .send({ listId, name: 'Milk', sectionId, quantity: 2 })
       .expect(201);
 
-    expect(res.body.status).toBe('ADDED');
+    expect(res.body.id).toBeTruthy();
 
     // DB: the catalog item is alive again
     const itemAfter = await db(app).item.findFirst({ where: { storeId, name: 'Milk' } });

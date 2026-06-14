@@ -2,8 +2,8 @@ import { useCallback, useRef, useState } from "react"
 import { getRxDb } from "@/core/rxdb"
 
 type RxCollectionDoc = {
-  incrementalPatch: (patch: Record<string, unknown>) => Promise<void>
-  remove: () => Promise<void>
+  incrementalPatch: (patch: Record<string, unknown>) => Promise<unknown>
+  remove: () => Promise<unknown>
 }
 
 type RxMutationMode = "patch" | "remove"
@@ -66,24 +66,24 @@ export function useRxMutation<TPatch>(
 
     const db = await getRxDb()
     const docId = deriveDocId(variables)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const doc = await (db[collection] as any).findOne(docId).exec()
+    const col = collection === "items" ? db.items : db.listItems
+    const doc = await col.findOne(docId).exec()
 
     if (!doc) {
       throw new Error(notFoundMsg ?? `${collection} doc not found in local database`)
     }
 
     if (mode === "remove") {
-      await (doc as RxCollectionDoc).remove()
+      await (doc as unknown as RxCollectionDoc).remove()
     } else {
       if (!derivePatch) {
         throw new Error("derivePatch is required for mode 'patch'")
       }
       const patch = {
-        ...derivePatch(variables, doc as Record<string, unknown>),
+        ...derivePatch(variables, doc as unknown as Record<string, unknown>),
         updatedAt: new Date().toISOString(),
       }
-      await (doc as RxCollectionDoc).incrementalPatch(patch)
+      await (doc as unknown as RxCollectionDoc).incrementalPatch(patch)
     }
 
     return { success: true as const }

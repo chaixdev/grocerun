@@ -9,7 +9,6 @@ import {
   Req,
   Res,
   HttpCode,
-  Logger,
 } from '@nestjs/common';
 import { Request, Response } from 'express';
 import { SyncService, SyncCollection } from './sync.service';
@@ -21,8 +20,6 @@ import { SyncCheckpoint, PushRow } from './sync.types';
 @Controller('sync')
 @UseGuards(AuthGuard)
 export class SyncController {
-  private readonly logger = new Logger(SyncController.name);
-
   constructor(
     private readonly syncService: SyncService,
     private readonly sseBroadcast: SseBroadcastService,
@@ -64,33 +61,25 @@ export class SyncController {
     @Body() rows: PushRow[],
     @CurrentUser() user: JwtPayload,
   ) {
-    try {
-      const conflicts = await this.syncService.push(
+    const conflicts = await this.syncService.push(
+      collection as SyncCollection,
+      rows,
+      user.userId!,
+      user.sub,
+    );
+
+    if (rows.length > 0) {
+      const memberIds = await this.syncService.getHouseholdMemberIds(
         collection as SyncCollection,
         rows,
-        user.userId!,
-        user.sub,
       );
-
-      if (rows.length > 0) {
-        const memberIds = await this.syncService.getHouseholdMemberIds(
-          collection as SyncCollection,
-          rows,
-        );
-        this.sseBroadcast.notifyChanged(
-          memberIds.length > 0 ? memberIds : [user.userId!],
-          { collections: [collection], reason: `${collection}.push` },
-        );
-      }
-
-      return conflicts;
-    } catch (err) {
-      this.logger.error(
-          `Push failed: ${collection} user=${user.userId} rows=${rows?.length ?? '?'}`,
-        err instanceof Error ? err.stack : String(err),
+      this.sseBroadcast.notifyChanged(
+        memberIds.length > 0 ? memberIds : [user.userId!],
+        { collections: [collection], reason: `${collection}.push` },
       );
-      throw err;
     }
+
+    return conflicts;
   }
 
   // ---------------------------------------------------------------------------
@@ -106,7 +95,7 @@ export class SyncController {
   // ---------------------------------------------------------------------------
 
   @Get('stream')
-  sharedStream(
+  unscopedStream(
     @Req() req: Request,
     @Res() res: Response,
   ) {

@@ -10,6 +10,7 @@ export class HouseholdOverviewService {
     // Include stores and their ACTIVE lists (status != 'COMPLETED')
     const households = await this.prisma.household.findMany({
       where: {
+        deleted: false,
         users: {
           some: {
             id: userId
@@ -18,9 +19,11 @@ export class HouseholdOverviewService {
       },
       include: {
         stores: {
+          where: { deleted: false },
           include: {
             lists: {
               where: {
+                deleted: false,
                 status: { not: 'COMPLETED' }
               },
               orderBy: { updatedAt: 'desc' },

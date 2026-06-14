@@ -11,6 +11,7 @@ import { pullListItems, pushListItems } from './collections/list-item-sync';
 import { pullStores } from './collections/store-sync';
 import { pullHouseholds } from './collections/household-sync';
 import { SyncDeps } from './sync-deps';
+import { TOMBSTONE_WINDOW_MS } from './sync-helpers';
 import {
   PullResponse,
   PushRow,
@@ -28,10 +29,6 @@ const MAX_BATCH_SIZE = 500;
 @Injectable()
 export class SyncService {
   constructor(private prisma: PrismaService) {}
-
-  // Window in which recently-deleted rows remain visible to sync pull
-  // so client tombstones converge reliably across cascaded deletes.
-  private static readonly TOMBSTONE_WINDOW_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
 
   private get deps(): SyncDeps {
     return {
@@ -189,7 +186,7 @@ export class SyncService {
   // Tombstones older than TOMBSTONE_WINDOW_MS are presumed settled and excluded.
 
   private async getAccessibleStoreIdsForSync(userId: string): Promise<string[]> {
-    const windowStart = new Date(Date.now() - SyncService.TOMBSTONE_WINDOW_MS);
+    const windowStart = new Date(Date.now() - TOMBSTONE_WINDOW_MS);
     const stores = await this.prisma.store.findMany({
       where: {
         household: { users: { some: { id: userId } } },
@@ -201,7 +198,7 @@ export class SyncService {
   }
 
   private async getAccessibleHouseholdIdsForSync(userId: string): Promise<string[]> {
-    const windowStart = new Date(Date.now() - SyncService.TOMBSTONE_WINDOW_MS);
+    const windowStart = new Date(Date.now() - TOMBSTONE_WINDOW_MS);
     const households = await this.prisma.household.findMany({
       where: {
         users: { some: { id: userId } },

@@ -28,7 +28,6 @@ import { useScreenWakeLock } from "@/hooks/use-screen-wake-lock"
 import { QuantityStepper } from "./QuantityStepper"
 import { EditItemDialog } from "./EditItemDialog"
 import {
-    useAddItem,
     useToggleItem,
     useRemoveItem,
     useUpdateItemQuantity,
@@ -36,11 +35,12 @@ import {
     useCancelShopping,
     useCompleteList,
 } from "../hooks/useLists"
+import { useAddItem } from "../hooks/useAddItem"
 import type {
     ListDetail,
     ListDetailItem,
     ListDetailListItem,
-} from "../hooks/useLists"
+} from "../hooks/useListQueries"
 
 interface ListEditorProps {
     list: ListDetail

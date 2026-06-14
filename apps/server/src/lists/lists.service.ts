@@ -33,12 +33,6 @@ export interface ListItemWithItem {
   };
 }
 
-type AddItemResult =
-  | { status: 'ADDED'; listItem: ListItemWithItem }
-  | { status: 'ALREADY_EXISTS' }
-  | { status: 'NEEDS_SECTION' }
-  | { status: 'ERROR'; error: string };
-
 @Injectable()
 export class ListsService {
   constructor(
@@ -136,131 +130,111 @@ export class ListsService {
     return list;
   }
 
-  async addItemToList(dto: AddItemDto, userId: string, assignedToId: string): Promise<AddItemResult> {
+  async addItemToList(dto: AddItemDto, userId: string, assignedToId: string): Promise<ListItemWithItem> {
     const { listId, name, sectionId, quantity = 1, unit } = dto;
 
     const list = await this.prisma.list.findFirst({
       where: { id: listId, deleted: false }
     });
     if (!list) {
-      return { status: 'ERROR', error: 'List not found' };
-    }
-
-    if (list.status === 'COMPLETED') {
-      return { status: 'ERROR', error: 'List is completed' };
+      throw new NotFoundException('List not found');
     }
 
     await this.access.verifyStoreAccess(list.storeId, userId);
-    this.assertCanMutateShoppingList(list, assignedToId);
+    this.access.assertShoppingLock(list, assignedToId);
 
-    // 1. Check if item exists in catalog (not deleted)
-    let item = await this.prisma.item.findFirst({
-      where: {
-        storeId: list.storeId,
-        name: name,
-        deleted: false,
-      }
-    });
-
-    // 2. If item exists, add to list
-    if (item) {
-      // Auto-learn default unit: when a user specifies a unit that differs
-      // from the catalog item's current default, update the default.
-      // This is a hidden side-effect that improves future autocomplete
-      // suggestions — the most recently used unit becomes the default.
-      if (unit && unit !== item.defaultUnit) {
-        await this.prisma.item.update({
-          where: { id: item.id },
-          data: { defaultUnit: unit }
-        });
-      }
-
-      // Check if already in list (not deleted)
-      const existingListItem = await this.prisma.listItem.findFirst({
+    // Run the entire add-item flow inside a transaction to eliminate TOCTOU
+    // races between the existence checks and the create/restore operations.
+    const listItem = await this.prisma.$transaction(async (tx) => {
+      // 1. Check if item exists in catalog (not deleted)
+      let item = await tx.item.findFirst({
         where: {
-          listId,
-          itemId: item.id,
+          storeId: list.storeId,
+          name: name,
           deleted: false,
         }
       });
 
-      if (existingListItem) {
-        return { status: 'ALREADY_EXISTS' };
-      }
+      // ---- Item already exists in catalog ----
+      if (item) {
+        // Auto-learn default unit
+        if (unit && unit !== item.defaultUnit) {
+          await tx.item.update({
+            where: { id: item.id },
+            data: { defaultUnit: unit }
+          });
+        }
 
-      // Restore soft-deleted row if it exists
-      const softDeletedLI = await this.prisma.listItem.findFirst({
-        where: { listId, itemId: item.id, deleted: true },
-      });
-      if (softDeletedLI) {
-        const listItem = await this.prisma.listItem.update({
-          where: { id: softDeletedLI.id },
-          data: { deleted: false, deletedAt: null, quantity, unit: unit || item.defaultUnit, isChecked: false, purchasedQuantity: null },
+        // Check if already in list (not deleted)
+        const existingListItem = await tx.listItem.findFirst({
+          where: { listId, itemId: item.id, deleted: false }
+        });
+        if (existingListItem) {
+          throw new ConflictException('Item already in list');
+        }
+
+        // Restore soft-deleted row if it exists
+        const softDeletedLI = await tx.listItem.findFirst({
+          where: { listId, itemId: item.id, deleted: true },
+        });
+        if (softDeletedLI) {
+          return tx.listItem.update({
+            where: { id: softDeletedLI.id },
+            data: { deleted: false, deletedAt: null, quantity, unit: unit || item.defaultUnit, isChecked: false, purchasedQuantity: null },
+            include: { item: true },
+          });
+        }
+
+        // Create new
+        return tx.listItem.create({
+          data: { listId, itemId: item.id, quantity, unit: unit || item.defaultUnit },
           include: { item: true },
         });
-        this.notify.byStore(list.storeId, ['list', 'listItem'], 'list-mutation');
-        return { status: 'ADDED', listItem };
       }
 
-      // Guard against active duplicate (shouldn't happen because we checked above)
-      const activeLI = await this.prisma.listItem.findFirst({
-        where: { listId, itemId: item.id, deleted: false },
-      });
-      if (activeLI) {
-        return { status: 'ALREADY_EXISTS' };
+      // ---- New item: sectionId required ----
+      if (sectionId === undefined) {
+        throw new BadRequestException({
+          statusCode: 400,
+          code: 'NEEDS_SECTION',
+          message: 'Section selection required for new catalog item',
+        });
       }
 
-      // Create new
-      const listItem = await this.prisma.listItem.create({
-        data: { listId, itemId: item.id, quantity, unit: unit || item.defaultUnit },
-        include: { item: true },
+      // Create item (with or without section)
+      const softDeletedItem = await tx.item.findFirst({
+        where: { storeId: list.storeId, name, deleted: true },
       });
-      this.notify.byStore(list.storeId, ['list', 'listItem'], 'list-mutation');
-      return { status: 'ADDED', listItem };
-    }
+      if (softDeletedItem) {
+        item = await tx.item.update({
+          where: { id: softDeletedItem.id },
+          data: { deleted: false, deletedAt: null, sectionId: sectionId ?? null, defaultUnit: unit ?? null },
+        });
+      } else {
+        item = await tx.item.create({
+          data: { name, storeId: list.storeId, sectionId: sectionId, defaultUnit: unit },
+        });
+      }
 
-    // 3. If item is new and sectionId not provided, ask for it
-    if (sectionId === undefined) {
-      return { status: 'NEEDS_SECTION' };
-    }
-
-    // Create item (with or without section).
-    // Check for soft-deleted row to restore — avoids a unique constraint violation on (storeId, name, deleted).
-    const softDeletedItem = await this.prisma.item.findFirst({
-      where: { storeId: list.storeId, name, deleted: true },
-    });
-    if (softDeletedItem) {
-      item = await this.prisma.item.update({
-        where: { id: softDeletedItem.id },
-        data: { deleted: false, deletedAt: null, sectionId: sectionId ?? null, defaultUnit: unit ?? null },
+      // Restore soft-deleted list item or create new
+      const softDeletedLI2 = await tx.listItem.findFirst({
+        where: { listId, itemId: item.id, deleted: true },
       });
-    } else {
-      item = await this.prisma.item.create({
-        data: { name, storeId: list.storeId, sectionId: sectionId, defaultUnit: unit },
-      });
-    }
-
-    // Restore soft-deleted list item or create new
-    const softDeletedLI2 = await this.prisma.listItem.findFirst({
-      where: { listId, itemId: item.id, deleted: true },
-    });
-    let listItem: ListItemWithItem;
-    if (softDeletedLI2) {
-      listItem = await this.prisma.listItem.update({
-        where: { id: softDeletedLI2.id },
-        data: { deleted: false, deletedAt: null, quantity, unit, isChecked: false, purchasedQuantity: null },
-        include: { item: true },
-      });
-    } else {
-      listItem = await this.prisma.listItem.create({
+      if (softDeletedLI2) {
+        return tx.listItem.update({
+          where: { id: softDeletedLI2.id },
+          data: { deleted: false, deletedAt: null, quantity, unit, isChecked: false, purchasedQuantity: null },
+          include: { item: true },
+        });
+      }
+      return tx.listItem.create({
         data: { listId, itemId: item.id, quantity, unit },
         include: { item: true },
       });
-    }
+    });
 
     this.notify.byStore(list.storeId, ['list', 'listItem'], 'list-mutation');
-
-    return { status: 'ADDED', listItem };
+    return listItem;
   }
 
   async toggleListItem(dto: ToggleItemDto, userId: string, assignedToId: string) {
@@ -280,7 +254,7 @@ export class ListsService {
     }
 
     await this.access.verifyStoreAccess(listItem.list.storeId, userId);
-    this.assertCanMutateShoppingList(listItem.list, assignedToId ?? userId);
+    this.access.assertShoppingLock(listItem.list, assignedToId ?? userId);
 
     // Business logic: determine final purchasedQuantity
     let finalPurchasedQuantity: number | null | undefined = purchasedQuantity;
@@ -325,7 +299,7 @@ export class ListsService {
     }
 
     await this.access.verifyStoreAccess(listItem.list.storeId, userId);
-    this.assertCanMutateShoppingList(listItem.list, assignedToId ?? userId);
+    this.access.assertShoppingLock(listItem.list, assignedToId ?? userId);
 
     await this.prisma.listItem.update({
       where: { id: listItemId },
@@ -355,7 +329,7 @@ export class ListsService {
     }
 
     await this.access.verifyStoreAccess(listItem.list.storeId, userId);
-    this.assertCanMutateShoppingList(listItem.list, assignedToId ?? userId);
+    this.access.assertShoppingLock(listItem.list, assignedToId ?? userId);
 
     await this.prisma.listItem.update({
       where: { id: listItemId },
@@ -386,7 +360,7 @@ export class ListsService {
     }
 
     await this.access.verifyStoreAccess(list.storeId, userId);
-    this.assertShoppingLockHolder(list, assignedToId, 'Only the shopping lock holder can complete this list');
+    this.access.assertShoppingLock(list, assignedToId, 'Only the shopping lock holder can complete this list');
 
     // Update list status and item stats in a transaction
     await this.prisma.$transaction(async (tx) => {
@@ -457,7 +431,7 @@ export class ListsService {
       throw new BadRequestException('List must be in SHOPPING state to cancel');
     }
 
-    this.assertShoppingLockHolder(list, assignedToId, 'Only the shopping lock holder can cancel shopping');
+    this.access.assertShoppingLock(list, assignedToId, 'Only the shopping lock holder can cancel shopping');
 
     await this.prisma.list.update({
       where: { id: listId },
@@ -467,29 +441,4 @@ export class ListsService {
     this.notify.byStore(list.storeId, ['list', 'listItem'], 'list-mutation');
 
     return { success: true };
-  }
-
-  private assertCanMutateShoppingList(
-    list: { status: string; assignedTo?: string | null },
-    lockId: string,
-    message?: string,
-  ) {
-    if (list.status === 'SHOPPING') {
-      this.assertShoppingLockHolder(list, lockId, message ?? 'This list is locked by another shopper');
-    }
-  }
-
-  private assertShoppingLockHolder(
-    list: { status: string; assignedTo?: string | null },
-    lockId: string,
-    message: string,
-  ) {
-    if (list.status !== 'SHOPPING') return;
-    if (!list.assignedTo) {
-      throw new ConflictException('Shopping lock is missing. Refresh and try again.');
-    }
-    if (list.assignedTo !== lockId) {
-      throw new ForbiddenException(message);
-    }
-  }
-}
+  }}

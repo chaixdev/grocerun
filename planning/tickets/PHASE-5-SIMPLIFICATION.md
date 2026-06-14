@@ -314,7 +314,48 @@ Acceptance criteria:
 
 ---
 
-## Carried-Forward Audit Items
+## Implementation Notes (June 2026)
+
+### Step 1: Token Refresh — Already Implemented
+
+Token expiry handling on 401 + force-refresh + single retry already exists in
+`apps/web/src/core/rxdb/database.ts` (lines 392-401 for pull, lines 431-432 for
+push). No further work needed.
+
+### Step 2: `resync*()` Calls — Intentionally Kept
+
+The plan states: "Remove hook-level manual resync calls that duplicate server
+invalidation." During the June 2026 codebase audit cleanup, we evaluated removing
+the ~19 `resync*()` calls from mutation hook `onSuccess` callbacks and decided
+against it.
+
+**Rationale for keeping them:**
+
+The SSE stream (RESYNC/SYNC_CHANGED events) is the primary invalidation path.
+When SSE is healthy, the server-emitted events trigger RxDB re-pulls and the
+manual `resync*()` calls are redundant because RxDB's checkpoint mechanism
+ignores duplicate pulls.
+
+However, when SSE is **down** (connection drops, proxy timeout, network blip),
+the only remaining path is the periodic 5-second fallback timer. Without the
+manual `resync*()` calls, a user clicking "Create List" or "Start Shopping"
+would experience up to 5 seconds of lag before the UI updates. This is visible
+and jarring — a regression from current behavior.
+
+**Cost of keeping them:** each `resync*()` call triggers a lightweight pull
+request. The server-side checkpoint mechanism prevents duplicate data transfer.
+The client-side cost is one extra network round-trip per REST mutation — ~10ms
+on LAN, acceptable on all connections.
+
+**Decision:** Keep manual `resync*()` calls as cheap insurance against SSE
+outages. Revisit if the SSE fallback timer is reduced (e.g., from 5s to 1s) or
+if a WebSocket-based push notification replaces SSE entirely.
+
+**Carry-forward status:** The "remove resync calls" task is intentionally
+deferred, not forgotten. Documented here so future readers understand the
+trade-off.
+
+---
 
 These items from the original Phase 5 audit remain valid, but they are now mapped
 to the refocused active-shopping strategy.

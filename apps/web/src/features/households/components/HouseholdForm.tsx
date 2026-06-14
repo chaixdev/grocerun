@@ -18,10 +18,9 @@ import {
 import { Input } from "@/components/ui/input"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { useCreateHousehold, useRenameHousehold } from "../hooks/useHouseholds"
+import { CreateHouseholdSchema } from "@grocerun/dto"
 
-const formSchema = z.object({
-    name: z.string().min(1, "Name is required"),
-})
+const formSchema = CreateHouseholdSchema
 
 interface HouseholdFormProps {
     household?: { id: string; name: string }

@@ -83,8 +83,8 @@ async function addItem(listId: string, name: string, sectionId: string, quantity
     .send({ listId, name, sectionId, quantity })
     .expect(201);
   return {
-    listItemId: res.body.listItem.id,
-    itemId: res.body.listItem.itemId,
+    listItemId: res.body.id,
+    itemId: res.body.itemId,
   };
 }
 

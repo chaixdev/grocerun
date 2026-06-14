@@ -18,11 +18,9 @@ import {
 import { Input } from "@/components/ui/input"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { useCreateStore } from "../hooks/useStoreDirectory"
+import { CreateStoreSchema } from "@grocerun/dto"
 
-const formSchema = z.object({
-    name: z.string().min(1, "Name is required"),
-    location: z.string().optional(),
-})
+const formSchema = CreateStoreSchema.omit({ householdId: true })
 
 export function StoreForm({ householdId, trigger }: { householdId: string, trigger?: React.ReactNode }) {
     const [open, setOpen] = useState(false)

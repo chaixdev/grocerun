@@ -1,6 +1,5 @@
 // Components
 export { ListItemRow } from './components/ListItemRow'
-export { SectionGroup } from './components/SectionGroup'
 export { StoreLists } from './components/StoreLists'
 export { ActiveListCard } from './components/ActiveListCard'
 export { HouseholdListGroup } from './components/HouseholdListGroup'
@@ -10,10 +9,11 @@ export { ItemAutocomplete } from './components/ItemAutocomplete'
 export { TripSummary } from './components/TripSummary'
 
 // Hooks
-export { useListNavigation } from './hooks/useListNavigation'
-export { useStoreLists, useCreateList, useListDetail, useAddItem, useToggleItem, useRemoveItem, useUpdateItemQuantity, useStartShopping, useCancelShopping, useCompleteList } from './hooks/useLists'
-export type { List, ListDetail, ListDetailItem, ListDetailListItem, ListDetailSection } from './hooks/useLists'
+export { useStoreLists, useListDetail } from './hooks/useListQueries'
+export type { List, ListDetail, ListDetailItem, ListDetailListItem, ListDetailSection } from './hooks/useListQueries'
+export { useCreateList, useAddItem, useToggleItem, useRemoveItem, useUpdateItemQuantity, useStartShopping, useCancelShopping, useCompleteList } from './hooks/useLists'
 export { useDashboard } from './hooks/useDashboard'
 export type { DashboardHousehold, DashboardStore, DashboardList } from './hooks/useDashboard'
-export { useUpdateItem, searchItems, getTopItemsForStore } from './hooks/useItems'
-export type { SearchResult } from './hooks/useItems'
+export { searchItems, getTopItemsForStore } from './hooks/data-access'
+export type { SearchResult } from './hooks/data-access'
+export { useUpdateItem } from './hooks/useItems'

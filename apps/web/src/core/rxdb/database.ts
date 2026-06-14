@@ -83,7 +83,7 @@ function decodeJwtSub(token: string | null): string | null {
 // ---------------------------------------------------------------------------
 // Dev-mode plugin (stripped in production builds via tree-shaking)
 // ---------------------------------------------------------------------------
-if (process.env.NODE_ENV === 'development') {
+if (import.meta.env.DEV) {
   addRxPlugin(RxDBDevModePlugin)
 }
 
@@ -93,7 +93,7 @@ if (process.env.NODE_ENV === 'development') {
  */
 function getStorage(): RxStorage<any, any> {
   const base = getRxStorageDexie()
-  if (process.env.NODE_ENV === 'development') {
+  if (import.meta.env.DEV) {
     return wrappedValidateZSchemaStorage({ storage: base })
   }
   return base
@@ -164,7 +164,7 @@ async function initDatabase(): Promise<GrocerunDatabase> {
     // ignoreDuplicate only allowed in dev-mode; in production RxDB enforces
     // a single instance per name (React StrictMode double-invocation is not
     // an issue in production builds).
-    ignoreDuplicate: process.env.NODE_ENV === 'development',
+    ignoreDuplicate: import.meta.env.DEV,
   })
 
   await db.addCollections({
@@ -587,17 +587,34 @@ export async function removeHouseholdSubtreeFromLocalDb(householdId: string) {
       ? (await Promise.all(listIds.map((listId) => db.listItems.find({ selector: { listId: { $eq: listId } } }).exec()))).flat()
       : []
 
-    await Promise.all([
+    // Use allSettled so one document removal failure does not abort the rest.
+    // RxDB does not support cross-collection transactions, so a partial
+    // failure leaves orphaned data — running the function again (idempotent
+    // queries) will clean up the remainder.
+    const results = await Promise.allSettled([
       ...listItems.filter((doc) => !doc.deleted).map((doc) => doc.remove()),
       ...lists.filter((doc) => !doc.deleted).map((doc) => doc.remove()),
       ...items.filter((doc) => !doc.deleted).map((doc) => doc.remove()),
       ...sections.filter((doc) => !doc.deleted).map((doc) => doc.remove()),
       ...stores.filter((doc) => !doc.deleted).map((doc) => doc.remove()),
     ])
+
+    const failures = results.filter((r): r is PromiseRejectedResult => r.status === 'rejected')
+    if (failures.length > 0) {
+      console.error(
+        `removeHouseholdSubtreeFromLocalDb: ${failures.length}/${results.length} document removals failed for household ${householdId}`,
+        failures.map((f) => f.reason),
+      )
+    }
   }
 
-  const household = await db.households.findOne(householdId).exec()
-  if (household && !household.deleted) {
-    await household.remove()
+  // Always attempt household removal even if subtree removal had failures.
+  try {
+    const household = await db.households.findOne(householdId).exec()
+    if (household && !household.deleted) {
+      await household.remove()
+    }
+  } catch (err) {
+    console.error(`removeHouseholdSubtreeFromLocalDb: failed to remove household ${householdId}`, err)
   }
 }
