@@ -13,7 +13,7 @@ Tests live at four layers. Start at the bottom; move up only when the layer belo
 | **Unit** | Vitest | Node | Pure functions, DTO validation (Zod), state machine logic | Any pure logic with branching |
 | **Server integration** | Vitest + Supertest | Real NestJS + SQLite test.db | API CRUD, sync protocol, auth, soft-delete, state transitions | Every new controller endpoint. Every sync handler. |
 | **Web component** | Vitest + Testing Library | jsdom | Component interactions, hooks, form validation | Every new RxDB-integrated component |
-| **Playwright smoke** | Playwright | Chromium | Critical user journeys end-to-end | Only when not coverable by layers above. 3 specs ceiling. |
+| **Playwright journey** | Playwright | Chromium | Critical composed user journeys end-to-end | Only for flows not confidently covered by lower layers. Keep intentionally small. |
 
 ---
 
@@ -109,16 +109,20 @@ await user.click(screen.getByRole('button', { name: /add item/i }));
 
 ---
 
-## Playwright Smoke Tests
+## Playwright Journey Tests
 
-### Ceiling: 3 specs
+### Small critical suite
 
-Playwright exists for one reason: verify the real user flow works in a real browser. If a scenario is testable via server integration or web component tests, it does NOT get a Playwright test.
+Playwright exists for one reason: verify critical composed user flows work in a real browser. If a scenario is confidently testable via server integration or web component tests, it does NOT get a Playwright test.
 
-Current 3 specs:
-1. `smoke.spec.ts` — app loads, login renders, dashboard renders
+Target suite:
+1. `smoke.spec.ts` — app loads, login renders, authenticated shell renders
 2. `auth-session.spec.ts` — session persists, logout clears
 3. `shopping-journey.spec.ts` — one critical journey end-to-end
+4. Optional: `local-first-shopping.spec.ts` — load online, mutate shopping items offline, reconnect, verify convergence
+5. Optional: one UX-sensitive setup/settings/household journey when the product flow requires browser-level confidence
+
+The suite should normally stay between 3 and 6 specs. Adding a spec requires a clear full-flow justification: user-critical, cross-page, auth-dependent, local-first, UX-sensitive, or otherwise not adequately covered by lower layers.
 
 ### Required rules
 
@@ -126,7 +130,7 @@ Current 3 specs:
 - **No `waitForTimeout`.** Use `expect().toBeVisible({ timeout })`, `waitForResponse()`, or `waitForURL()`.
 - **No conditional guards.** If a selector might not exist, the test should fail. Never wrap assertions in `if (await ...isVisible().catch(() => false))`.
 - **API-seeded fixtures only.** Test prerequisites (user, household, store) are created via DB seeding or API calls, not browser interactions.
-- **1 browser (chromium).** Run nightly on CI, not per-PR.
+- **1 browser (chromium).** Run nightly by default. Run relevant journeys on PRs that alter the covered flow or perform UX-heavy changes.
 
 ### Anti-patterns
 
@@ -155,7 +159,7 @@ await itemInput.fill('Milk');
 
 - A GitHub Actions workflow MUST run `npm test` on every push and PR to `main`
 - The workflow must run server integration tests and web component tests
-- Playwright smoke tests may run on a separate nightly schedule, not per-PR
+- Playwright journey tests may run on a separate nightly schedule by default; run relevant journeys on PRs that alter covered flows
 - PRs that fail tests must not be merged
 
 ---

@@ -1,77 +1,59 @@
-# E2E Testing
+# E2E Testing (Playwright Critical Journeys)
 
-End-to-end testing with Playwright for the Grocerun application.
+Per [ADR 008](../../wiki/adr/008-testing-strategy-revision.md), Playwright tests are limited to
+**3–6 critical journey specs** that only a real browser can validate. All other coverage lives at
+lower layers (server integration, web component, unit).
 
-## Quick Start
+## Current State (2026-06-14)
+
+14 Playwright tests across 3 spec files. The harness uses a test-auth bypass: a test JWT is
+injected into `sessionStorage.__grocerun_test_token__` before page load; the web app bootstraps
+oidc-spa in mock mode (`isUserInitiallyLoggedIn: true`) and the API client uses the injected
+token for all Bearer requests. DB fixtures are seeded via REST API and truncated between tests.
+
+## Active Journeys
+
+| Spec | Tests | Coverage |
+|------|-------|----------|
+| `smoke.spec.ts` | 3 | Login heading, Google button, root loads without crash |
+| `list-journey.spec.ts` | 5 | Store navigation, list creation, add item (section dialog), duplicate handling, Go Shopping enable |
+| `shopping-journey.spec.ts` | 6 | Start shopping, check items, checked count, Finish/Complete, Trip Summary missing items, Resume/Cancel |
+
+## How It Works
+
+```
+Playwright test
+  → seedPlaywrightFixtures()   (truncate DB + upsert user + create household/store/section via REST)
+  → page.addInitScript()       (inject token into sessionStorage)
+  → page.goto('/lists')        (web app detects token, bootstrapOidc mock, enforceLogin passes)
+  → test assertions             (data-testid selectors, role-based selectors)
+```
+
+## Key Constraints
+
+- **Each test gets a fresh DB** (`beforeEach` calls `seedPlaywrightFixtures` → truncates all tables)
+- **Unique list names per test** (via timestamp prefix to avoid `createList` returning existing lists)
+- **No `page.route` interception** — `api.ts` and `database.ts` both prioritize `sessionStorage` token
+- Chromium only, single worker (DB lock safety)
+
+## Running
 
 ```bash
-# Install dependencies (if not already done)
-npm install
+# One-command local run: starts server in test mode, starts web, runs tests, cleans up
+npm run e2e:run -w e2e
 
-# Run all tests
-npm test
+# Equivalent direct script invocation
+./run-e2e.sh
 
-# Run in UI mode
-npm run test:ui
+# Pass Playwright args after --
+npm run e2e:run -w e2e -- --grep "Shopping mode"
+
+# Or interactively
+cd apps/e2e
+npx playwright test --ui
 ```
 
-## Documentation
+## Missing
 
-See [E2E Testing Setup Guide](../../wiki/development/e2e-testing-setup.md) for:
-
-- Architecture and session injection pattern
-- Setup instructions
-- Writing tests
-- Troubleshooting guide
-- NextAuth v5 compatibility details
-
-## Test Structure
-
-Tests are organized by type (not domain) following our fixture-based testing philosophy:
-
-```
-tests/
-├── core/                    # Isolated feature tests (80%)
-│   ├── auth/               # Authentication tests
-│   ├── stores/             # Store CRUD operations
-│   ├── lists/              # List and shopping mode tests
-│   ├── items/              # Item management tests
-│   ├── onboarding/         # First-time user flows
-│   ├── households/         # Household management
-│   └── security/           # Security and authorization
-├── integration/            # Feature combination tests (15%)
-│   └── store-authorization.spec.ts  # Multi-user scenarios
-└── journeys/               # End-to-end user flows (5%)
-    └── first-shopping-experience.spec.ts  # Complete shopping journey
-```
-
-### Fixtures (Dependency Injection)
-
-Fixtures provide prerequisites for tests, organized in a hierarchy:
-
-```
-authenticated (base)
-  └── withHousehold (user has household)
-      └── withStore (store created)
-          └── withList (shopping list created)
-              └── withItems (list has items)
-                  └── withShoppingMode (list in shopping mode)
-```
-
-See [E2E Test Organization Guide](../../wiki/development/e2e-test-organization-guide.md) for philosophy and patterns.
-
-### Helpers (Reusable Actions)
-
-Helpers are proven functions extracted from core tests:
-
-- **store-helpers.ts**: `createStore()`, `updateStore()`, `deleteStore()`
-- **list-helpers.ts**: `createList()`, `addItemToList()`, `removeItemFromList()`
-- **shopping-helpers.ts**: `startShopping()`, `checkOffItem()`, `completeShopping()`
-- **auth.ts**: Session injection for authentication bypass
-
-## Configuration
-
-- **Config**: `playwright.config.ts`
-- **Environment**: `.env.test` (copy from `.env.test.example`)
-- **Fixtures**: `fixtures/` (authenticated, multi-user, withHousehold, withStore, etc.)
-- **Helpers**: `helpers/` (store, list, shopping, auth utilities)
+- **Invitation journey** — needs two browser contexts with two authenticated users. Stretch goal.
+- **Offline/RxDB journey** — needs offline mode simulation. Stretch goal.

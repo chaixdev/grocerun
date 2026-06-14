@@ -5,7 +5,7 @@
 **Status:** Superseded by [ADR 008](./008-testing-strategy-revision.md)  
 **Goal:** Choose optimal E2E testing tool for local-first React + RxDB architecture
 
-> ⚠️ **This analysis is superseded.** The architecture has shifted away from service-worker-based offline (RxDB handles persistence via IndexedDB), the Next.js app is being replaced with a Vite SPA, and the testing strategy is now a Vitest-dominant pyramid with minimal Playwright smokes. See [ADR 008](./008-testing-strategy-revision.md) for the current approach.
+> ⚠️ **This analysis is superseded.** The architecture has shifted away from service-worker-based offline (RxDB handles persistence via IndexedDB), the Next.js app is being replaced with a Vite SPA, and the testing strategy is now a Vitest-dominant pyramid with a small critical Playwright journey suite. See [ADR 008](./008-testing-strategy-revision.md) for the current approach.
 
 ---
 

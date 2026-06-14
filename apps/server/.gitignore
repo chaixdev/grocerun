@@ -11,3 +11,9 @@ dist/
 
 # Prisma generated client
 generated/
+
+# Test databases (SQLite)
+*.db
+*.db-journal
+*.db-wal
+*.db-shm

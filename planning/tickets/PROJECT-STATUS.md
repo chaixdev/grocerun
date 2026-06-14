@@ -217,7 +217,7 @@ We abandoned a ground-up rewrite approach in favor of incremental migration to:
 
 *Phase 5c — Codebase-wide audit fixes (19 findings across 5 slices):*
 
-See [codebase-audit-jun-2026.md](../../planning/codebase-audit-jun-2026.md) for full 26-finding audit.
+See [codebase-audit-jun-2026.md](../reviews/2026-06-12_codebase-audit.md) for full 26-finding audit.
 
 | Slice | Domain | Commit | Net Δ | Key change |
 |-------|--------|--------|-------|------------|
@@ -234,7 +234,7 @@ See [codebase-audit-jun-2026.md](../../planning/codebase-audit-jun-2026.md) for 
 **Version:** `1.0.0-rc.1`  
 **Domain audit:** [domain-model-audit.md](../../planning/reviews/2026-06-10_domain-model-audit.md)  
 **Domain fix plan:** [domain-model-audit-fixes.md](2026-06-10T003629_domain-model-audit-fixes.md)  
-**Codebase audit:** [codebase-audit-jun-2026.md](../../planning/codebase-audit-jun-2026.md)  
+**Codebase audit:** [codebase-audit-jun-2026.md](../reviews/2026-06-12_codebase-audit.md)  
 **Migration Strategy:** [data-migration-strategy.md](2026-06-10T230536_data-migration-strategy.md)
 
 ---
@@ -339,23 +339,22 @@ PORT=3001
 
 | # | Item | Status |
 |---|------|--------|
-| 1 | Deploy to staging and smoke test | ⬜ Not done |
-| 2 | Run Playwright e2e tests | ⬜ Not done |
-| 3 | Production data migration strategy | 📋 Planned (see ticket) |
-| 4 | UI jitter reduction (Step 6) | ⬜ Not done |
-| 5 | Add unit tests for shared services | ⬜ Not done |
-| 6 | Dependency cleanup audit | 📋 Planned (see ticket) |
+| 1 | Deploy to staging and smoke test | ⬜ Not done (`deploy-staging.sh` exists, not yet executed) |
+| 2 | Run Playwright e2e tests | ✅ 14/14 passing (Chromium) — `npm run e2e:run -w e2e` |
+| 3 | Production data migration strategy | 📋 Planned (see [data-migration-strategy.md](2026-06-10T230536_data-migration-strategy.md)) |
+| 4 | UI jitter reduction (Phase 5 Step 6) | ✅ Likely resolved — not reproducible after `useRxQuery` centralization and subscription narrowing. Mark resolved unless jitter surfaces in staging. |
+| 5 | Add unit tests for shared services | 🔄 Partially done — `shopping-lock.spec.ts` (8 tests) and `sync-helpers.spec.ts` (12 tests) added. `cascadeSoftDelete` covered by soft-delete smoke spec. `NotificationService` is fire-and-forget (integration candidate, not unit). `AccessService` covered by household-access spec. |
+| 6 | Dependency cleanup audit | ✅ Complete — migrated from Next.js to React SPA (Vite + TanStack Router + oidc-spa). Note: `next-themes` was incorrectly flagged; it's a framework-agnostic React library (not Next.js-specific) and remains actively used for dark/light mode. |
+| 7 | Phase 5 Step 7 (delete transitional code) | 🔄 Mostly done — dead files removed across 172-file sweep. Some transitional comments/docs may remain. |
 
 ---
 
 ## Next Steps
 
-1. **Deploy to staging** — smoke-test both domain-model and codebase audit fixes end-to-end
-2. **Run e2e tests** — validate autocomplete → add item → toggle → complete trip flows with real browsers
-3. **Phase 5 Step 6 (UI jitter)** — pending-write tracking, narrow subscriptions, flicker reduction (see [PHASE-5-SIMPLIFICATION.md](PHASE-5-SIMPLIFICATION.md))
-4. **Data migration strategy** — plan production migration from pre-Phase-1 schema to current (see [data-migration-strategy.md](2026-06-10T230536_data-migration-strategy.md))
-5. **Improve test coverage** — add unit tests for shared services (`AccessService`, `NotificationService`, `cascadeSoftDelete`)
-6. **Dependency cleanup audit** — review stale dependencies (see [dependency-cleanup-audit.md](2026-06-09T225645_dependency-cleanup-audit.md))
+1. **Deploy to staging** — smoke-test audit fixes end-to-end (`./deploy-staging.sh`)
+2. **Data migration strategy** — plan production migration from pre-Phase-1 schema to current (see [data-migration-strategy.md](2026-06-10T230536_data-migration-strategy.md))
+3. **Phase 5 Step 7** — review remaining transitional comments/docs for cleanup
+4. **User stories** — US-1 (Autocomplete), US-2 (Common Items), US-5 (Mobile Quantity Editing), US-9 (Shopping Lifecycle) remain planned. US-10 (Settings) missing profile editing + additional preferences. See [user-stories/README.md](user-stories/README.md).
 
 ---
 
@@ -363,13 +362,23 @@ PORT=3001
 
 **Current Branch:** `feature/phase-5-sync-simplification`
 
-**Last Commit:** `a25caf8` — "refactor(slice-E): derive form schemas from shared DTOs + server polish"
+**Last Commit:** `5232b20` — "test: add one-command e2e runner"
+
+**Recent Activity (last 3 days, June 11-14):**
+- 18 commits on `feature/phase-5-sync-simplification`
+- 172 files changed, +8013 / -5859 lines
+- Phase 5c audit fixes: all 26 findings addressed (7 HIGH, 11 MEDIUM, 8 LOW), 19 resolved, 4 accepted as trade-offs
+- E2E test suite rebuilt: 129 Playwright specs collapsed to 3 journey specs (14/14 passing), fixtures removed, API-seeded setup
+- CI workflows added: `.github/workflows/test.yml` (PR/push), `playwright-nightly.yml` (schedule)
+- Testing strategy adapted per ADR 008 (Vitest pyramid + Playwright journeys)
+- `wiki/rules/coding-standards.md` created (8-section canonical standards)
+- New planning items: sync-overfetch analysis, testing strategy adaptation plan, UX refinement brainstorm
 
 **Branch History:**
 - `feature/evolutive-architecture` — Phase 1 + Phase 2 (merged)
 - `feature/phase-3-client-fetch` — Phase 3 (19 commits, merged)
 - `feature/phase-4-rxdb` — Phase 4 (merged into phase-5)
-- `feature/phase-5-sync-simplification` — Phase 5 (17 commits on top of ~53 sync/phase-4 commits, current)
+- `feature/phase-5-sync-simplification` — Phase 5 (current, ~70 commits)
 
 **Working Tree:** Clean
 
@@ -431,7 +440,7 @@ npx prisma migrate dev
 - ✅ Sync invalidation simplified (single path)
 - ✅ Tombstone delivery for cascaded deletes
 - ✅ Domain model audit: 17/17 findings resolved (Phase 5b)
-- ✅ Shared services extracted (Access, Cascade, Notify)
+- ✅ Shared services extracted (Access, Cascade, Notify, ShoppingLock)
 - ✅ Schema hardening (non-null ownerId, FK indexes)
 - ✅ Codebase audit: 19/26 findings resolved across 5 slices (Phase 5c)
 - ✅ `useRxQuery` centralized hook (8 query hooks migrated, -86 lines)
@@ -439,17 +448,26 @@ npx prisma migrate dev
 - ✅ Shopping lock identity fix (`userId` not `sub`) + single `checkShoppingLock()`
 - ✅ Sync pull handlers deduplicated (6 handlers → 2 helpers, -164 lines)
 - ✅ Form schemas derived from shared `@grocerun/dto` schemas
-- ✅ 15/15 tests passing (3 suites), 0 tsc errors in both apps
+- ✅ E2E test suite rebuilt: 14/14 passing (3 journey specs), fixtures removed
+- ✅ CI workflows added (`test.yml` on PR, `playwright-nightly.yml` on schedule)
+- ✅ Testing strategy adapted per ADR 008 (Vitest pyramid + Playwright journeys)
+- ✅ `wiki/rules/coding-standards.md` created (8-section canonical standards)
+- ✅ Dependency cleanup migration complete (Next.js → Vite + TanStack Router + oidc-spa)
+- ✅ Shared services unit tests: `shopping-lock.spec.ts` (8 tests), `sync-helpers.spec.ts` (12 tests)
+- ✅ UI jitter resolved — not reproducible after `useRxQuery` centralization and narrowed subscriptions (user-verified)
+- ✅ `next-themes` confirmed not a Next.js dependency — framework-agnostic React library for dark/light mode, actively used
+- ✅ Auth session persistence improved — `sessionRestorationMethod: "full page redirect"` avoids doomed iframe silent-login
+- ✅ PWA support added — `manifest.json` + meta tags for installable app experience (Android WebAPK, iOS standalone)
 - [ ] Deploy to staging and smoke test
 - [ ] Production data migration strategy executed
-- [ ] UI jitter reduction (Phase 5 plan Step 6 — pending-write tracking, flicker fix)
 
 ---
 
 ## Contact & Context
 
-**Last Updated:** June 13, 2026  
-**Current Phase:** Phase 5 — Sync Simplification + Codebase Audit Fixes  
+**Last Updated:** June 14, 2026  
+**Current Phase:** Phase 5 — Sync Simplification + Codebase Audit Fixes (nearing end)  
+**Tests:** 109/109 passing (10 server specs)  
 **Documentation:** All documentation in `wiki/`
 
 For details on specific phases:

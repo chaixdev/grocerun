@@ -5,6 +5,13 @@
  * Exports utilities for React components, route guards, and API token access.
  *
  * See https://github.com/garronej/oidc-spa for full API documentation.
+ *
+ * --- Test mode bypass ---
+ * When a test JWT is present in sessionStorage under
+ * `__grocerun_test_token__`, oidc-spa is NOT bootstrapped
+ * (avoiding Google OIDC network calls) and mock utilities
+ * are returned instead.  Playwright tests inject the token
+ * via `page.addInitScript()` before the app loads.
  */
 
 import { oidcSpa } from "oidc-spa/react-spa";

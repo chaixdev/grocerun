@@ -8,6 +8,10 @@ import { PageLoading } from '@/components/ui/page-loading'
 import { ErrorComponent } from '@/components/error-boundary'
 import { bootstrapOidc, useOidc, OidcInitializationGate } from '@/core/auth/oidc'
 
+const TEST_TOKEN_KEY = '__grocerun_test_token__'
+const isTestMode = typeof window !== 'undefined'
+  && (() => { try { return sessionStorage.getItem(TEST_TOKEN_KEY) !== null } catch { return false } })()
+
 declare global {
   interface Window {
     __GROCERUN_CONFIG__?: {
@@ -22,15 +26,32 @@ const oidcConfig = window.__GROCERUN_CONFIG__ ?? {
   clientSecret: import.meta.env.VITE_OIDC_CLIENT_SECRET,
 };
 
-bootstrapOidc({
-    implementation: "real",
-    issuerUri: "https://accounts.google.com",
-    clientId: oidcConfig.clientId,
-    __unsafe_clientSecret: oidcConfig.clientSecret,
-    __unsafe_useIdTokenAsAccessToken: true,
-    BASE_URL: import.meta.env.BASE_URL,
-    scopes: ["profile", "email"],
-})
+if (isTestMode) {
+  console.log('[grocerun] Test mode detected — bootstrapping OIDC with mock implementation')
+}
+bootstrapOidc(
+  isTestMode
+    ? {
+        implementation: "mock",
+        isUserInitiallyLoggedIn: true,
+        BASE_URL: import.meta.env.BASE_URL,
+        decodedIdToken_mock: {
+          sub: 'test-playwright-user',
+          name: 'Playwright Test User',
+          email: 'test@playwright.dev',
+        },
+      }
+    : {
+        implementation: "real",
+        issuerUri: "https://accounts.google.com",
+        clientId: oidcConfig.clientId,
+        __unsafe_clientSecret: oidcConfig.clientSecret,
+        __unsafe_useIdTokenAsAccessToken: true,
+        sessionRestorationMethod: "full page redirect",
+        BASE_URL: import.meta.env.BASE_URL,
+        scopes: ["profile", "email"],
+      }
+)
 
 function NotFoundPage() {
   return (
@@ -51,12 +72,30 @@ export const Route = createRootRoute({
 })
 
 function RootLayout() {
+  const content = isTestMode ? <TestShell /> : (
+    <OidcInitializationGate fallback={<PageLoading />}>
+      <AuthenticatedShell />
+    </OidcInitializationGate>
+  );
   return (
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
-      <OidcInitializationGate fallback={<PageLoading />}>
-        <AuthenticatedShell />
-      </OidcInitializationGate>
+      {content}
     </ThemeProvider>
+  )
+}
+
+/** Test-mode shell — provides synthetic user data without requiring oidc-spa. */
+function TestShell() {
+  const testUser = { name: 'Test User', email: 'test@playwright.dev' }
+  return (
+    <>
+      <Header user={testUser} />
+      <ResponsiveShell user={testUser}>
+        <Outlet />
+      </ResponsiveShell>
+      <Toaster />
+      <DiagnosticsGate />
+    </>
   )
 }
 

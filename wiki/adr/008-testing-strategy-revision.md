@@ -1,7 +1,8 @@
-# ADR 008: Testing Strategy Revision — Vitest Pyramid with Minimal Playwright Smokes
+# ADR 008: Testing Strategy Revision — Vitest Pyramid with Critical Playwright Journeys
 
 **Status:** Accepted  
 **Date:** 2026-06-10  
+**Updated:** 2026-06-13 — Amended Playwright scope from a fixed 3-smoke ceiling to a small critical journey suite.
 **Supersedes:** [ADR 005](./005-e2e-testing.md)  
 **Deciders:** Development Team  
 **Context:** Phase 4/5 — RxDB local-first shopping, Next.js purge imminent
@@ -30,14 +31,14 @@ Since then, several things changed:
 
 ## Decision
 
-**We replace the ADR 005 strategy with a Vitest-dominant testing pyramid. Playwright is kept for 3 critical smoke tests only.**
+**We replace the ADR 005 strategy with a Vitest-dominant testing pyramid. Playwright is kept for a small critical journey suite: start with 3 smoke/journey specs, and allow growth to 5-6 specs when a scenario is user-critical, cross-page, auth-dependent, local-first, or UX-sensitive.**
 
 ### The Testing Pyramid
 
 ```
          ┌──┐
-         │PW│     2-3 smoke specs (critical user journeys, API-seeded)
-         └──┘     Run nightly on CI, 1 browser (chromium) only
+         │PW│     3-6 critical journey specs (API-seeded)
+         └──┘     Run nightly; selected journeys may gate UX/flow work
         ┌────┐
         │Web │    15-25 component tests
         └────┘    ShoppingList, TripSummary, ItemSearch, form validation
@@ -62,13 +63,14 @@ Since then, several things changed:
 - Built alongside Phase 4/5 development — every new RxDB-integrated component gets 2-3 tests
 - Focus on state transitions and user interactions, not visual rendering
 
-**Playwright (reduced to 3 smokes):**
-- `smoke.spec.ts` — "app loads, login works, dashboard renders"
+**Playwright (small critical journey suite):**
+- `smoke.spec.ts` — "app loads, login renders, authenticated shell renders"
 - `auth-session.spec.ts` — "session persists across refresh/navigation, logout clears session"
-- `shopping-journey.spec.ts` — ONE critical journey: create store → add items → shop → complete
+- `shopping-journey.spec.ts` — critical journey: create store → add items → shop → complete
+- Optional additions require explicit full-flow justification, such as local-first offline shopping, first usable setup, or a UX-sensitive household/settings journey
 - All rebuilt from scratch with **API-seeded fixtures** (DB seeding, not browser interactions)
 - Strict rules: no `waitForTimeout`, all selectors via `data-testid`, no conditional guards
-- 1 browser (chromium), run nightly, not per-PR
+- 1 browser (chromium) by default; run nightly, and gate PRs only when the change touches the covered journey or UX flow
 
 **Unit tests:**
 - Written opportunistically for pure logic: Zod DTO validation, utility functions, state machine transition logic
@@ -79,7 +81,7 @@ Since then, several things changed:
 - **No multi-browser Playwright testing** — cross-browser differences are not a current risk for a 2-dev team in Phase 4/5
 - **No offline/service-worker Playwright tests** — RxDB handles offline via IndexedDB, which is tested at the server integration and web component layers
 - **No UI-driven fixture chains** — all Playwright prerequisites are API/DB-seeded
-- **No expanding the Playwright spec count** — 3 smokes is the ceiling. If a scenario is testable via Vitest, it goes there.
+- **No broad Playwright regression matrix** — Playwright coverage stays deliberately small and journey-focused. New specs require a clear full-flow justification and should not duplicate behavior already covered by server integration or web component tests.
 
 ---
 
@@ -114,12 +116,12 @@ Reality doesn't match ADR 005. The current suite is dead. Keeping the ADR unchan
 ### Negative
 
 - Lose cross-browser rendering validation (acceptable risk for current team size)
-- Lose true end-to-end user journey testing beyond 3 smokes
+- Lose broad browser regression coverage beyond the small critical journey suite
 - Server tests are serial-only until `:memory:` DB is adopted (acceptable at current scale)
 
 ### Mitigations
 
-- The 3 Playwright smokes catch critical "app is completely broken" regressions
+- The Playwright journey suite catches critical composed-flow regressions that server and component tests cannot see
 - Server integration tests catch logic, data, and auth bugs
 - Web component tests catch UI behavior bugs at the interaction level
 
@@ -133,7 +135,7 @@ Reality doesn't match ADR 005. The current suite is dead. Keeping the ADR unchan
 | 2 | Server integration | Lists, stores, items CRUD + auth | 2-3 days |
 | 3 | Web components | ShoppingMode, TripSummary, hooks | 3-5 days |
 | 4 | CI | Add `npm test` job to GitHub Actions | 0.5 day |
-| 5 | Playwright smokes | Rebuild 3 specs from scratch (API-seeded) | 2 days |
+| 5 | Playwright journeys | Rebuild 3 initial specs from scratch (API-seeded), then allow justified growth to 5-6 | 2-4 days |
 | 6 | Unit | DTO validation, pure helpers | Opportunistic |
 
 ### Immediate actions (next 3 days)

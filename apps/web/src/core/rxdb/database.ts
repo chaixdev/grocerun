@@ -37,13 +37,26 @@ import {
 // OIDC token helpers
 // ---------------------------------------------------------------------------
 
+const TEST_TOKEN_KEY = '__grocerun_test_token__'
+
+function getTestToken(): string | null {
+  if (typeof window === 'undefined') return null
+  try { return sessionStorage.getItem(TEST_TOKEN_KEY) } catch { return null }
+}
+
 async function getAccessToken(): Promise<string | null> {
+  const testToken = getTestToken()
+  if (testToken) return testToken
+
   const oidc = await getOidc()
   if (!oidc.isUserLoggedIn) return null
   return oidc.getAccessToken()
 }
 
 async function refreshAndGetToken(): Promise<string | null> {
+  const testToken = getTestToken()
+  if (testToken) return testToken
+
   const oidc = await getOidc()
   if (!oidc.isUserLoggedIn) return null
   try {

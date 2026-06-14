@@ -215,7 +215,20 @@ can be migrated in parallel (they're independent once M2 auth is working).
 
 - [x] Audit complete
 - [x] Architecture decisions locked (oidc-spa, TanStack Router, NestJS serves SPA)
-- [ ] M1: Vite + TanStack Router scaffold
-- [ ] M2: Auth migration
-- [ ] M3: Page migration
-- [ ] M4: Production + cleanup
+- [x] M1: Vite + TanStack Router scaffold — commit `c0995c7` (refactor: migrate from Next.js to React SPA)
+- [x] M2: Auth migration — commit `c0995c7` + `fae1c8b` (runtime OIDC config, identity fix)
+- [x] M3: Page migration — commits `e9da571` (TanStack Router audit fixes), slices A-E via `751b39b`..`a25caf8`
+- [x] M4: Production + cleanup — mostly complete. Remaining low-pri items noted below.
+
+### Post-migration cleanup notes (June 14, 2026)
+
+| Item | Status |
+|------|--------|
+| `next-themes` in `apps/web/package.json` | Unused in source — removable |
+| `jsonwebtoken` in `apps/server/package.json` | **Still used** in `auth.guard.ts` (audit incorrectly flagged as stale) |
+| `rxjs`, `dotenv`, `class-validator`, `class-transformer` | Removed ✅ |
+| `next`, `next-auth`, `@auth/prisma-adapter`, `@prisma/client`, `prisma`, `better-sqlite3` | Removed ✅ |
+| NestJS serves SPA via `@nestjs/serve-static` | Deploy via Docker (`Dockerfile` + `deploy-staging.sh`) ✅ |
+| e2e tests pass on new stack | ✅ 14/14 passing (Chromium) per commit `5232b20` |
+
+**Verdict:** Migration complete. Ticket can be closed. The two remaining dep-cleanup items (`next-themes` removal, `jsonwebtoken` re-audit) are cosmetic and don't warrant a standalone ticket.

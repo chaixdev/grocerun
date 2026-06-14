@@ -38,4 +38,4 @@ This directory contains consolidated user stories for Grocerun, migrated from th
 
 ---
 
-**Last Updated:** January 11, 2026
+**Last Updated:** June 14, 2026
