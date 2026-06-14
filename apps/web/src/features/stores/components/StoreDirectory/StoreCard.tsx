@@ -1,13 +1,11 @@
 "use client"
 
-import { useState } from "react"
 import { MapPin, Settings, Store as StoreIcon, ArrowRight, Eye, Loader2 } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { useRouter } from "next/navigation"
-import { createList } from "@/actions/list"
-import { toast } from "sonner"
-import type { DirectoryStore } from "@/actions/store-directory"
+import { useCreateList } from "@/features/lists"
+import type { DirectoryStore } from "../../hooks/useStoreDirectory"
 
 interface StoreCardProps {
     store: DirectoryStore
@@ -15,7 +13,7 @@ interface StoreCardProps {
 
 export function StoreCard({ store }: StoreCardProps) {
     const router = useRouter()
-    const [isCreating, setIsCreating] = useState(false)
+    const createList = useCreateList()
 
     return (
         <Card className="group hover:shadow-lg transition-all duration-300 border-border/50 bg-gradient-to-br from-card to-secondary/5">
@@ -84,21 +82,20 @@ export function StoreCard({ store }: StoreCardProps) {
                         <Button
                             size="default"
                             className="w-full font-medium shadow-sm hover:shadow-md transition-all active:scale-[0.98]"
-                            disabled={isCreating}
-                            onClick={async (e) => {
+                            disabled={createList.isPending}
+                            onClick={(e) => {
                                 e.stopPropagation()
-                                setIsCreating(true)
-                                const result = await createList({ storeId: store.id })
-                                if (result.success) {
-                                    router.push(`/lists/${result.data.id}`)
-                                } else {
-                                    setIsCreating(false)
-                                    console.error("Failed to create list:", result.error)
-                                    toast.error(result.error || "Failed to start shopping list")
-                                }
+                                createList.mutate(
+                                    { storeId: store.id },
+                                    {
+                                        onSuccess: (data) => {
+                                            router.push(`/lists/${data.id}`)
+                                        },
+                                    },
+                                )
                             }}
                         >
-                            {isCreating ? (
+                            {createList.isPending ? (
                                 <>
                                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                                     Creating...
@@ -110,6 +107,6 @@ export function StoreCard({ store }: StoreCardProps) {
                     )}
                 </div>
             </CardContent>
-        </Card >
+        </Card>
     )
 }

@@ -1,30 +1,8 @@
 import { Injectable, ForbiddenException, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
-
-type CreateListDto = {
-  storeId: string;
-  name?: string;
-};
-
-type AddItemDto = {
-  listId: string;
-  name: string;
-  sectionId?: string | null;
-  quantity?: number;
-  unit?: string;
-};
-
-type ToggleItemDto = {
-  itemId: string;
-  isChecked: boolean;
-  purchasedQuantity?: number;
-};
-
-type UpdateQuantityDto = {
-  listItemId: string;
-  quantity: number;
-  unit?: string;
-};
+import { CreateListDto } from './dto/create-list.dto';
+import { AddItemDto } from './dto/add-item.dto';
+import { ToggleItemDto, UpdateQuantityDto } from './dto/manage-items.dto';
 
 type AddItemResult =
   | { status: 'ADDED'; listItem: any }

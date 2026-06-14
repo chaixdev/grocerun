@@ -1,21 +1,10 @@
 import { Injectable, ForbiddenException, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { customAlphabet } from 'nanoid';
+import { CreateInvitationDto, JoinHouseholdDto, RevokeInvitationDto } from './dto/invitation.dto';
 
 // Use a readable alphabet for tokens (no confusing chars like 0/O, 1/l)
 const generateToken = customAlphabet('23456789ABCDEFGHJKLMNPQRSTUVWXYZ', 8);
-
-type CreateInvitationDto = {
-  householdId: string;
-};
-
-type JoinHouseholdDto = {
-  token: string;
-};
-
-type RevokeInvitationDto = {
-  invitationId: string;
-};
 
 @Injectable()
 export class InvitationsService {

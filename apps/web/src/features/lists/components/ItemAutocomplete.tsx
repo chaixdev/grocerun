@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react"
 import { Input } from "@/components/ui/input"
-import { searchItems, getTopItemsForStore } from "@/actions/item"
+import { searchItems, getTopItemsForStore } from "../hooks/useItems"
 import { Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -54,14 +54,14 @@ export function ItemAutocomplete({
         setIsLoading(true)
         try {
             if (query.trim()) {
-                const result = await searchItems({ storeId, query: query.trim() })
+                const items = await searchItems(storeId, query.trim())
                 if (lastQueryRef.current !== query) return
-                setSuggestions(result.success ? result.data : [])
+                setSuggestions(items)
             } else {
                 // Empty query: show top items
-                const result = await getTopItemsForStore({ storeId, limit: 5, threshold: 1 })
+                const items = await getTopItemsForStore(storeId, 5, 1)
                 if (lastQueryRef.current !== query) return
-                setSuggestions(result.success ? result.data : [])
+                setSuggestions(items)
             }
         } catch (error) {
             if (lastQueryRef.current !== query) return

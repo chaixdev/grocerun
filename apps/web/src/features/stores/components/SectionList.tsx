@@ -1,58 +1,64 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
-import { reorderSections, deleteSection, updateSection, createSection } from "@/actions/section"
+import { useState, useEffect, useCallback, useMemo, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { GripVertical, Trash2 } from "lucide-react"
 import { Input } from "@/components/ui/input"
-import { toast } from "sonner"
 import { SortableList, SortableItem, SortableDragHandle } from "@/components/ui/sortable"
 import { useListNavigation } from "@/features/lists"
 import { cn } from "@/lib/utils"
-
-interface Section {
-    id: string
-    name: string
-    order: number
-}
-
-interface SectionListProps {
-    sections: Section[]
-    storeId: string
-}
-
 import { debounce } from "lodash"
-import { useMemo } from "react"
+import {
+    useSections, useCreateSection, useUpdateSection,
+    useDeleteSection, useReorderSections,
+    type Section,
+} from "@/features/stores"
+import { PageLoading } from "@/components/ui/page-loading"
 
-// ...
+export function SectionList({ storeId }: { storeId: string }) {
+    const { data: querySections, isLoading } = useSections(storeId)
+    const createSectionMutation = useCreateSection(storeId)
+    const updateSectionMutation = useUpdateSection(storeId)
+    const deleteSectionMutation = useDeleteSection(storeId)
+    const reorderSectionsMutation = useReorderSections(storeId)
 
-export function SectionList({ sections: initialSections, storeId }: SectionListProps) {
-    const [sections, setSections] = useState(initialSections)
+    // Local state for optimistic DnD reorder + inline editing
+    const [sections, setSections] = useState<Section[]>([])
     const [focusIndex, setFocusIndex] = useState<number | null>(null)
     const [pendingName, setPendingName] = useState("")
 
+    // Sync from query data (replaces the old useEffect on initialSections prop)
     useEffect(() => {
-        setSections(initialSections)
-    }, [initialSections])
+        if (querySections) {
+            setSections(querySections)
+        }
+    }, [querySections])
 
     const handleReorder = async (newSections: Section[]) => {
+        const previousSections = sections
         setSections(newSections)
-        const result = await reorderSections({ storeId, orderedIds: newSections.map(s => s.id) })
-        if (!result.success) {
-            toast.error(result.error || "Failed to save order")
-            setSections(sections) // Revert
+        try {
+            await reorderSectionsMutation.mutateAsync(
+                newSections.filter(s => !s.id.startsWith("temp-")).map(s => s.id)
+            )
+        } catch {
+            setSections(previousSections)
         }
     }
 
+    // Stable ref to mutation so the debounced function doesn't get recreated
+    const updateMutationRef = useRef(updateSectionMutation)
+    updateMutationRef.current = updateSectionMutation
+
     const debouncedUpdate = useMemo(
         () => debounce(async (id: string, name: string) => {
-            const result = await updateSection({ id, name })
-            if (!result.success) {
-                // silent fail but log
-                console.error("Failed to update section:", result.error)
+            try {
+                await updateMutationRef.current.mutateAsync({ id, name })
+            } catch {
+                console.error("Failed to update section")
             }
         }, 500),
-        []
+        [] // stable — never recreated
     )
     useEffect(() => {
         return () => {
@@ -62,21 +68,18 @@ export function SectionList({ sections: initialSections, storeId }: SectionListP
 
     const saveTempSection = useCallback(async (section: Section) => {
         if (!section.name.trim()) return
-        const result = await createSection({
-            name: section.name,
-            storeId,
-            order: section.order
-        })
-
-        if (result.success) {
-            setSections(prev => prev.map(s => s.id === section.id ? result.data : s))
-        } else {
-            toast.error(result.error || "Failed to create section")
+        try {
+            const created = await createSectionMutation.mutateAsync({
+                name: section.name,
+                order: section.order,
+            })
+            setSections(prev => prev.map(s => s.id === section.id ? created : s))
+        } catch {
+            // Error toast handled by the mutation hook
         }
-    }, [storeId])
+    }, [createSectionMutation])
 
     const handleAdd = useCallback((index: number) => {
-        // 1. Check if the PREVIOUS item (where Enter was pressed) needs saving
         const prevIndex = index - 1
         if (prevIndex >= 0 && prevIndex < sections.length) {
             const prevSection = sections[prevIndex]
@@ -85,7 +88,6 @@ export function SectionList({ sections: initialSections, storeId }: SectionListP
             }
         }
 
-        // 3. Create new local temp section
         const tempId = `temp-${Date.now()}`
         const newSection = { id: tempId, name: "", order: index }
 
@@ -104,7 +106,6 @@ export function SectionList({ sections: initialSections, storeId }: SectionListP
         setSections([...sections, newSection])
         setPendingName("")
 
-        // Save immediately
         saveTempSection(newSection)
     }
 
@@ -112,20 +113,17 @@ export function SectionList({ sections: initialSections, storeId }: SectionListP
         const section = sections[index]
         if (!section) return
 
-        const newSections = sections.filter((_, i) => i !== index)
-        setSections(newSections)
+        const previousSections = sections
+        setSections(sections.filter((_, i) => i !== index))
 
-        // If it's a temp section, just remove it locally
         if (section.id.startsWith("temp-")) return
 
-        const result = await deleteSection({ id: section.id })
-        if (result.success) {
-            toast.success("Section deleted")
-        } else {
-            toast.error(result.error || "Failed to delete section")
-            setSections(sections) // Revert
+        try {
+            await deleteSectionMutation.mutateAsync(section.id)
+        } catch {
+            setSections(previousSections)
         }
-    }, [sections])
+    }, [sections, deleteSectionMutation])
 
     const { registerRef, handleKeyDown, itemRefs } = useListNavigation({
         items: sections,
@@ -148,11 +146,12 @@ export function SectionList({ sections: initialSections, storeId }: SectionListP
     const handleUpdateName = (id: string, name: string) => {
         setSections(prev => prev.map(s => s.id === id ? { ...s, name } : s))
 
-        // Only debounce update for REAL items
         if (!id.startsWith("temp-")) {
             debouncedUpdate(id, name)
         }
     }
+
+    if (isLoading) return <PageLoading />
 
     return (
         <div className="space-y-2">

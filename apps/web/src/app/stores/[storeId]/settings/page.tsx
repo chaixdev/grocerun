@@ -1,25 +1,25 @@
-import { notFound, redirect } from "next/navigation"
+"use client"
+
+import { useParams } from "next/navigation"
 import { ChevronLeft } from "lucide-react"
 import Link from "next/link"
 
-import { auth } from "@/core/auth"
-import { getStore } from "@/actions/store"
-import { getSections } from "@/actions/section"
 import { Button } from "@/components/ui/button"
-import { StoreSettingsForm } from "@/features/stores"
-import { SectionList } from "@/features/stores"
-import { StoreDeleteSection } from "@/features/stores"
+import { PageLoading } from "@/components/ui/page-loading"
+import { StoreSettingsForm, StoreDeleteSection, SectionList, useStore } from "@/features/stores"
 
+export default function StoreSettingsPage() {
+    const { storeId } = useParams<{ storeId: string }>()
+    const { data: store, isLoading, isError } = useStore(storeId)
 
-export default async function StoreSettingsPage({ params }: { params: Promise<{ storeId: string }> }) {
-    const { storeId } = await params
-    const session = await auth()
-    if (!session?.user) redirect("/login")
+    if (isLoading) return <PageLoading />
 
-    const store = await getStore(storeId)
-
-    if (!store) {
-        notFound()
+    if (isError || !store) {
+        return (
+            <div className="container max-w-2xl mx-auto py-8 px-4">
+                <p className="text-muted-foreground">Store not found.</p>
+            </div>
+        )
     }
 
     return (
@@ -50,10 +50,7 @@ export default async function StoreSettingsPage({ params }: { params: Promise<{ 
                     <p className="text-sm text-muted-foreground mb-4">
                         Order your sections to match the store layout.
                     </p>
-                    <SectionList
-                        sections={await getSections(storeId)}
-                        storeId={storeId}
-                    />
+                    <SectionList storeId={storeId} />
                 </div>
 
                 <div className="p-6 border border-destructive/20 rounded-lg bg-destructive/5">

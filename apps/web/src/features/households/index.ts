@@ -4,3 +4,15 @@ export { HouseholdList } from './components/HouseholdList'
 export { HouseholdSelect } from './components/HouseholdSelect'
 export { CreateFirstHousehold } from './components/CreateFirstHousehold'
 export { InvitationManager } from './components/Invitations'
+
+// Hooks
+export {
+  useHouseholds, useCreateDefaultHousehold, useCreateHousehold,
+  useRenameHousehold, useDeleteHousehold, householdKeys,
+} from './hooks/useHouseholds'
+export type { Household } from './hooks/useHouseholds'
+export {
+  useSettingsHouseholds, useCreateInvitation, useGetInvitationDetails,
+  useJoinHousehold, useLeaveHousehold, settingsHouseholdKeys,
+} from './hooks/useInvitations'
+export type { SettingsHousehold } from './hooks/useInvitations'

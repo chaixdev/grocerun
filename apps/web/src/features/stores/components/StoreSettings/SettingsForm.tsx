@@ -1,6 +1,5 @@
 "use client"
 
-import { useState, useTransition } from "react"
 import { useRouter } from "next/navigation"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -17,49 +16,31 @@ import {
     FormMessage,
 } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
-import { updateStore } from "@/actions/store"
-import { StoreSchema } from "@/core/schemas"
-import { toast } from "sonner"
+import { UpdateStoreSchema } from "@grocerun/dto"
+import { useUpdateStore, type Store } from "../../hooks/useStore"
 
 interface StoreSettingsFormProps {
-    store: {
-        id: string
-        name: string
-        location: string | null
-        imageUrl: string | null
-        householdId: string
-    }
+    store: Store
 }
 
 export function StoreSettingsForm({ store }: StoreSettingsFormProps) {
     const router = useRouter()
-    const [isPending, startTransition] = useTransition()
+    const updateStore = useUpdateStore(store.id, {
+        onSuccess: () => router.push("/stores"),
+    })
 
-    const form = useForm<z.infer<typeof StoreSchema>>({
-        resolver: zodResolver(StoreSchema),
+    const form = useForm<z.infer<typeof UpdateStoreSchema>>({
+        resolver: zodResolver(UpdateStoreSchema),
         defaultValues: {
             name: store.name,
             location: store.location || "",
             imageUrl: store.imageUrl || "",
-            householdId: store.householdId,
         },
     })
 
-    function onSubmit(data: z.infer<typeof StoreSchema>) {
-        startTransition(async () => {
-            try {
-                await updateStore(store.id, data)
-                toast.success("Store updated successfully")
-                router.refresh()
-                router.push("/stores")
-            } catch (error) {
-                toast.error("Failed to update store")
-                console.error(error)
-            }
-        })
+    function onSubmit(data: z.infer<typeof UpdateStoreSchema>) {
+        updateStore.mutate(data)
     }
-
-
 
     return (
         <div className="space-y-8">
@@ -106,15 +87,14 @@ export function StoreSettingsForm({ store }: StoreSettingsFormProps) {
                     />
 
                     <div className="flex justify-end">
-                        <Button type="submit" disabled={isPending}>
-                            {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        <Button type="submit" disabled={updateStore.isPending}>
+                            {updateStore.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                             <Save className="mr-2 h-4 w-4" />
                             Save Changes
                         </Button>
                     </div>
                 </form>
             </Form>
-
         </div>
     )
 }

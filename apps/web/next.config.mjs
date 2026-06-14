@@ -5,6 +5,8 @@ const packageJson = JSON.parse(
     readFileSync(join(process.cwd(), "package.json"), "utf8")
 );
 
+const apiUrl = process.env.API_URL || "http://localhost:3001";
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
     output: "standalone",
@@ -15,7 +17,7 @@ const nextConfig = {
         return [
             {
                 source: "/api/v1/:path*",
-                destination: "http://localhost:3001/:path*", // Proxy to NestJS
+                destination: `${apiUrl}/:path*`, // Proxy to NestJS
             },
         ];
     },

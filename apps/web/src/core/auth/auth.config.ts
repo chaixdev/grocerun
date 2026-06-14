@@ -18,11 +18,18 @@ export const authConfig = {
     callbacks: {
         authorized({ auth, request: { nextUrl } }) {
             const isLoggedIn = !!auth?.user;
-            if (isLoggedIn) {
-                if (nextUrl.pathname === '/login') {
-                    return Response.redirect(new URL('/stores', nextUrl));
-                }
+
+            // Logged-in user visiting /login → redirect to /stores
+            if (isLoggedIn && nextUrl.pathname === '/login') {
+                return Response.redirect(new URL('/stores', nextUrl));
             }
+
+            // Unauthenticated user on a protected route → redirect to /login
+            // (returning false triggers NextAuth to redirect to pages.signIn)
+            if (!isLoggedIn) {
+                return false;
+            }
+
             return true;
         },
         async session({ session, token }) {
@@ -30,7 +37,7 @@ export const authConfig = {
                 session.user.id = token.sub
             }
             // Add the raw JWT to the session for API authentication
-            session.accessToken = token as any
+            session.accessToken = token
             return session
         },
         async jwt({ token, user }) {

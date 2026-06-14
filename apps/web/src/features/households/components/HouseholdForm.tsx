@@ -1,5 +1,11 @@
 "use client"
 
+import { useState } from "react"
+import { useForm } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
+import { z } from "zod"
+import { Plus } from "lucide-react"
+
 import { Button } from "@/components/ui/button"
 import {
     Dialog,
@@ -11,14 +17,8 @@ import {
     DialogTrigger,
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
-import { createHousehold, renameHousehold } from "@/actions/household"
-import { useState } from "react"
-import { useForm } from "react-hook-form"
-import { zodResolver } from "@hookform/resolvers/zod"
-import { z } from "zod"
-import { Plus } from "lucide-react"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
-import { toast } from "sonner"
+import { useCreateHousehold, useRenameHousehold } from "../hooks/useHouseholds"
 
 const formSchema = z.object({
     name: z.string().min(1, "Name is required"),
@@ -31,6 +31,9 @@ interface HouseholdFormProps {
 
 export function HouseholdForm({ household, trigger }: HouseholdFormProps) {
     const [open, setOpen] = useState(false)
+    const createHousehold = useCreateHousehold()
+    const renameHousehold = useRenameHousehold()
+
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
         defaultValues: {
@@ -38,32 +41,22 @@ export function HouseholdForm({ household, trigger }: HouseholdFormProps) {
         },
     })
 
-    async function onSubmit(values: z.infer<typeof formSchema>) {
-        try {
-            if (household) {
-                const result = await renameHousehold({ householdId: household.id, name: values.name })
-                if (result.success) {
-                    toast.success("Household updated")
-                    setOpen(false)
-                    form.reset()
-                } else {
-                    toast.error(result.error || "Failed to update household")
-                }
-            } else {
-                const result = await createHousehold(values)
-                if (result.success) {
-                    toast.success("Household created")
-                    setOpen(false)
-                    form.reset()
-                } else {
-                    toast.error(result.error || "Failed to create household")
-                }
-            }
-        } catch (error) {
-            console.error("Failed to save household", error)
-            toast.error("Failed to save household")
+    function onSubmit(values: z.infer<typeof formSchema>) {
+        const callbacks = {
+            onSuccess: () => {
+                setOpen(false)
+                form.reset()
+            },
+        }
+
+        if (household) {
+            renameHousehold.mutate({ householdId: household.id, name: values.name }, callbacks)
+        } else {
+            createHousehold.mutate(values, callbacks)
         }
     }
+
+    const isPending = createHousehold.isPending || renameHousehold.isPending
 
     return (
         <Dialog open={open} onOpenChange={setOpen}>
@@ -97,7 +90,9 @@ export function HouseholdForm({ household, trigger }: HouseholdFormProps) {
                             )}
                         />
                         <DialogFooter>
-                            <Button type="submit">Save changes</Button>
+                            <Button type="submit" disabled={isPending}>
+                                {isPending ? "Saving..." : "Save changes"}
+                            </Button>
                         </DialogFooter>
                     </form>
                 </Form>

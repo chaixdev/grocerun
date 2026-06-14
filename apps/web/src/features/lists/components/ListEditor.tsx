@@ -1,11 +1,8 @@
 "use client"
 
-import { useState, useOptimistic, useRef, useTransition } from "react"
-import { addItemToList, toggleListItem, removeItemFromList, startShopping, cancelShopping, updateListItemQuantity } from "@/actions/list"
+import { useState, useRef } from "react"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { ItemAutocomplete } from "./ItemAutocomplete"
-import { Checkbox } from "@/components/ui/checkbox"
 import { toast } from "sonner"
 import {
     Dialog,
@@ -24,55 +21,29 @@ import {
 } from "@/components/ui/select"
 import { Label } from "@/components/ui/label"
 import { TripSummary } from "./TripSummary"
-import { completeList } from "@/actions/list"
 import { useRouter } from "next/navigation"
-import { MoreHorizontal, Pencil, Trash2, ShoppingCart, CheckCheck, X } from "lucide-react"
+import { ShoppingCart, CheckCheck, X } from "lucide-react"
 import { ListItemRow } from "./ListItemRow"
 import { useScreenWakeLock } from "@/hooks/use-screen-wake-lock"
 import { QuantityStepper } from "./QuantityStepper"
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
 import { EditItemDialog } from "./EditItemDialog"
-
-interface Section {
-    id: string
-    name: string
-}
-
-interface Item {
-    id: string
-    name: string
-    sectionId: string | null
-    defaultUnit: string | null
-    purchaseCount?: number
-}
-
-interface ListItem {
-    id: string
-    isChecked: boolean
-    quantity: number
-    unit: string | null
-    purchasedQuantity: number | null
-    item: Item
-}
-
-interface ListData {
-    id: string
-    store: {
-        id: string
-        sections: Section[]
-    }
-    items: ListItem[]
-    status: string
-    updatedAt: Date
-}
+import {
+    useAddItem,
+    useToggleItem,
+    useRemoveItem,
+    useUpdateItemQuantity,
+    useStartShopping,
+    useCancelShopping,
+    useCompleteList,
+} from "../hooks/useLists"
+import type {
+    ListDetail,
+    ListDetailItem,
+    ListDetailListItem,
+} from "../hooks/useLists"
 
 interface ListEditorProps {
-    list: ListData
+    list: ListDetail
 }
 
 export function ListEditor({ list }: ListEditorProps) {
@@ -80,43 +51,15 @@ export function ListEditor({ list }: ListEditorProps) {
     const [inputValue, setInputValue] = useState("")
     const [inputQty, setInputQty] = useState(1)
     const [inputUnit, setInputUnit] = useState("")
-    const [isSubmitting, setIsSubmitting] = useState(false)
-    const [isPending, startTransition] = useTransition()
 
-    // Optimistic UI
-    type OptimisticAction =
-        | { type: "TOGGLE"; itemId: string; isChecked: boolean; purchasedQuantity?: number | null }
-        | { type: "UPDATE_QTY"; itemId: string; quantity: number; unit?: string }
-        | { type: "REMOVE"; itemId: string }
-
-    // Optimistic UI
-    const [optimisticItems, setOptimisticItems] = useOptimistic(
-        list.items,
-        (state, action: OptimisticAction) => {
-            switch (action.type) {
-                case "TOGGLE":
-                    return state.map((item) =>
-                        item.id === action.itemId ? {
-                            ...item,
-                            isChecked: action.isChecked,
-                            purchasedQuantity: action.purchasedQuantity !== undefined ? action.purchasedQuantity : item.purchasedQuantity
-                        } : item
-                    )
-                case "UPDATE_QTY":
-                    return state.map((item) =>
-                        item.id === action.itemId ? {
-                            ...item,
-                            quantity: action.quantity,
-                            unit: action.unit !== undefined ? action.unit : item.unit
-                        } : item
-                    )
-                case "REMOVE":
-                    return state.filter((item) => item.id !== action.itemId)
-                default:
-                    return state
-            }
-        }
-    )
+    // Mutations
+    const addItem = useAddItem()
+    const toggleItem = useToggleItem()
+    const removeItem = useRemoveItem()
+    const updateQuantity = useUpdateItemQuantity()
+    const startShoppingMut = useStartShopping()
+    const cancelShoppingMut = useCancelShopping()
+    const completeListMut = useCompleteList()
 
     // Refs for auto-scroll
     const itemRefs = useRef<Record<string, HTMLDivElement | null>>({})
@@ -129,10 +72,9 @@ export function ListEditor({ list }: ListEditorProps) {
 
     // Trip Completion State
     const [isSummaryOpen, setIsSummaryOpen] = useState(false)
-    const [isCompleting, setIsCompleting] = useState(false)
 
     // Edit Item State
-    const [editingItem, setEditingItem] = useState<Item | null>(null)
+    const [editingItem, setEditingItem] = useState<ListDetailItem | null>(null)
     const [isEditOpen, setIsEditOpen] = useState(false)
 
     // Screen Wake Lock for Shopping Mode
@@ -142,273 +84,218 @@ export function ListEditor({ list }: ListEditorProps) {
 
     useScreenWakeLock(isShoppingMode)
 
+    const isSubmitting = addItem.isPending
+
+    // Helper: highlight a newly added item after refetch
+    const highlightItem = (itemId: string) => {
+        setTimeout(() => {
+            const el = itemRefs.current[itemId]
+            if (el) {
+                el.scrollIntoView({ behavior: "smooth", block: "center" })
+                setHighlightedItemId(itemId)
+                setTimeout(() => setHighlightedItemId(null), 2000)
+            }
+        }, 100)
+    }
+
     const handleAddItem = async (e?: React.FormEvent) => {
         e?.preventDefault()
         if (isSubmitting) return
         if (!inputValue.trim()) return
 
-        setIsSubmitting(true)
-        try {
-            const result = await addItemToList({
+        addItem.mutate(
+            {
                 listId: list.id,
                 name: inputValue.trim(),
                 quantity: inputQty,
                 unit: inputUnit.trim() || undefined,
-            })
-
-            if (result.status === "ADDED" && result.listItem) {
-                setInputValue("")
-                setInputQty(1)
-                setInputUnit("")
-                toast.success("Item added")
-                // Highlight the newly added item after re-render
-                setTimeout(() => {
-                    const el = itemRefs.current[result.listItem.id]
-                    if (el) {
-                        el.scrollIntoView({ behavior: "smooth", block: "center" })
-                        setHighlightedItemId(result.listItem.id)
-                        setTimeout(() => setHighlightedItemId(null), 2000)
+            },
+            {
+                onSuccess: (result) => {
+                    if (result.status === "ADDED" && result.listItem) {
+                        setInputValue("")
+                        setInputQty(1)
+                        setInputUnit("")
+                        toast.success("Item added")
+                        highlightItem(result.listItem.id)
+                    } else if (result.status === "ALREADY_EXISTS") {
+                        setInputValue("")
+                        toast.info("Item already in list")
+                    } else if (result.status === "NEEDS_SECTION") {
+                        setNewItemName(inputValue.trim())
+                        setSelectedSection("")
+                        setIsDialogOpen(true)
+                    } else if (result.status === "ERROR") {
+                        toast.error(result.error || "Failed to add item")
                     }
-                }, 100)
-            } else if (result.status === "ALREADY_EXISTS") {
-                setInputValue("")
-                toast.info("Item already in list")
-            } else if (result.status === "NEEDS_SECTION") {
-                setNewItemName(inputValue.trim())
-                setSelectedSection("") // Default to uncategorized
-                setIsDialogOpen(true)
-            } else if (result.status === "ERROR") {
-                toast.error(result.error || "Failed to add item")
+                },
+                onError: () => {
+                    toast.error("Failed to add item")
+                },
             }
-        } finally {
-            setIsSubmitting(false)
-        }
+        )
     }
 
     // Handle selection from autocomplete - directly add the item
-    const handleSelectFromAutocomplete = async (item: {
+    const handleSelectFromAutocomplete = (item: {
         id: string
         name: string
         sectionId: string | null
         defaultUnit: string | null
     }) => {
-        setIsSubmitting(true)
-        try {
-            const result = await addItemToList({
+        addItem.mutate(
+            {
                 listId: list.id,
                 name: item.name,
                 sectionId: item.sectionId || undefined,
                 quantity: inputQty,
                 unit: item.defaultUnit || inputUnit.trim() || undefined,
-            })
-
-            if (result.status === "ADDED" && result.listItem) {
-                setInputValue("")
-                setInputQty(1)
-                setInputUnit("")
-                toast.success(`Added ${item.name}`)
-                // Highlight the newly added item after re-render
-                setTimeout(() => {
-                    const el = itemRefs.current[result.listItem.id]
-                    if (el) {
-                        el.scrollIntoView({ behavior: "smooth", block: "center" })
-                        setHighlightedItemId(result.listItem.id)
-                        setTimeout(() => setHighlightedItemId(null), 2000)
+            },
+            {
+                onSuccess: (result) => {
+                    if (result.status === "ADDED" && result.listItem) {
+                        setInputValue("")
+                        setInputQty(1)
+                        setInputUnit("")
+                        toast.success(`Added ${item.name}`)
+                        highlightItem(result.listItem.id)
+                    } else if (result.status === "ALREADY_EXISTS") {
+                        setInputValue("")
+                        toast.info(`${item.name} is already in list`)
+                    } else if (result.status === "ERROR") {
+                        toast.error(result.error || "Failed to add item")
                     }
-                }, 100)
-            } else if (result.status === "ALREADY_EXISTS") {
-                setInputValue("")
-                toast.info(`${item.name} is already in list`)
-            } else if (result.status === "ERROR") {
-                toast.error(result.error || "Failed to add item")
+                },
+                onError: () => {
+                    toast.error("Failed to add item")
+                },
             }
-        } finally {
-            setIsSubmitting(false)
-        }
+        )
     }
 
-    const handleConfirmNewItem = async () => {
+    const handleConfirmNewItem = () => {
         if (!newItemName || isSubmitting) return
 
-        setIsSubmitting(true)
-        try {
-            const result = await addItemToList({
+        addItem.mutate(
+            {
                 listId: list.id,
                 name: newItemName,
                 sectionId: selectedSection && selectedSection !== "uncategorized" ? selectedSection : null,
                 quantity: inputQty,
                 unit: inputUnit.trim() || undefined,
-            })
-
-            if (result.status === "ERROR") {
-                toast.error(result.error || "Failed to create item")
-            } else {
-                setInputValue("")
-                setNewItemName(null)
-                setInputQty(1)
-                setInputUnit("")
-                setIsDialogOpen(false)
-                toast.success("Item created and added")
+            },
+            {
+                onSuccess: (result) => {
+                    if (result.status === "ERROR") {
+                        toast.error(result.error || "Failed to create item")
+                    } else {
+                        setInputValue("")
+                        setNewItemName(null)
+                        setInputQty(1)
+                        setInputUnit("")
+                        setIsDialogOpen(false)
+                        toast.success("Item created and added")
+                    }
+                },
+                onError: () => {
+                    toast.error("Failed to create item")
+                },
             }
-        } finally {
-            setIsSubmitting(false)
-        }
+        )
     }
 
     const handleToggle = (itemId: string, checked: boolean, purchasedQuantity?: number) => {
-        // Capture prior state for rollback if the server update fails
-        // We can't easily strict-rollback with just one variable for all actions, 
-        // but for toggle we know the opposite.
-
-        startTransition(async () => {
-            // 1. Optimistic Update
-            // If checking, we use the provided purchasedQuantity or default to null? 
-            // Actually, if purchasedQuantity is undefined, it implies generic toggle.
-            // If checking: purchasedQuantity = provided ?? item.quantity.
-            // If unchecking: purchasedQuantity = null.
-            // But here we just pass what we know to the reducer.
-            // Wait, the reducer needs to know if we should set it to null or not.
-            // If checked=false, we should set purchasedQuantity=null.
-            // If checked=true, we set it to valid number if provided.
-
-            // The reducer logic above preserves it if undefined. We need to be specific.
-            const newPurchasedQuantity = checked ? (purchasedQuantity ?? null) : null
-            // Note: If checking and no specific qty provided, backend defaults to planned.
-            // Ideally optimistic UI should too?
-            // If checking and purchasedQuantity is undefined, we assume Bought=Planned.
-            const optimisticPurchasedQty = checked
-                ? (purchasedQuantity !== undefined ? purchasedQuantity : optimisticItems.find(i => i.id === itemId)?.quantity ?? null) // Default to planned quantity visually?
-                // Actually the backend sets purchasedQuantity = quantity if not provided.
-                // So optimistic UI should too if we want to be accurate.
-                // However, ListItemRow logic: `const hasDeviation = listItem.purchasedQuantity !== null`
-                // If purchasedQuantity == quantity, hasDeviation is false (Wait, `!= null` logic).
-                // Actually, if purchasedQuantity is set equal to quantity, hasDeviation is true by that check?
-                // Let's check ListItemRow again:
-                // `const hasDeviation = listItem.purchasedQuantity !== null`
-                // Yes. So if we save 2 (when plan is 2), it shows as deviation?
-                // Backend logic: `purchasedQuantity: isChecked ? (purchasedQuantity ?? listItem.quantity) : null`
-                // So it ALWAYS saves a purchasedQuantity when checked.
-                // So `listItem.purchasedQuantity` will always be non-null for checked items (except for legacy data).
-                // So "hasDeviation" logic in Row might need tuning: `purchasedQuantity != quantity`.
-                : null
-
-            setOptimisticItems({
-                type: "TOGGLE",
+        toggleItem.mutate(
+            {
                 itemId,
                 isChecked: checked,
-                purchasedQuantity: optimisticPurchasedQty
-            })
-
-            // 2. Auto-scroll Logic (only when checking off)
-            if (checked) {
-                // Re-deriving render logic for safety:
-                const itemsBySection: Record<string, ListItem[]> = {}
-                list.store.sections.forEach(s => itemsBySection[s.id] = [])
-                itemsBySection["uncategorized"] = []
-
-                optimisticItems.forEach(item => {
-                    const isItemChecked = item.id === itemId ? checked : item.isChecked
-                    const sectionId = item.item.sectionId || "uncategorized"
-                    if (!itemsBySection[sectionId]) itemsBySection[sectionId] = []
-                    itemsBySection[sectionId].push({ ...item, isChecked: isItemChecked })
-                })
-
-                const visualOrder: ListItem[] = []
-                list.store.sections.forEach(s => visualOrder.push(...(itemsBySection[s.id] || [])))
-                visualOrder.push(...(itemsBySection["uncategorized"] || []))
-
-                const currentIndex = visualOrder.findIndex(i => i.id === itemId)
-
-                let nextItem: ListItem | undefined
-                for (let i = currentIndex + 1; i < visualOrder.length; i++) {
-                    if (!visualOrder[i].isChecked) {
-                        nextItem = visualOrder[i]
-                        break
+                purchasedQuantity,
+                listId: list.id,
+            },
+            {
+                onSuccess: () => {
+                    // Auto-scroll to next unchecked item when checking off
+                    if (checked) {
+                        autoScrollToNext(itemId)
                     }
-                }
-
-                if (nextItem) {
-                    const el = itemRefs.current[nextItem.id]
-                    if (el) {
-                        el.scrollIntoView({ behavior: "smooth", block: "center" })
-                        setHighlightedItemId(nextItem.id)
-                        setTimeout(() => setHighlightedItemId(null), 2000)
-                    }
-                }
+                },
             }
+        )
+    }
 
-            // 3. Server Action
-            const result = await toggleListItem({ itemId, isChecked: checked, purchasedQuantity })
-            if (!result.success) {
-                // Rollback
-                setOptimisticItems({ type: "TOGGLE", itemId, isChecked: !checked })
-                toast.error(result.error || "Failed to update item")
+    // Auto-scroll logic: find next unchecked item in section order
+    const autoScrollToNext = (checkedItemId: string) => {
+        const itemsBySection: Record<string, ListDetailListItem[]> = {}
+        list.store.sections.forEach(s => itemsBySection[s.id] = [])
+        itemsBySection["uncategorized"] = []
+
+        list.items.forEach(item => {
+            const sectionId = item.item.sectionId || "uncategorized"
+            if (!itemsBySection[sectionId]) itemsBySection[sectionId] = []
+            itemsBySection[sectionId].push(item)
+        })
+
+        const visualOrder: ListDetailListItem[] = []
+        list.store.sections.forEach(s => visualOrder.push(...(itemsBySection[s.id] || [])))
+        visualOrder.push(...(itemsBySection["uncategorized"] || []))
+
+        const currentIndex = visualOrder.findIndex(i => i.id === checkedItemId)
+
+        let nextItem: ListDetailListItem | undefined
+        for (let i = currentIndex + 1; i < visualOrder.length; i++) {
+            if (!visualOrder[i].isChecked) {
+                nextItem = visualOrder[i]
+                break
             }
+        }
+
+        if (nextItem) {
+            const el = itemRefs.current[nextItem.id]
+            if (el) {
+                el.scrollIntoView({ behavior: "smooth", block: "center" })
+                setHighlightedItemId(nextItem.id)
+                setTimeout(() => setHighlightedItemId(null), 2000)
+            }
+        }
+    }
+
+    const handleUpdateQuantity = (itemId: string, quantity: number, unit?: string) => {
+        updateQuantity.mutate({
+            listItemId: itemId,
+            quantity,
+            unit,
+            listId: list.id,
         })
     }
 
-    const handleUpdateQuantity = async (itemId: string, quantity: number, unit?: string) => {
-        startTransition(async () => {
-            // We need previous state for rollback, but let's just use router.refresh on error for non-toggle actions for simplicity
-            // or assume success.
-            const item = optimisticItems.find(i => i.id === itemId)
-            const oldQty = item?.quantity ?? 1
-            const oldUnit = item?.unit
-
-            setOptimisticItems({ type: "UPDATE_QTY", itemId, quantity, unit })
-
-            const result = await updateListItemQuantity({ listItemId: itemId, quantity, unit })
-            if (!result.success) {
-                toast.error(result.error || "Failed to update quantity")
-                // Rollback
-                setOptimisticItems({ type: "UPDATE_QTY", itemId, quantity: oldQty, unit: oldUnit || undefined })
-            }
-        })
-    }
-
-    const handleRemoveItem = async (itemId: string) => {
-        startTransition(async () => {
-            // Simplification: Not full optimistic rollback support for add/remove yet without more complex state
-            // But we can remove it optimistically.
-            setOptimisticItems({ type: "REMOVE", itemId })
-
-            const result = await removeItemFromList({ listItemId: itemId })
-            if (result.success) {
-                toast.success("Item removed")
-            } else {
-                toast.error(result.error || "Failed to remove item")
-                // Rollback: Hard to rollback a removal without re-adding. 
-                // We'd need to keep the deleted item in memory.
-                // For now, trigger refresh to get it back.
-                router.refresh()
-            }
-        })
+    const handleRemoveItem = (itemId: string) => {
+        removeItem.mutate({ listItemId: itemId, listId: list.id })
     }
 
     const handleFinishShopping = () => {
         setIsSummaryOpen(true)
     }
 
-    const handleCompleteTrip = async () => {
-        setIsCompleting(true)
-        const result = await completeList({ listId: list.id })
-        if (result.success) {
-            toast.success("Trip completed!")
-            router.push(`/stores/${list.store.id}`)
-        } else {
-            toast.error(result.error || "Failed to complete trip")
-            setIsCompleting(false)
-        }
+    const handleCompleteTrip = () => {
+        completeListMut.mutate(
+            { listId: list.id, storeId: list.store.id },
+            {
+                onSuccess: () => {
+                    toast.success("Trip completed!")
+                    router.push("/lists")
+                },
+            }
+        )
     }
 
-    // Group items by section (using optimisticItems)
-    const itemsBySection: Record<string, ListItem[]> = {}
+    // Group items by section
+    const itemsBySection: Record<string, ListDetailListItem[]> = {}
     list.store.sections.forEach((s) => {
         itemsBySection[s.id] = []
     })
     itemsBySection["uncategorized"] = []
 
-    optimisticItems.forEach((listItem) => {
+    list.items.forEach((listItem) => {
         const sectionId = listItem.item.sectionId || "uncategorized"
         if (!itemsBySection[sectionId]) {
             itemsBySection[sectionId] = []
@@ -416,8 +303,8 @@ export function ListEditor({ list }: ListEditorProps) {
         itemsBySection[sectionId].push(listItem)
     })
 
-    // Calculate missing items from optimistic state
-    const missingItems = optimisticItems
+    // Calculate missing items
+    const missingItems = list.items
         .filter(i => !i.isChecked)
         .map(i => ({
             id: i.item.id,
@@ -425,8 +312,6 @@ export function ListEditor({ list }: ListEditorProps) {
             quantity: i.quantity,
             unit: i.unit
         }))
-
-
 
     return (
         <div className="space-y-8 pb-32">
@@ -539,16 +424,17 @@ export function ListEditor({ list }: ListEditorProps) {
                             <Button
                                 size="lg"
                                 className="h-14 rounded-full shadow-xl px-8 bg-primary hover:bg-primary/90 transition-all active:scale-95 font-semibold"
-                                onClick={async () => {
-                                    const result = await startShopping({ listId: list.id })
-                                    if (result.success) {
-                                        router.refresh()
-                                        toast.success("Shopping mode activated! 🛒")
-                                    } else {
-                                        toast.error(result.error || "Failed to start shopping")
-                                    }
+                                onClick={() => {
+                                    startShoppingMut.mutate(
+                                        { listId: list.id, storeId: list.store.id },
+                                        {
+                                            onSuccess: () => {
+                                                toast.success("Shopping mode activated! 🛒")
+                                            },
+                                        }
+                                    )
                                 }}
-                                disabled={optimisticItems.length === 0}
+                                disabled={list.items.length === 0 || startShoppingMut.isPending}
                             >
                                 <ShoppingCart className="mr-2 h-5 w-5" />
                                 Go Shopping
@@ -559,14 +445,16 @@ export function ListEditor({ list }: ListEditorProps) {
                                     size="icon"
                                     variant="secondary"
                                     className="h-14 w-14 rounded-full shadow-lg bg-background border hover:bg-muted"
-                                    onClick={async () => {
-                                        const result = await cancelShopping({ listId: list.id })
-                                        if (result.success) {
-                                            router.refresh()
-                                            toast("Shopping Cancelled", { description: "List reverted to planning mode." })
-                                        } else {
-                                            toast.error(result.error || "Failed to cancel shopping")
-                                        }
+                                    disabled={cancelShoppingMut.isPending}
+                                    onClick={() => {
+                                        cancelShoppingMut.mutate(
+                                            { listId: list.id, storeId: list.store.id },
+                                            {
+                                                onSuccess: () => {
+                                                    toast("Shopping Cancelled", { description: "List reverted to planning mode." })
+                                                },
+                                            }
+                                        )
                                     }}
                                 >
                                     <X className="h-5 w-5" />
@@ -578,7 +466,7 @@ export function ListEditor({ list }: ListEditorProps) {
                                     onClick={handleFinishShopping}
                                 >
                                     <CheckCheck className="mr-2 h-5 w-5" />
-                                    Finish ({optimisticItems.filter(i => i.isChecked).length}/{optimisticItems.length})
+                                    Finish ({list.items.filter(i => i.isChecked).length}/{list.items.length})
                                 </Button>
                             </>
                         )}
@@ -591,11 +479,11 @@ export function ListEditor({ list }: ListEditorProps) {
                 onOpenChange={setIsSummaryOpen}
                 onConfirm={handleCompleteTrip}
                 missingItems={missingItems}
-                isSubmitting={isCompleting}
+                isSubmitting={completeListMut.isPending}
             />
 
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                <DialogContent>
+                <DialogContent data-testid="section-selection-dialog">
                     <DialogHeader>
                         <DialogTitle>New Item: {newItemName}</DialogTitle>
                         <DialogDescription>
@@ -606,7 +494,7 @@ export function ListEditor({ list }: ListEditorProps) {
                         <div className="grid gap-2">
                             <Label htmlFor="section">Section</Label>
                             <Select value={selectedSection} onValueChange={setSelectedSection}>
-                                <SelectTrigger>
+                                <SelectTrigger data-testid="section-select">
                                     <SelectValue placeholder="Select a section" />
                                 </SelectTrigger>
                                 <SelectContent className="max-h-60">
@@ -626,7 +514,7 @@ export function ListEditor({ list }: ListEditorProps) {
                         <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
                             Cancel
                         </Button>
-                        <Button type="button" onClick={handleConfirmNewItem} disabled={isSubmitting}>
+                        <Button type="button" data-testid="save-and-add-button" onClick={handleConfirmNewItem} disabled={isSubmitting}>
                             Save & Add
                         </Button>
                     </DialogFooter>
@@ -644,11 +532,11 @@ export function ListEditor({ list }: ListEditorProps) {
                             defaultUnit: editingItem.defaultUnit
                         }}
                         sections={list.store.sections}
+                        listId={list.id}
                         open={isEditOpen}
                         onOpenChange={setIsEditOpen}
                         onSuccess={() => {
                             setEditingItem(null)
-                            router.refresh()
                         }}
                     />
                 )

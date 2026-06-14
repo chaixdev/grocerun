@@ -1,0 +1,45 @@
+# Git
+.git
+.github
+.gitignore
+
+# Dependencies (installed in Docker build)
+node_modules
+apps/*/node_modules
+packages/*/node_modules
+
+# Build outputs (rebuilt in Docker)
+apps/web/.next
+apps/server/dist
+
+# IDE
+.idea
+.vscode
+*.swp
+
+# Environment files (secrets injected at runtime)
+.env*
+apps/*/.env*
+
+# Dev databases
+*.db
+apps/*/*.db
+
+# Docs
+wiki
+*.md
+!packages/dto/README.md
+
+# Test artifacts
+test-results
+playwright-report
+coverage
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Turbo cache
+.turbo
+apps/*/.turbo
+packages/*/.turbo

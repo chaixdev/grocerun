@@ -1,39 +1,28 @@
-import { auth } from "@/core/auth"
-import { prisma } from "@/core/db"
-import { verifyStoreAccess } from "@/core/auth"
-import { getSections } from "@/actions/section"
+"use client"
+
+import { useStore } from "@/features/stores"
 import { SectionList } from "@/features/stores"
 import { SectionForm } from "@/features/stores"
 import { StoreLists } from "@/features/lists"
-import { getLists } from "@/actions/list"
-import { notFound, redirect } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { ArrowLeft } from "lucide-react"
 import Link from "next/link"
+import { useParams } from "next/navigation"
+import { PageLoading } from "@/components/ui/page-loading"
 
-export default async function StoreDetailsPage({
-    params,
-}: {
-    params: Promise<{ storeId: string }>
-}) {
-    const session = await auth()
-    if (!session?.user?.id) redirect("/login")
+export default function StoreDetailsPage() {
+    const { storeId } = useParams<{ storeId: string }>()
+    const { data: store, isLoading, error } = useStore(storeId)
 
-    const { storeId } = await params
-    try {
-        await verifyStoreAccess(storeId, session.user.id)
-    } catch {
-        notFound()
+    if (isLoading) return <PageLoading />
+
+    if (error || !store) {
+        return (
+            <div className="container py-10 text-center text-muted-foreground">
+                Store not found.
+            </div>
+        )
     }
-
-    const store = await prisma.store.findUnique({
-        where: { id: storeId },
-    })
-
-    if (!store) notFound()
-
-    const sections = await getSections(storeId)
-    const lists = await getLists(storeId)
 
     return (
         <div className="container py-10 space-y-8">
@@ -61,11 +50,11 @@ export default async function StoreDetailsPage({
                         Drag to reorder.
                     </p>
                     <SectionForm storeId={store.id} />
-                    <SectionList sections={sections} storeId={store.id} />
+                    <SectionList storeId={store.id} />
                 </div>
 
                 <div className="space-y-4">
-                    <StoreLists lists={lists} storeId={store.id} />
+                    <StoreLists storeId={store.id} />
                 </div>
             </div>
         </div>

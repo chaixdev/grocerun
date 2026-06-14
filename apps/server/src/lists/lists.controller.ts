@@ -1,40 +1,11 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import { IsBoolean, IsNotEmpty, IsNumber, IsOptional, IsString, Min } from 'class-validator';
 import { ListsService } from './lists.service';
 import { AuthGuard, JwtPayload } from '../auth/auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
-
-export class CreateListDto {
-  storeId: string;
-  name?: string;
-}
-
-export class AddItemDto {
-  listId: string;
-  name: string;
-  sectionId?: string | null;
-  quantity?: number;
-  unit?: string;
-}
-
-export class ToggleItemDto {
-  itemId: string;
-  isChecked: boolean;
-  purchasedQuantity?: number;
-}
-
-export class UpdateQuantityDto {
-  listItemId: string;
-  quantity: number;
-  unit?: string;
-}
-
-export class RemoveItemDto {
-  listItemId: string;
-}
-
-export class ListIdDto {
-  listId: string;
-}
+import { CreateListDto } from './dto/create-list.dto';
+import { AddItemDto } from './dto/add-item.dto';
+import { ToggleItemDto, UpdateQuantityDto, RemoveItemDto, ListIdDto } from './dto/manage-items.dto';
 
 @Controller('lists')
 @UseGuards(AuthGuard)

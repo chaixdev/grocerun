@@ -10,6 +10,7 @@ export const metadata: Metadata = {
 };
 
 import { ThemeProvider } from "@/components/theme-provider"
+import { Providers } from "@/components/providers"
 import { Header } from "@/components/header"
 import { Toaster } from "@/components/ui/sonner"
 import { ResponsiveShell } from "@/components/layout/responsive-shell"
@@ -31,11 +32,13 @@ export default async function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <Header user={session?.user} />
-          <ResponsiveShell user={session?.user}>
-            {children}
-          </ResponsiveShell>
-          <Toaster />
+          <Providers>
+            <Header user={session?.user} />
+            <ResponsiveShell user={session?.user}>
+              {children}
+            </ResponsiveShell>
+            <Toaster />
+          </Providers>
         </ThemeProvider>
       </body>
     </html>

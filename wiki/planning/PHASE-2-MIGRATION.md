@@ -1,165 +1,131 @@
 # Phase 2 Migration Checklist
 
-**Migration Approach:** Inverted feature flags - start with all flags `true` (Prisma), migrate to `false` (API), then remove flags entirely.
+**Migration Approach:** Direct replacement — no feature flags. Each action file's Prisma calls were replaced with `apiClient` calls to the NestJS backend, domain by domain.
 
-**Progress Tracking:** Update `apps/web/src/core/config/migration.ts` as domains are migrated.
-
----
-
-## Overall Progress: 1/37 actions migrated 🟡
-
-**Latest:** Users domain ready for testing (1 action)
+**Status: COMPLETE ✅**
 
 ---
 
-## Items Domain [0/3] 🔴
+## Overall Progress: All actions migrated ✅
 
-**File:** `apps/web/src/actions/item.ts`  
-**Flag:** `migration.items`
-
-- [ ] `updateItem()` - PATCH /items/:id
-- [ ] `searchItems()` - GET /items/search?storeId=X&query=Y
-- [ ] `getTopItemsForStore()` - GET /items/top?storeId=X&limit=5&threshold=1
+Prisma has been fully removed from `apps/web/src/actions/` and the pages layer. The only remaining Prisma usage in `apps/web` is in the auth infrastructure (`auth.ts`, `helpers.ts`, `store-access.ts`) which uses `PrismaAdapter` for NextAuth sessions — this is intentional and must stay.
 
 ---
 
-## Stores Domain [0/5] 🔴
+## Items Domain ✅
 
-**File:** `apps/web/src/actions/store.ts`  
-**Flag:** `migration.stores`
+**File:** `apps/web/src/actions/item.ts`
 
-- [ ] `getStores()` - GET /stores?householdId=X
-- [ ] `getStore()` - GET /stores/:id
-- [ ] `createStore()` - POST /stores
-- [ ] `updateStore()` - PATCH /stores/:id
-- [ ] `deleteStore()` - DELETE /stores/:id
-
-**Note:** `createDefaultHousehold()` is in this file but belongs to Households domain.
+- [x] `updateItem()` - PATCH /items/:id
+- [x] `searchItems()` - GET /items/search?storeId=X&query=Y
+- [x] `getTopItemsForStore()` - GET /items/top?storeId=X&limit=5&threshold=1
 
 ---
 
-## Sections Domain [0/5] 🔴
+## Stores Domain ✅
 
-**File:** `apps/web/src/actions/section.ts`  
-**Flag:** `migration.sections`
+**File:** `apps/web/src/actions/store.ts`
 
-- [ ] `getSections()` - GET /sections?storeId=X
-- [ ] `createSection()` - POST /sections
-- [ ] `updateSection()` - PATCH /sections/:id
-- [ ] `deleteSection()` - DELETE /sections/:id
-- [ ] `reorderSections()` - PATCH /sections/reorder
-
----
-
-## Lists Domain [0/11] 🔴
-
-**File:** `apps/web/src/actions/list.ts`  
-**Flag:** `migration.lists`
-
-- [ ] `getLists()` - GET /lists?storeId=X
-- [ ] `getList()` - GET /lists/:id
-- [ ] `getActiveListForStore()` - GET /lists/active?storeId=X
-- [ ] `createList()` - POST /lists
-- [ ] `addItemToList()` - POST /lists/:id/items
-- [ ] `toggleListItem()` - PATCH /lists/:listId/items/:itemId/toggle
-- [ ] `updateListItemQuantity()` - PATCH /lists/:listId/items/:itemId/quantity
-- [ ] `removeItemFromList()` - DELETE /lists/:listId/items/:itemId
-- [ ] `startShopping()` - PATCH /lists/:id/status (to SHOPPING)
-- [ ] `cancelShopping()` - PATCH /lists/:id/status (to PLANNING)
-- [ ] `completeList()` - PATCH /lists/:id/complete
+- [x] `getStores()` - GET /stores?householdId=X
+- [x] `getStore()` - GET /stores/:id
+- [x] `createStore()` - POST /stores
+- [x] `updateStore()` - PATCH /stores/:id
+- [x] `deleteStore()` - DELETE /stores/:id
 
 ---
 
-## Households Domain [0/6] 🔴
+## Sections Domain ✅
 
-**File:** `apps/web/src/actions/household.ts` + `store.ts::createDefaultHousehold()`  
-**Flag:** `migration.households`
+**File:** `apps/web/src/actions/section.ts`
 
-- [ ] `getHouseholds()` - GET /households
-- [ ] `createHousehold()` - POST /households
-- [ ] `createDefaultHousehold()` - POST /households/default
-- [ ] `renameHousehold()` - PATCH /households/:id
-- [ ] `leaveHousehold()` - DELETE /households/:id/members/me
-- [ ] `deleteHousehold()` - DELETE /households/:id
+- [x] `getSections()` - GET /sections?storeId=X
+- [x] `createSection()` - POST /sections
+- [x] `updateSection()` - PATCH /sections/:id
+- [x] `deleteSection()` - DELETE /sections/:id
+- [x] `reorderSections()` - PATCH /sections/reorder
+
+**Note:** `updateSection` and `deleteSection` require `storeId` for `revalidatePath`. Since the shared DTO must not gain web-only fields (NestJS derives its DTOs from the same Zod schemas), local extended schemas (`UpdateSectionActionSchema`, `DeleteSectionActionSchema`) are defined in the action file itself using `.extend()`.
 
 ---
 
-## Users Domain [1/1] 🟢
+## Lists Domain ✅
 
-**File:** `apps/web/src/actions/user.ts`  
-**Flag:** `migration.users`
+**File:** `apps/web/src/actions/list.ts`
+
+- [x] `getLists()` - GET /lists?storeId=X
+- [x] `getList()` - GET /lists/:id
+- [x] `getActiveListForStore()` - GET /lists/active?storeId=X
+- [x] `createList()` - POST /lists
+- [x] `addItemToList()` - POST /lists/:id/items
+- [x] `toggleListItem()` - PATCH /lists/:listId/items/:itemId/toggle
+- [x] `updateListItemQuantity()` - PATCH /lists/:listId/items/:itemId/quantity
+- [x] `removeItemFromList()` - DELETE /lists/:listId/items/:itemId
+- [x] `startShopping()` - PATCH /lists/:id/status (to SHOPPING)
+- [x] `cancelShopping()` - PATCH /lists/:id/status (to PLANNING)
+- [x] `completeList()` - PATCH /lists/:id/complete
+
+---
+
+## Households Domain ✅
+
+**File:** `apps/web/src/actions/household.ts`
+
+- [x] `getHouseholds()` - GET /households
+- [x] `createHousehold()` - POST /households
+- [x] `createDefaultHousehold()` - POST /households (with default name)
+- [x] `renameHousehold()` - PATCH /households/:id
+- [x] `leaveHousehold()` - POST /households/:id/leave
+- [x] `deleteHousehold()` - DELETE /households/:id
+
+---
+
+## Users Domain ✅
+
+**File:** `apps/web/src/actions/user.ts`
 
 - [x] `updateProfile()` - PATCH /users/me
 
-**Status:** Ready for testing (flag still `true`, will flip after validation)
+---
+
+## Invitations Domain ✅
+
+**File:** `apps/web/src/actions/invitation.ts`
+
+- [x] `createInvitation()` - POST /invitations
+- [x] `joinHousehold()` - POST /invitations/:token/join
+- [x] `revokeInvitation()` - DELETE /invitations/:id
+- [x] `getInvitationDetails()` - GET /invitations/:token
 
 ---
 
-## Invitations Domain [0/4] 🔴
+## Dashboard/Directory ✅
 
-**File:** `apps/web/src/actions/invitation.ts`  
-**Flag:** `migration.invitations`
+**Files:** `apps/web/src/actions/dashboard.ts`, `apps/web/src/actions/store-directory.ts`
 
-- [ ] `createInvitation()` - POST /invitations
-- [ ] `joinHousehold()` - POST /invitations/:token/join
-- [ ] `revokeInvitation()` - DELETE /invitations/:id
-- [ ] `getInvitationDetails()` - GET /invitations/:token
+- [x] `getDashboardData()` - GET /household-overview
+- [x] `getStoreDirectoryData()` - GET /household-overview (same endpoint, mapped differently)
 
 ---
 
-## Dashboard/Directory [0/2] 🔴
+## Pages Layer ✅
 
-**Files:** `apps/web/src/actions/dashboard.ts`, `store-directory.ts`  
-**Flag:** `migration.dashboard`
+Direct Prisma calls in page components were also removed:
 
-- [ ] `getDashboardData()` - GET /dashboard
-- [ ] `getStoreDirectoryData()` - GET /store-directory
-
-**Note:** These are read-only complex queries. May need custom API design.
-
----
-
-## Migration Strategy Per Domain
-
-### 1. Build NestJS Endpoints
-- Create controller in `apps/server/src/`
-- Create service with Prisma logic
-- Add validation DTOs
-- Test with Postman/curl
-
-### 2. Wire Up Server Actions
-- Import `usePrisma` from migration config
-- Add conditional logic:
-  ```typescript
-  export async function getItems() {
-    if (usePrisma.items) {
-      return prisma.item.findMany() // OLD
-    }
-    return apiClient.get('/items') // NEW
-  }
-  ```
-
-### 3. Test with Flag OFF → ON
-- Flag ON (Prisma): Verify old path still works
-- Flag OFF (API): Test new API path
-- Compare results for consistency
-
-### 4. Lock It In
-- Once confident, remove flag check and Prisma code
-- Update migration.ts (set flag to `false` or remove key)
-- Commit and move to next domain
+- [x] `apps/web/src/app/settings/page.tsx` — user data from `session.user`, households from GET /households
+- [x] `apps/web/src/app/stores/[storeId]/page.tsx` — store data from GET /stores/:id
 
 ---
 
 ## Completion Criteria
 
-- [ ] All 37 server actions migrated
-- [ ] All flags removed from `migration.ts`
-- [ ] UI functionality unchanged
-- [ ] Database consolidated to `apps/server/dev.db`
-- [ ] PROJECT-STATUS.md updated to Phase 3
+- [x] All server actions migrated (no direct Prisma in `actions/`)
+- [x] All page components migrated (no direct Prisma in `app/`)
+- [x] TypeScript typecheck passes (`npx tsc --noEmit`)
+- [x] E2E test suite passes (129 passing, 36 skipped — same as baseline)
+- [ ] Remove Prisma client dependencies from `apps/web/package.json` (Phase 3 prerequisite — blocked by NextAuth PrismaAdapter which must stay until auth is reconsidered)
 
 ---
 
-**Last Updated:** January 9, 2026  
-**Next Domain:** Items (simplest, good starting point)
+**Last Updated:** March 18, 2026  
+**Phase 2 completed on:** `feature/evolutive-architecture`  
+**Next phase:** Phase 3 — React Query / client-side data fetching

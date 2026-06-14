@@ -1,9 +1,13 @@
-import { getHouseholds } from "@/actions/household"
-import { HouseholdForm } from "@/features/households"
-import { HouseholdList } from "@/features/households"
+"use client"
 
-export default async function HouseholdsPage() {
-    const households = await getHouseholds()
+import { PageLoading } from "@/components/ui/page-loading"
+import { HouseholdForm, HouseholdList } from "@/features/households"
+import { useHouseholds } from "@/features/households/hooks/useHouseholds"
+
+export default function HouseholdsPage() {
+    const { data: households, isLoading } = useHouseholds()
+
+    if (isLoading) return <PageLoading />
 
     return (
         <div className="container py-10 space-y-8">
@@ -16,7 +20,7 @@ export default async function HouseholdsPage() {
                 </div>
                 <HouseholdForm />
             </div>
-            <HouseholdList households={households} />
+            <HouseholdList households={households ?? []} />
         </div>
     )
 }

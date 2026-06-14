@@ -2,20 +2,7 @@ import { Body, Controller, Delete, Get, Param, Patch, Post, UseGuards } from '@n
 import { SectionsService } from './sections.service';
 import { AuthGuard, JwtPayload } from '../auth/auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
-
-export class CreateSectionDto {
-  name: string;
-  storeId: string;
-  order?: number;
-}
-
-export class UpdateSectionDto {
-  name: string;
-}
-
-export class ReorderSectionsDto {
-  orderedIds: string[];
-}
+import { CreateSectionDto, UpdateSectionDto, ReorderSectionsDto } from './dto/section.dto';
 
 @Controller('sections')
 @UseGuards(AuthGuard)

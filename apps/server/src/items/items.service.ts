@@ -1,17 +1,11 @@
+import { z } from 'zod'; // Import z from zod
+import { SearchItemsSchema } from '@grocerun/dto';
+
 import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
-import { Item } from '../generated/prisma/client';
+import { UpdateItemDto } from './dto/update-item.dto';
 
-type UpdateItemDto = {
-  name: string;
-  sectionId?: string;
-  defaultUnit?: string;
-}
-
-type SearchItemsDto = {
-  storeId: string;
-  query: string;
-}
+type SearchItemsParams = z.infer<typeof SearchItemsSchema>;
 
 type GetTopItemsDto = {
   storeId: string;
@@ -23,38 +17,7 @@ type GetTopItemsDto = {
 export class ItemsService {
   constructor(private prisma: PrismaService) {}
 
-  // Legacy sync methods
-  async pull(minUpdatedAt: Date) {
-    return this.prisma.item.findMany({
-      where: {
-        updatedAt: {
-          gt: minUpdatedAt,
-        },
-      },
-    });
-  }
-
-  async push(items: Item[]) {
-    const results = [];
-    for (const item of items) {
-      const result = await this.prisma.item.upsert({
-        where: { id: item.id },
-        update: {
-          name: item.name,
-          updatedAt: new Date(),
-        },
-        create: {
-          id: item.id,
-          name: item.name,
-          storeId: item.storeId,
-        },
-      });
-      results.push(result);
-    }
-    return results;
-  }
-
-  // New Phase 2 methods
+  // Phase 2 methods
   async updateItem(itemId: string, dto: UpdateItemDto, userId: string) {
     // 1. Get item and verify access
     const item = await this.prisma.item.findUnique({
@@ -97,7 +60,7 @@ export class ItemsService {
     return { status: 'UPDATED' };
   }
 
-  async searchItems(dto: SearchItemsDto, userId: string) {
+  async searchItems(dto: SearchItemsParams, userId: string) {
     // Verify access to store
     await this.verifyStoreAccess(dto.storeId, userId);
 

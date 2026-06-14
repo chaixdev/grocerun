@@ -1,5 +1,5 @@
 import { ActiveListCard } from "./ActiveListCard"
-import { DashboardHousehold } from "@/actions/dashboard"
+import type { DashboardHousehold } from "../hooks/useDashboard"
 
 interface HouseholdListGroupProps {
     household: DashboardHousehold

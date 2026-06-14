@@ -1,11 +1,8 @@
 "use client"
 
-import { useState } from "react"
-import { createList } from "@/actions/list"
 import { Button } from "@/components/ui/button"
 import { Plus, ShoppingCart, ChevronDown, ChevronRight } from "lucide-react"
 import { useRouter } from "next/navigation"
-import { toast } from "sonner"
 import Link from "next/link"
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { formatDistanceToNow } from "date-fns"
@@ -14,33 +11,24 @@ import {
     CollapsibleContent,
     CollapsibleTrigger,
 } from "@/components/ui/collapsible"
+import { useState } from "react"
+import { useStoreLists, useCreateList } from "@/features/lists"
+import { PageLoading } from "@/components/ui/page-loading"
 
-interface List {
-    id: string
-    name: string
-    createdAt: Date
-    _count: { items: number }
-    status: string
-}
-
-export function StoreLists({ lists, storeId }: { lists: List[], storeId: string }) {
-    const [isCreating, setIsCreating] = useState(false)
+export function StoreLists({ storeId }: { storeId: string }) {
     const [isOpen, setIsOpen] = useState(false)
     const router = useRouter()
+    const { data: lists, isLoading } = useStoreLists(storeId)
+    const createList = useCreateList()
 
-    const activeLists = lists.filter(l => l.status !== "COMPLETED")
-    const completedLists = lists.filter(l => l.status === "COMPLETED")
+    if (isLoading) return <PageLoading />
+
+    const activeLists = (lists ?? []).filter(l => l.status !== "COMPLETED")
+    const completedLists = (lists ?? []).filter(l => l.status === "COMPLETED")
 
     const handleCreate = async () => {
-        setIsCreating(true)
-        const result = await createList({ storeId })
-        if (result.success) {
-            // toast.success("List created") - Removed to speed up perceived navigation
-            router.push(`/lists/${result.data.id}`)
-        } else {
-            toast.error(result.error || "Failed to create list")
-            setIsCreating(false)
-        }
+        const result = await createList.mutateAsync({ storeId })
+        router.push(`/lists/${result.id}`)
     }
 
     return (
@@ -48,7 +36,7 @@ export function StoreLists({ lists, storeId }: { lists: List[], storeId: string 
             <div className="space-y-4">
                 <div className="flex items-center justify-between">
                     <h3 className="text-lg font-medium">Active Runs</h3>
-                    <Button onClick={handleCreate} disabled={isCreating || activeLists.length > 0} size="sm">
+                    <Button onClick={handleCreate} disabled={createList.isPending || activeLists.length > 0} size="sm">
                         <Plus className="mr-2 h-4 w-4" />
                         New List
                     </Button>

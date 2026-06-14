@@ -67,6 +67,7 @@ export function ListItemRow({
     return (
         <div
             ref={itemRef}
+            data-testid={`list-item-row-${listItem.item.name.toLowerCase().replace(/\s+/g, '-')}`}
             className={`group flex items-center gap-3 p-3 border-b last:border-0 transition-all duration-200 ${isPlanningMode ? "" : "hover:bg-muted/30 cursor-pointer"} ${listItem.isChecked ? "opacity-50" : ""} ${isHighlighted ? "bg-primary/10" : ""}`}
             onClick={() => {
                 if (!isReadOnly && !isPlanningMode) {
@@ -112,7 +113,10 @@ export function ListItemRow({
 
             {/* 3. Item Name */}
             <div className="flex-1 min-w-0 flex flex-col justify-center">
-                <span className={`text-base font-medium truncate transition-colors ${listItem.isChecked ? "line-through text-muted-foreground/70" : "text-foreground"}`}>
+                <span
+                    data-testid="item-name"
+                    className={`text-base font-medium truncate transition-colors ${listItem.isChecked ? "line-through text-muted-foreground/70" : "text-foreground"}`}
+                >
                     {listItem.item.name}
                 </span>
             </div>
