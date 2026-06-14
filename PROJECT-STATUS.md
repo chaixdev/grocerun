@@ -1,10 +1,9 @@
-# Grocerun Project Status - March 18, 2026
+# Project Status → See `planning/tickets/PROJECT-STATUS.md`
 
-## Executive Summary
+This document is **stale** (last updated March 2026, reflects pre-Phase 4 architecture).  
+The canonical project status is at:
 
-This document provides a comprehensive overview of the Grocerun project's current state, ongoing work, and next steps. This is designed to enable seamless continuation of work across different machines or sessions.
-
----
+[`planning/tickets/PROJECT-STATUS.md`](planning/tickets/PROJECT-STATUS.md)
 
 ## Project Vision
 

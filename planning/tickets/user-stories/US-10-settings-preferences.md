@@ -3,7 +3,7 @@
 > *"As a user, I want to manage my account and application preferences."*
 
 ## Status
-⚠️ **PARTIALLY IMPLEMENTED** (January 2026)
+⚠️ **PARTIALLY IMPLEMENTED** (Updated June 2026)
 
 ## Goal
 Provide a settings area for user profile management, theme preferences, and household management.
@@ -22,10 +22,10 @@ Provide a settings area for user profile management, theme preferences, and hous
   - Delete households (for owners, if no other members)
 - **Sign Out**: Secure logout with session destruction
 - **Protected Access**: Settings page requires authentication
+- **Theme Toggle**: Dark/light/system mode via `next-themes` (`ModeToggle` component, `ThemeProvider` in root layout)
 
 ### 🔲 Pending Features
 - Profile editing (name, avatar)
-- Theme toggle (light/dark mode)
 - Additional preferences (language, notifications, etc.)
 
 ## Test Coverage
@@ -59,4 +59,4 @@ Provide a settings area for user profile management, theme preferences, and hous
 
 ---
 
-**Last Updated:** January 11, 2026
+**Last Updated:** June 14, 2026

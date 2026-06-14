@@ -15,9 +15,9 @@ Always read these first when resuming work:
 nvm use                          # Node 22 (from .nvmrc)
 npm install                      # Install dependencies
 npm run dev                      # Start both apps (Next.js :3000, NestJS :3001)
-npm test                         # Run unit tests
+npm test                         # Run all tests (server 89 + web 23 + dto 51)
 npm run lint                     # Run linting
-cd apps/e2e && npx playwright test  # Run e2e tests
+npm run e2e:run -w e2e           # Run Playwright journeys (requires `npm run dev` first)
 ```
 
 See `.opencode/skills/repo-dev-commands/SKILL.md` for full command reference.

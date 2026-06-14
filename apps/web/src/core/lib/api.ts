@@ -6,10 +6,32 @@
  *
  * Mirrors the server-side API client pattern but runs in the browser.
  * See ADR 001 for the simple REST + Zod approach.
+ *
+ * Test token bypass: when a test JWT is present in sessionStorage under
+ * the key `__grocerun_test_token__`, it is used for API authorization
+ * instead of oidc-spa tokens.  This allows Playwright tests to inject
+ * auth without mocking Google OIDC.
  */
 
 import { z } from 'zod'
 import { getOidc } from '@/core/auth/oidc'
+
+const TEST_TOKEN_KEY = '__grocerun_test_token__'
+
+function getTestToken(): string | null {
+  if (typeof window === 'undefined') return null
+  try { return sessionStorage.getItem(TEST_TOKEN_KEY) } catch { return null }
+}
+
+/** Resolve an auth token — test token takes priority over oidc-spa tokens. */
+async function resolveAccessToken(): Promise<string | null> {
+  const testToken = getTestToken()
+  if (testToken) return testToken
+
+  const oidc = await getOidc()
+  if (!oidc.isUserLoggedIn) return null
+  return oidc.getAccessToken()
+}
 
 export class ApiError extends Error {
   constructor(
@@ -27,30 +49,36 @@ async function request<T>(
   options: RequestInit = {},
   schema?: z.ZodSchema<T>,
 ): Promise<T> {
-  const oidc = await getOidc()
+  const accessToken = await resolveAccessToken()
 
   const res = await fetch(`/api/v1${endpoint}`, {
     ...options,
     headers: {
       'Content-Type': 'application/json',
-      ...(oidc.isUserLoggedIn && {
-        Authorization: `Bearer ${await oidc.getAccessToken()}`
+      ...(accessToken && {
+        Authorization: `Bearer ${accessToken}`
       }),
       ...options.headers,
     },
   })
 
   // On 401, try refreshing tokens once and retry
-  if (res.status === 401 && oidc.isUserLoggedIn) {
+  if (res.status === 401 && accessToken) {
     try {
-      await oidc.renewTokens()
-      const accessToken = await oidc.getAccessToken()
+      const testToken = getTestToken()
+      let retryToken = testToken
+
+      if (!retryToken) {
+        const oidc = await getOidc()
+        await oidc.renewTokens()
+        retryToken = await oidc.getAccessToken()
+      }
 
       const retryRes = await fetch(`/api/v1${endpoint}`, {
         ...options,
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${accessToken}`,
+          Authorization: `Bearer ${retryToken}`,
           ...options.headers,
         },
       })
@@ -67,8 +95,11 @@ async function request<T>(
       const data = await retryRes.json()
       return schema ? schema.parse(data) : data as T
     } catch {
-      // Token renewal failed — redirect to login
-      oidc.logout({ redirectTo: "home" })
+      const testToken = getTestToken()
+      if (!testToken) {
+        const oidc = await getOidc()
+        oidc.logout({ redirectTo: "home" })
+      }
       throw new ApiError('Session expired', 401)
     }
   }

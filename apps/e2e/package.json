@@ -3,7 +3,8 @@
   "version": "1.0.0-rc.2",
   "private": true,
   "scripts": {
-    "test": "playwright test",
+    "test": "echo '⚠️  Run npm run dev first, then: npm run e2e:run' && exit 0",
+    "e2e:run": "../../run-e2e.sh",
     "test:ui": "playwright test --ui",
     "test:debug": "playwright test --debug",
     "codegen": "playwright codegen",
@@ -11,13 +12,11 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.49.0",
+    "@prisma/client": "^7.8.0",
     "@types/jsonwebtoken": "^9.0.5",
     "@types/node": "^20.10.0",
     "dotenv": "^17.2.3",
     "jsonwebtoken": "^9.0.2",
     "typescript": "^5.3.3"
-  },
-  "dependencies": {
-    "next-auth": "^5.0.0-beta.30"
   }
 }

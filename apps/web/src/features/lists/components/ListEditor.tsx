@@ -379,6 +379,35 @@ export function ListEditor({ list }: ListEditorProps) {
             )}
 
             <div className="space-y-6">
+                {/* Uncategorized Items — always shown first */}
+                {(itemsBySection["uncategorized"]?.length ?? 0) > 0 && (
+                    <div className="space-y-2">
+                        <h3 className="font-bold text-sm text-primary uppercase tracking-wider sticky top-20 bg-background/95 backdrop-blur py-2 z-10 border-b border-border/40">
+                            Uncategorized
+                        </h3>
+                        <div className="space-y-0">
+                            {itemsBySection["uncategorized"].map((listItem) => (
+                                <ListItemRow
+                                    key={listItem.id}
+                                    listItem={listItem}
+                                    isReadOnly={isReadOnly}
+                                    isLocked={isShoppingLockedForOtherUser}
+                                    isHighlighted={highlightedItemId === listItem.id}
+                                    isPlanningMode={isPlanningMode}
+                                    onToggle={handleToggle}
+                                    onEdit={(item) => {
+                                        setEditingItem(item)
+                                        setIsEditOpen(true)
+                                    }}
+                                    onRemove={handleRemoveItem}
+                                    onUpdateQuantity={handleUpdateQuantity}
+                                    itemRef={(el) => { itemRefs.current[listItem.id] = el }}
+                                />
+                            ))}
+                        </div>
+                    </div>
+                )}
+
                 {list.store.sections.map((section) => {
                     const items = itemsBySection[section.id] || []
                     if (items.length === 0) return null
@@ -411,35 +440,6 @@ export function ListEditor({ list }: ListEditorProps) {
                         </div>
                     )
                 })}
-
-                {/* Uncategorized Items */}
-                {(itemsBySection["uncategorized"]?.length ?? 0) > 0 && (
-                    <div className="space-y-2">
-                        <h3 className="font-bold text-sm text-primary uppercase tracking-wider sticky top-20 bg-background/95 backdrop-blur py-2 z-10 border-b border-border/40">
-                            Uncategorized
-                        </h3>
-                        <div className="space-y-0">
-                            {itemsBySection["uncategorized"].map((listItem) => (
-                                <ListItemRow
-                                    key={listItem.id}
-                                    listItem={listItem}
-                                    isReadOnly={isReadOnly}
-                                    isLocked={isShoppingLockedForOtherUser}
-                                    isHighlighted={highlightedItemId === listItem.id}
-                                    isPlanningMode={isPlanningMode}
-                                    onToggle={handleToggle}
-                                    onEdit={(item) => {
-                                        setEditingItem(item)
-                                        setIsEditOpen(true)
-                                    }}
-                                    onRemove={handleRemoveItem}
-                                    onUpdateQuantity={handleUpdateQuantity}
-                                    itemRef={(el) => { itemRefs.current[listItem.id] = el }}
-                                />
-                            ))}
-                        </div>
-                    </div>
-                )}
             </div>
 
 

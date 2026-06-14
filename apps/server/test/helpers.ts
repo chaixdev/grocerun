@@ -112,7 +112,15 @@ export async function seedBaseFixtures(prisma: PrismaService): Promise<{
 
   const household = await prisma.household.upsert({
     where: { id: 'test-household-id' },
-    update: {},
+    update: {
+      // Fully reset to known state — previous test files may have
+      // renamed, deleted, or changed the household.
+      name: 'Test Household',
+      deleted: false,
+      deletedAt: null,
+      ownerId: user.id,
+      users: { connect: { id: user.id } },
+    },
     create: {
       id: 'test-household-id',
       name: 'Test Household',
