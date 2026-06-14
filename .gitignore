@@ -1,33 +1,39 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
 # dependencies
-/node_modules
-/.pnp
-.pnp.js
-.yarn/install-state.gz
+node_modules/
+**/.pnp
+**/.pnp.js
+**/.yarn/install-state.gz
 
 # testing
-/coverage
+coverage/
 
 # next.js
-/.next/
-/out/
+.next/
+out/
 
-# production
-/build
+# production builds
+build/
+dist/
 
 # misc
 .DS_Store
 *.pem
+.agent/
 
 # debug
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+lerna-debug.log*
 
 # local env files
 .env
 .env*.local
+.env.development.local
+.env.test.local
+.env.production.local
 
 # vercel
 .vercel
@@ -39,6 +45,9 @@ next-env.d.ts
 # sqlite
 *.db
 *.db-journal
+*.db-shm
+*.db-wal
 
-# prisma generated client
-src/generated/
+# prisma generated clients (anywhere in workspace)
+**/generated/
+**/prisma/generated/

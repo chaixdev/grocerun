@@ -87,3 +87,8 @@ model Invitation {
 *   **Validity**: 24 hours, **Single Use**.
 *   **UI**: Copy-paste code.
 *   **Security**: Rate limit the `join` action.
+
+---
+
+**Status:** Implemented  
+**Last Updated:** January 9, 2026
