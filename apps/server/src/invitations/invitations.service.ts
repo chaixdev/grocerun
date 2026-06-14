@@ -1,6 +1,6 @@
 import { Injectable, ForbiddenException, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
-import { SseBroadcastService } from '../sync/sse-broadcast.service';
+import { NotificationService } from '../shared/notification.service';
 import { randomInt } from 'crypto';
 import { CreateInvitationDto, JoinHouseholdDto, RevokeInvitationDto } from './dto/invitation.dto';
 
@@ -19,7 +19,7 @@ function generateToken(): string {
 export class InvitationsService {
   constructor(
     private prisma: PrismaService,
-    private sseBroadcast: SseBroadcastService,
+    private notify: NotificationService,
   ) {}
 
   async createInvitation(dto: CreateInvitationDto, userId: string) {
@@ -111,7 +111,7 @@ export class InvitationsService {
       })
     ]);
 
-    this.notifyHouseholdMembers(invitation.householdId);
+    this.notify.byHousehold(invitation.householdId, ['household'], 'invitation-mutation');
 
     return { householdName: invitation.household.name };
   }
@@ -162,6 +162,11 @@ export class InvitationsService {
     }
     
     if (new Date() > invitation.expiresAt) {
+      // Lazily mark as expired
+      await this.prisma.invitation.update({
+        where: { id: invitation.id },
+        data: { status: 'EXPIRED' },
+      });
       throw new BadRequestException('Invitation has expired');
     }
 
@@ -170,21 +175,5 @@ export class InvitationsService {
       ownerName: invitation.household.owner?.name || 'Unknown',
       creatorName: invitation.creator.name || 'Unknown'
     };
-  }
-
-  private notifyHouseholdMembers(householdId: string) {
-    this.prisma.household
-      .findUnique({
-        where: { id: householdId },
-        select: { users: { select: { id: true } } },
-      })
-      .then((household) => {
-        if (household) {
-          this.sseBroadcast.notify(household.users.map((u) => u.id));
-        }
-      })
-      .catch(() => {
-        // Best-effort
-      });
   }
 }

@@ -1,72 +1,83 @@
 # Grocerun Project Documentation
 
-**Root-level documentation** for the overall Grocerun project architecture, decisions, and planning.
+**Canonical documentation** — stable, accepted truth about the project's architecture, decisions, standards, and patterns.
 
----
-
-## Documentation Structure
-
-### `/wiki` (This directory - Current/Active)
-Project-wide documentation, architecture decisions, and planning for the monorepo migration and local-first transformation.
-
-**Use this for:**
-- Architecture Decision Records (ADRs)
-- Cross-cutting concerns (monorepo, deployment, CI/CD)
-- Migration planning and progress tracking
-- Technical design documents
-
-### `/apps/web/wiki` (Legacy)
-Original Next.js app documentation from before monorepo restructuring.
-
-**Status:** Archived for reference, being migrated to root wiki as needed.
+For work-in-progress (phase plans, user stories, brainstorm, reviews), see `planning/`.
 
 ---
 
 ## Directory Guide
 
-### `/wiki/adr/`
-**Architecture Decision Records** - Documenting important technical decisions with context and rationale.
+### `wiki/adr/`
+**Architecture Decision Records** — Important technical decisions with context and rationale.
 
 - [001 - Phase 2 API Approach (Simple REST + Zod)](adr/001-phase2-api-approach.md)
 - [002 - Evolutive Architecture Migration Strategy](adr/002-evolutive-architecture.md)
+- [003 - JWT Authentication](adr/003-jwt-authentication.md)
 - [004 - Inverted Feature Flags for Phase 2](adr/004-inverted-feature-flags.md)
+- [005 - E2E Testing](adr/005-e2e-testing.md)
+- [005 - Testing Tool Evaluation](adr/005-testing-tool-evaluation.md)
+- [006 - Phase 3 Auth Strategy](adr/006-phase3-auth-strategy.md)
+- [007 - Phase 4 Local-First Strategy](adr/007-phase4-local-first-strategy.md)
 
-### `/wiki/architecture/`
-- [Domain Model](architecture/domain-model.md) - Core entities and relationships
+### `wiki/architecture/`
+Multi-viewpoint architecture documentation.
 
-### `/wiki/design/`
-Design specifications and system design documents.
+- [Domain Model](architecture/domain-model.md) — Core entities and relationships
 
-- [Household Invitation System](design/household-invitation-system.md) - Token-based invitation design
+### `wiki/rules/`
+Coding standards, conventions, and contributor guidance.
 
-### `/wiki/planning/`
-Migration roadmaps, phase documentation, and project planning.
+- [Coding Standards](rules/coding-standards.md) — TypeScript, React, NestJS, Prisma, RxDB, testing
 
-- [Project Status](planning/PROJECT-STATUS.md) - Current state and progress
-- [Phase 2 Migration Checklist](planning/PHASE-2-MIGRATION.md) - Active migration tracker
-- [Product Evolution Spec](planning/product-evolution-spec.md) - UX specifications
+### `wiki/patterns/`
+Stable implementation mechanisms that recur across the codebase.
 
-### `/wiki/development/`
-Developer guides, setup instructions, and workflows.
+_Extract stable patterns from the codebase as they emerge._
 
-- [Agentic Workflow](development/agentic-workflow.md) - AI-assisted development process
-- [DevOps Philosophy](development/devops-philosophy.md) - Deployment and quality practices
+### `wiki/concepts/`
+Durable domain abstractions that outlive specific implementations.
 
-### `/wiki/user-guide/`
+_Extract from planning docs as they stabilize._
+
+### `wiki/development/`
+Developer guides and workflow documentation.
+
+- [Agentic Workflow](development/agentic-workflow.md) — AI-assisted development process
+- [DevOps Philosophy](development/devops-philosophy.md) — Deployment and quality practices
+- [E2E Testing Setup](development/e2e-testing-setup.md)
+- [E2E Test Organization Guide](development/e2e-test-organization-guide.md)
+- [E2E Refactoring Summary](development/e2e-refactoring-summary.md)
+- [Fixture Analysis](development/fixture-analysis.md)
+- [Regression Test Coverage Analysis](development/regression-test-coverage-analysis.md)
+- [Test Code Alignment Analysis](development/test-code-alignment-analysis.md)
+
+### `wiki/user-guide/`
 User-facing documentation and feature guides.
 
-- [Features](user-guide/features.md) - Product capabilities
-### `/wiki/development/`
-Developer guides, setup instructions, and workflows.
+- [Features](user-guide/features.md) — Product capabilities
 
 ---
 
-## Quick Links
+## Related
 
-- [Project Status](planning/PROJECT-STATUS.md) - Current state and next steps
-- [Phase 2 Migration Checklist](planning/PHASE-2-MIGRATION.md)
-- [Product Evolution Spec](planning/product-evolution-spec.md)
+- `planning/tickets/PROJECT-STATUS.md` — Current phase, progress, next steps
+- `planning/tickets/user-stories/` — User stories with implementation status
+- `AGENTS.md` — Agent guide (build, test, doc routing, mandatory skills)
+- `.opencode/` — Agent skills, commands, and configuration
 
 ---
 
-**Last Updated:** January 9, 2026
+## Documentation Philosophy
+
+- **`wiki/`** is canonical truth — stable, accepted, implemented
+- **`planning/`** is work-in-progress — speculative, in-flight, transient
+
+Nothing in-progress or speculative touches `wiki/`. Promotion path:
+```
+planning/brainstorm/  →  planning/tickets/  →  wiki/adr|patterns|concepts|rules/
+```
+
+---
+
+**Last Updated:** June 8, 2026

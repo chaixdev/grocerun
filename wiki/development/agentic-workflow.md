@@ -1,7 +1,12 @@
 # Agentic Development Workflow
 
 ## Overview
-This document defines the three-phase workflow for AI-assisted development of Grocerun. The process ensures deliberate planning, quality execution, and continuous improvement.
+
+This document defines the three-phase workflow for AI-assisted development of
+Grocerun using OpenCode agents and skills. The process ensures deliberate
+planning, quality execution, and continuous improvement.
+
+---
 
 ## Three Phases
 
@@ -17,7 +22,7 @@ This document defines the three-phase workflow for AI-assisted development of Gr
 2. **Technical Design**
    - Propose architecture/approach
    - Discuss trade-offs (performance, complexity, maintainability)
-   - Document decision in ADR (Architecture Decision Record) if significant
+   - Document decision in ADR if significant
 
 3. **Scope Definition**
    - Break work into discrete, testable tasks
@@ -25,9 +30,12 @@ This document defines the three-phase workflow for AI-assisted development of Gr
    - Flag potential risks or dependencies
 
 **Artifacts:**
-- Discussion document (e.g., `planning/phase-2-api-proxy.md`)
-- ADR for major technical decisions (e.g., `adr/001-phase2-api-approach.md`)
-- Task breakdown (e.g., checklist in `PHASE-2-MIGRATION.md`)
+- Planning document (e.g., `planning/tickets/PHASE-5-SIMPLIFICATION.md`)
+- ADR for major technical decisions (e.g., `wiki/adr/007-phase4-local-first-strategy.md`)
+- Task breakdown
+
+**Agent workflow:** Use `/grocerun-start-ticket` to run the ticket analyzer
+(clarity gate → solution designs → approval before coding).
 
 ---
 
@@ -71,8 +79,8 @@ feat(lists): add position field for custom sorting
 
 **Activities:**
 1. **Update Status Documents**
-   - Mark completed tasks in `PROJECT-STATUS.md`
-   - Update migration checklists (e.g., `PHASE-2-MIGRATION.md`)
+   - Mark completed tasks in `planning/tickets/PROJECT-STATUS.md`
+   - Update phase migration checklists
    - Note blockers or open questions
 
 2. **Document Learnings**
@@ -80,89 +88,67 @@ feat(lists): add position field for custom sorting
    - Update ADR with "Status: Superseded" if decision changes
    - Note gotchas in comments or wiki
 
-3. **Prepare Handoff**
+3. **Run Deep Review**
+   - Use `/grocerun-review` before merging to catch defects
+   - Review output goes to `planning/reviews/`
+
+4. **Prepare Handoff**
    - Summarize what was accomplished
    - List next steps explicitly
    - Flag anything user should manually verify
 
 **Artifacts:**
 - Updated status docs
+- Code review in `planning/reviews/`
 - Commit history with clear messages
-- Optional: Release notes for user-facing changes
 
 ---
 
-## Workflow Example: Adding "Shopping Mode" Feature
+## Agent Tooling
 
-### Phase 1: Planning
-```
-User: "I want a shopping mode that hides checked items and sorts by section."
-Agent: "Clarifying: Should this be a toggle per list, or global setting?"
-User: "Per list, so roommates can have different views."
-Agent: "Got it. I'll add a `viewMode` field to ShoppingList and update the UI."
-```
-**Artifact:** Created `planning/shopping-mode.md` with design.
+### Skills to Load
+- `grocerun-coding-style` — Before any implementation or review
+- `grocerun-knowledge-sources` — For project context and key files
+- `repo-dev-commands` — For build/test/run commands
+- `grocerun-deep-reviewer` — For code review (loaded by `/grocerun-review`)
+- `grocerun-ticket-analyzer` — For ticket analysis (loaded by `/grocerun-start-ticket`)
 
-### Phase 2: Execution
-```
-1. Schema change: Add `viewMode` enum to ShoppingList
-2. Migration: Run `npx prisma migrate dev`
-3. Update action: Modify `toggleViewMode` server action
-4. UI change: Add toggle button to list header
-5. Test: Verify toggle persists and filters correctly
-6. Commit: `feat(lists): add shopping mode toggle`
-```
-**Artifact:** Code changes + test coverage.
-
-### Phase 3: Debrief
-```
-Agent: "Completed shopping mode feature. Verified:
-- Toggle persists in database
-- Checked items hidden when enabled
-- Sorting by section works
-Next: Add keyboard shortcut for power users?"
-```
-**Artifact:** Updated `PROJECT-STATUS.md`.
-
----
-
-## Best Practices
-
-### For Planning
-- ✅ Discuss trade-offs openly (performance vs. simplicity)
-- ✅ Use ADRs for non-obvious technical choices
-- ❌ Don't skip directly to coding without alignment
-
-### For Execution
-- ✅ Make small, verifiable changes
-- ✅ Test as you go (avoid "big reveal" at end)
-- ❌ Don't batch unrelated changes in one commit
-
-### For Debrief
-- ✅ Update docs immediately (memory fades)
-- ✅ Note TODOs explicitly (don't assume you'll remember)
-- ❌ Don't leave work "95% done" without documenting the 5%
-
----
-
-## Tools & Techniques
+### Commands
+- `/grocerun-start-ticket` — Analyze a ticket, get approval, then implement
+- `/grocerun-review` — Deep review of current branch against main
 
 ### Code Reading
-- Use `semantic_search` for "How is X implemented?"
-- Use `grep_search` for exact string/pattern matches
-- Use `list_code_usages` to find all call sites
+- Use `glob`/`grep` for file and pattern discovery
+- Use `read` for reading source files
+- Use `task` with `explorer` subagent for broad codebase exploration
 
 ### Code Writing
-- Use `replace_string_in_file` for surgical edits
-- Use `multi_replace_string_in_file` for batch changes
-- Always include 3+ lines of context in old/new strings
+- Use `edit` for surgical changes in existing files
+- Use `write` only for new files
+- Prefer editing existing files over creating new ones
 
 ### Verification
-- Use `get_errors` after edits to catch TypeScript issues
-- Use `run_in_terminal` for `npm test`, `npm run build`
-- Use `get_terminal_output` for long-running processes
+- `npm run lint` — Catch TypeScript and ESLint issues
+- `npm test` — Run unit tests
+- `npm run build` — Verify full build
+- `cd apps/e2e && npx playwright test` — Run e2e tests
 
 ---
 
-**Status:** Active  
-**Last Updated:** January 9, 2026
+## Documentation Routing
+
+| If you are writing... | Put it in... |
+|----------------------|-------------|
+| An architectural decision | `wiki/adr/` |
+| A coding rule or convention | `wiki/rules/` |
+| A stable implementation pattern | `wiki/patterns/` |
+| A durable domain concept | `wiki/concepts/` |
+| A developer guide | `wiki/development/` |
+| A work ticket/plan | `planning/tickets/` |
+| Speculative solution exploration | `planning/brainstorm/` |
+| A code review | `planning/reviews/` |
+
+---
+
+**Status:** Active
+**Last Updated:** June 8, 2026

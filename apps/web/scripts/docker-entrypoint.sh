@@ -83,7 +83,7 @@ fi
 
 # Always run prisma db push to ensure schema synchronization
 echo "Applying database migrations..."
-if ! npx prisma db push; then
+if ! npx prisma db push --accept-data-loss; then
     echo "CRITICAL ERROR: Database migration failed."
     echo "Check the logs above for Prisma errors. The container will now exit to trigger a restart/rollback."
     exit 1

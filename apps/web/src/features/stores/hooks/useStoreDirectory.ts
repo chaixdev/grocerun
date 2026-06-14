@@ -92,7 +92,9 @@ export function useStoreDirectory() {
 
     return () => {
       cancelled = true
-      unsubscribes.forEach((u) => u())
+      unsubscribes.forEach((u) => {
+        u()
+      })
     }
   }, [])
 

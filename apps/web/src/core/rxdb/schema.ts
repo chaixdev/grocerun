@@ -67,6 +67,7 @@ export type ItemDocType = {
   sectionId?: string
   defaultUnit?: string
   purchaseCount: number
+  lastPurchased?: string // ISO-8601 — when this item was last purchased
   updatedAt: string // ISO-8601
 }
 
@@ -97,6 +98,11 @@ export const itemSchema: RxJsonSchema<ItemDocType> = {
     purchaseCount: {
       type: 'number',
     },
+    lastPurchased: {
+      type: 'string',
+      format: 'date-time',
+      maxLength: 30,
+    },
     updatedAt: {
       type: 'string',
       format: 'date-time',
@@ -115,7 +121,7 @@ export type ListDocType = {
   id: string
   name: string
   storeId: string
-  status: string
+  status: "PLANNING" | "SHOPPING" | "COMPLETED"
   assignedTo?: string
   updatedAt: string
 }
@@ -129,7 +135,7 @@ export const listSchema: RxJsonSchema<ListDocType> = {
     id: { type: 'string', maxLength: 30 },
     name: { type: 'string' },
     storeId: { type: 'string', maxLength: 30 },
-    status: { type: 'string', maxLength: 20 },
+    status: { type: 'string', enum: ['PLANNING', 'SHOPPING', 'COMPLETED'], maxLength: 20 },
     assignedTo: { type: 'string', maxLength: 30 },
     updatedAt: { type: 'string', format: 'date-time', maxLength: 30 },
   },
@@ -180,7 +186,7 @@ export const listItemSchema: RxJsonSchema<ListItemDocType> = {
 export type HouseholdDocType = {
   id: string
   name: string
-  ownerId?: string
+  ownerId: string
   memberCount: number
   updatedAt: string
 }
@@ -197,7 +203,7 @@ export const householdSchema: RxJsonSchema<HouseholdDocType> = {
     memberCount: { type: 'number' },
     updatedAt: { type: 'string', format: 'date-time', maxLength: 30 },
   },
-  required: ['id', 'name', 'memberCount', 'updatedAt'],
+  required: ['id', 'name', 'ownerId', 'memberCount', 'updatedAt'],
   indexes: ['updatedAt'],
 }
 

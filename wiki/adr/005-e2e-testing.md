@@ -1,10 +1,12 @@
 # ADR 005: E2E Testing with Playwright + Vitest
 
-**Status:** Accepted  
+**Status:** Superseded by [ADR 008](./008-testing-strategy-revision.md) (2026-06-10)  
 **Date:** 2026-01-10  
-**Updated:** 2026-01-10 (Changed from Cypress to Playwright)  
+**Updated:** 2026-06-10 — Marked superseded  
 **Deciders:** Development Team  
 **Context:** Phase 2 Complete - Need Testing Strategy for Local-First Architecture
+
+> ⚠️ **This ADR is superseded.** The architecture has shifted (Next.js purge, RxDB local-first without service workers), the Playwright suite is dead (87 failures, last run March 2026), and a Vitest-dominant testing pyramid is now the strategy. See [ADR 008](./008-testing-strategy-revision.md) for the current approach.
 
 ---
 

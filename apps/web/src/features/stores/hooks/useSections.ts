@@ -16,12 +16,10 @@
  * local write + push replication) once the PoC is validated end-to-end.
  */
 
-'use client'
-
 import { useState, useEffect } from 'react'
 import { useMutation } from '@/core/lib/useMutation'
 import { api } from '@/core/lib/api'
-import { getRxDb, resyncSections } from '@/core/rxdb'
+import { getRxDb, resyncStores } from '@/core/rxdb'
 import { toast } from 'sonner'
 
 // ----- Types -----
@@ -99,7 +97,7 @@ export function useCreateSection(storeId: string) {
     mutationFn: (data: { name: string; order?: number }) =>
       api.post<Section>('/sections', { ...data, storeId }),
     onSuccess: () => {
-      resyncSections()
+      resyncStores()
     },
     onError: () => {
       toast.error('Failed to create section')
@@ -112,7 +110,7 @@ export function useUpdateSection(storeId: string) {
     mutationFn: ({ id, name }: { id: string; name: string }) =>
       api.patch(`/sections/${id}`, { name }),
     onSuccess: () => {
-      resyncSections()
+      resyncStores()
     },
     onError: () => {
       toast.error('Failed to update section')
@@ -124,7 +122,7 @@ export function useDeleteSection(storeId: string) {
   return useMutation({
     mutationFn: (id: string) => api.delete(`/sections/${id}`),
     onSuccess: () => {
-      resyncSections()
+      resyncStores()
       toast.success('Section deleted')
     },
     onError: () => {
@@ -138,7 +136,7 @@ export function useReorderSections(storeId: string) {
     mutationFn: (orderedIds: string[]) =>
       api.post(`/sections/store/${storeId}/reorder`, { orderedIds }),
     onSuccess: () => {
-      resyncSections()
+      resyncStores()
     },
     onError: () => {
       toast.error('Failed to save order')

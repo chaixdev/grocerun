@@ -1,9 +1,8 @@
-"use client"
 
 import { MapPin, Settings, Store as StoreIcon, ArrowRight, Eye, Loader2 } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { useRouter } from "next/navigation"
+import { useRouter } from "@tanstack/react-router"
 import { useCreateList } from "@/features/lists"
 import type { DirectoryStore } from "../../hooks/useStoreDirectory"
 
@@ -14,6 +13,7 @@ interface StoreCardProps {
 export function StoreCard({ store }: StoreCardProps) {
     const router = useRouter()
     const createList = useCreateList()
+    const activeListId = store.activeListId
 
     return (
         <Card className="group hover:shadow-lg transition-all duration-300 border-border/50 bg-gradient-to-br from-card to-secondary/5">
@@ -41,7 +41,7 @@ export function StoreCard({ store }: StoreCardProps) {
                                 className="h-8 w-8 text-muted-foreground hover:text-foreground transition-opacity"
                                 onClick={(e) => {
                                     e.stopPropagation()
-                                    router.push(`/stores/${store.id}`)
+                                    router.navigate({ to: "/stores/$storeId", params: { storeId: store.id } })
                                 }}
                                 title="View Store Details"
                             >
@@ -54,7 +54,7 @@ export function StoreCard({ store }: StoreCardProps) {
                                 className="h-8 w-8 text-muted-foreground hover:text-foreground transition-opacity"
                                 onClick={(e) => {
                                     e.stopPropagation()
-                                    router.push(`/stores/${store.id}/settings`)
+                                    router.navigate({ to: "/stores/$storeId/settings", params: { storeId: store.id } })
                                 }}
                                 title="Store Settings"
                             >
@@ -66,13 +66,13 @@ export function StoreCard({ store }: StoreCardProps) {
                 </div>
 
                 <div className="mt-6 pt-4 border-t border-border/50">
-                    {store.activeListId ? (
+                    {activeListId ? (
                         <Button
                             size="default"
                             className="w-full font-medium shadow-sm hover:shadow-md transition-all active:scale-[0.98] bg-primary/10 text-primary hover:bg-primary/20 border border-primary/20"
                             onClick={(e) => {
                                 e.stopPropagation()
-                                router.push(`/lists/${store.activeListId}`)
+                                router.navigate({ to: "/lists/$listId", params: { listId: activeListId } })
                             }}
                         >
                             <ArrowRight className="mr-2 h-4 w-4" />
@@ -89,7 +89,7 @@ export function StoreCard({ store }: StoreCardProps) {
                                     { storeId: store.id },
                                     {
                                         onSuccess: (data) => {
-                                            router.push(`/lists/${data.id}`)
+                                            router.navigate({ to: "/lists/$listId", params: { listId: data.id } })
                                         },
                                     },
                                 )

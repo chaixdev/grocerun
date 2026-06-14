@@ -34,8 +34,8 @@ model Household {
   deleted   Boolean  @default(false)
   deletedAt DateTime?
 
-  ownerId   String?
-  owner     User?    @relation("HouseholdOwner", fields: [ownerId], references: [id])
+  ownerId   String
+  owner     User     @relation("HouseholdOwner", fields: [ownerId], references: [id])
   invitations Invitation[]
 
   @@index([updatedAt, id])
@@ -56,6 +56,7 @@ model Store {
   items       Item[]
   lists       List[]
 
+  @@index([householdId])
   @@index([updatedAt, id])
 }
 
@@ -71,6 +72,7 @@ model Section {
   store     Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
   items     Item[]
 
+  @@index([storeId])
   @@index([updatedAt, id])
 }
 
@@ -90,7 +92,9 @@ model Item {
   defaultUnit   String?
   listItems ListItem[]
 
-  @@unique([storeId, name])
+  @@unique([storeId, name, deleted])
+  @@index([storeId])
+  @@index([sectionId])
   @@index([purchaseCount])
   @@index([storeId, purchaseCount])
   @@index([updatedAt, id])
@@ -109,6 +113,7 @@ model List {
   deletedAt DateTime?
   items     ListItem[]
 
+  @@index([storeId])
   @@index([status])
   @@index([storeId, status])
   @@index([updatedAt, id])
@@ -135,7 +140,9 @@ model ListItem {
   deleted           Boolean  @default(false)
   deletedAt         DateTime?
 
-  @@unique([listId, itemId])
+  @@unique([listId, itemId, deleted])
+  @@index([listId])
+  @@index([itemId])
   @@index([isChecked])
   @@index([listId, isChecked])
   @@index([updatedAt, id])
@@ -176,6 +183,10 @@ model VerificationToken {
   @@unique([identifier, token])
 }
 
+// Invitation uses a status lifecycle (ACTIVE → COMPLETED/EXPIRED/REVOKED)
+// instead of soft-delete. Unlike domain models, invitations have a finite
+// lifecycle with explicit terminal states — a `deleted` column would be
+// redundant with `status IN ('EXPIRED', 'REVOKED')`.
 model Invitation {
   id          String   @id @default(cuid())
   token       String   @unique

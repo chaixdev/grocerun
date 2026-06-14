@@ -1,9 +1,7 @@
-"use client"
 
 import { Button } from "@/components/ui/button"
 import { Plus, ShoppingCart, ChevronDown, ChevronRight } from "lucide-react"
-import { useRouter } from "next/navigation"
-import Link from "next/link"
+import { useRouter, Link } from "@tanstack/react-router"
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { formatRelativeTime } from "@/core/lib/time"
 import {
@@ -28,7 +26,7 @@ export function StoreLists({ storeId }: { storeId: string }) {
 
     const handleCreate = async () => {
         const result = await createList.mutateAsync({ storeId })
-        router.push(`/lists/${result.id}`)
+        router.navigate({ to: "/lists/$listId", params: { listId: result.id } })
     }
 
     return (
@@ -49,7 +47,7 @@ export function StoreLists({ storeId }: { storeId: string }) {
                 ) : (
                     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                         {activeLists.map(list => (
-                            <Link key={list.id} href={`/lists/${list.id}`}>
+                            <Link key={list.id} to="/lists/$listId" params={{ listId: list.id }}>
                                 <Card className="group hover:border-primary/50 transition-all cursor-pointer shadow-none border bg-card">
                                     <CardHeader className="p-3">
                                         <div className="flex items-center justify-between mb-1">
@@ -96,7 +94,7 @@ export function StoreLists({ storeId }: { storeId: string }) {
                     </CollapsibleTrigger>
                     <CollapsibleContent className="space-y-2">
                         {completedLists.map(list => (
-                            <Link key={list.id} href={`/lists/${list.id}`}>
+                            <Link key={list.id} to="/lists/$listId" params={{ listId: list.id }}>
                                 <div className="flex items-center justify-between p-3 rounded-lg border bg-card hover:bg-muted/50 transition-colors">
                                     <div className="flex items-center gap-3">
                                         <div className="h-2 w-2 rounded-full bg-muted-foreground/30" />

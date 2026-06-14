@@ -1,4 +1,3 @@
-"use client"
 
 import {
     Select,
@@ -7,20 +6,16 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select"
-import { useRouter, useSearchParams } from "next/navigation"
-
-interface Household {
-    id: string
-    name: string
-}
+import { useNavigate, useSearch } from "@tanstack/react-router"
+import type { Household } from "@/features/households/hooks/useHouseholds"
 
 export function HouseholdSelect({ households }: { households: Household[] }) {
-    const router = useRouter()
-    const searchParams = useSearchParams()
-    const householdId = searchParams.get("householdId") || households[0]?.id
+    const navigate = useNavigate({ from: '/stores' })
+    const search = useSearch({ from: '/stores' })
+    const householdId = search.householdId || households[0]?.id
 
     function onSelect(value: string) {
-        router.push(`?householdId=${value}`)
+        navigate({ search: (prev) => ({ ...prev, householdId: value }) })
     }
 
     if (households.length === 0) return null

@@ -1,6 +1,5 @@
-"use client"
 
-import { useRouter } from "next/navigation"
+import { useRouter } from "@tanstack/react-router"
 import { Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
@@ -24,7 +23,7 @@ interface StoreDeleteSectionProps {
 export function StoreDeleteSection({ storeId, storeName }: StoreDeleteSectionProps) {
     const router = useRouter()
     const deleteStore = useDeleteStore(storeId, {
-        onSuccess: () => router.push("/stores"),
+        onSuccess: () => router.navigate({ to: "/stores" }),
     })
 
     return (

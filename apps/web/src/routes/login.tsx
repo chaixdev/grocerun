@@ -1,0 +1,48 @@
+import { createFileRoute, lazyRouteComponent, redirect } from '@tanstack/react-router'
+import { useOidc, getOidc } from '@/core/auth/oidc'
+
+export const Route = createFileRoute('/login')({
+  beforeLoad: async () => {
+    const oidc = await getOidc()
+    if (oidc.isUserLoggedIn) {
+      throw redirect({ to: '/lists' })
+    }
+  },
+  component: lazyRouteComponent(() => import('./login'), 'LoginPage'),
+})
+
+export function LoginPage() {
+  // beforeLoad already redirected logged-in users. Assertion gives TS the
+  // NotLoggedIn narrow type where `login` is callable (not `never`).
+  const oidc = useOidc({ assert: "user not logged in" })
+
+  const handleLogin = () => {
+    oidc.login({ redirectUrl: '/lists' })
+  }
+
+  return (
+    <div className="flex h-screen w-full items-center justify-center bg-muted/40">
+      <div className="mx-auto grid w-[350px] gap-6">
+        <div className="grid gap-2 text-center">
+          <h1 className="text-3xl font-bold">Login</h1>
+          <p className="text-balance text-muted-foreground">
+            Sign in to your account using Google
+          </p>
+        </div>
+        {oidc.initializationError ? (
+          <div className="p-4 border rounded-lg bg-destructive/10 text-destructive text-sm">
+            Authentication service is unavailable. Please try again later.
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={handleLogin}
+            className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2 w-full"
+          >
+            Sign in with Google
+          </button>
+        )}
+      </div>
+    </div>
+  )
+}

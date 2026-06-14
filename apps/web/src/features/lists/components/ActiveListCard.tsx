@@ -1,4 +1,4 @@
-import Link from "next/link"
+import { Link } from "@tanstack/react-router"
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { ShoppingBasket, ShoppingCart, ListChecks, CalendarDays, ScrollText } from "lucide-react"
@@ -21,7 +21,7 @@ export function ActiveListCard({ list, storeName }: ActiveListCardProps) {
     const isGeneral = storeName.toLowerCase() === "general"
 
     return (
-        <Link href={`/lists/${list.id}`}>
+        <Link to="/lists/$listId" params={{ listId: list.id }}>
             <Card className={cn(
                 "group hover:bg-primary/10 transition-all cursor-pointer h-full flex flex-col justify-between overflow-hidden relative border-l-4",
                 isShopping ? "border-l-primary shadow-md bg-primary/5" : "border-l-primary/40 hover:border-l-primary"
@@ -57,7 +57,7 @@ export function ActiveListCard({ list, storeName }: ActiveListCardProps) {
                                 <span className="text-muted-foreground/40">•</span>
                                 <div className="flex items-center gap-1 text-primary font-medium">
                                     <CalendarDays size={12} />
-                                    <span suppressHydrationWarning>{new Date(list.updatedAt).toLocaleDateString()}</span>
+                                    <span>{new Date(list.updatedAt).toLocaleDateString()}</span>
                                 </div>
                                 <span className="text-muted-foreground/40">•</span>
                                 {isShopping && (

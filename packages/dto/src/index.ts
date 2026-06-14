@@ -43,7 +43,7 @@ export const AddItemSchema = z.object({
 export type AddItemDto = z.infer<typeof AddItemSchema>;
 
 export const ToggleItemSchema = z.object({
-  itemId: z.string().min(1, "Item ID is required"),
+  listItemId: z.string().min(1, "Item ID is required"),
   isChecked: z.boolean(),
   purchasedQuantity: z.number().optional(),
 });

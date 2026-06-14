@@ -1,6 +1,5 @@
-import { useMutation } from "@/core/lib/useMutation"
-import { api } from "@/core/lib/api"
-import { getRxDb, resyncItems } from "@/core/rxdb"
+import { useRxMutation } from "@/core/lib/useRxMutation"
+import { getRxDb } from "@/core/rxdb"
 import { toast } from "sonner"
 
 // ----- Types -----
@@ -13,9 +12,8 @@ export interface SearchResult {
   purchaseCount: number
 }
 
-// ----- API functions (not hooks) for autocomplete -----
-// ItemAutocomplete manages its own debounce/loading state,
-// so these are plain async functions, not React Query hooks.
+// ----- API functions for autocomplete -----
+// ItemAutocomplete manages its own debounce/loading state.
 
 export async function searchItems(storeId: string, query: string): Promise<SearchResult[]> {
   const db = await getRxDb()
@@ -76,19 +74,16 @@ interface UpdateItemInput {
 }
 
 export function useUpdateItem() {
-  return useMutation({
-    mutationFn: ({ itemId, name, sectionId, defaultUnit }: UpdateItemInput) =>
-      api.patch<{ status: "UPDATED" }>(`/items/${itemId}`, {
-        name,
-        sectionId,
-        defaultUnit,
-      }),
-    onSuccess: (_data, variables) => {
-      resyncItems()
-      toast.success("Item updated")
+  return useRxMutation<UpdateItemInput>({
+    collection: "items",
+    deriveDocId: (v) => v.itemId,
+    derivePatch: ({ name, sectionId, defaultUnit }) => {
+      const patch: Record<string, unknown> = { name }
+      if (sectionId !== undefined) patch.sectionId = sectionId
+      if (defaultUnit !== undefined) patch.defaultUnit = defaultUnit
+      return patch
     },
-    onError: () => {
-      toast.error("Failed to update item")
-    },
+    onSuccess: () => toast.success("Item updated"),
+    onError: () => toast.error("Failed to update item"),
   })
 }

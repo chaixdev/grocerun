@@ -1,13 +1,16 @@
 import { Injectable, ForbiddenException, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { SseBroadcastService } from '../sync/sse-broadcast.service';
+import { NotificationService } from '../shared/notification.service';
 import { CreateHouseholdDto, UpdateHouseholdDto } from './dto/household.dto';
+import { cascadeSoftDeleteHousehold } from '../shared/cascade-soft-delete';
 
 @Injectable()
 export class HouseholdsService {
   constructor(
     private prisma: PrismaService,
     private sseBroadcast: SseBroadcastService,
+    private notify: NotificationService,
   ) {}
 
   async getHouseholds(userId: string) {
@@ -32,7 +35,7 @@ export class HouseholdsService {
       },
     });
 
-    this.notifyHouseholdMembers(household.id);
+    this.notify.byHousehold(household.id, ['household', 'store'], 'household-mutation');
 
     return { success: true };
   }
@@ -48,20 +51,18 @@ export class HouseholdsService {
     }
 
     // Only owner can rename
-    if (household.ownerId && household.ownerId !== userId) {
+    if (household.ownerId !== userId) {
       throw new ForbiddenException('Only the owner can rename the household');
     }
 
     await this.prisma.household.update({
       where: { id: householdId },
       data: {
-        name: dto.name,
-        // If it was a legacy household (no owner), claim ownership
-        ...(household.ownerId === null ? { ownerId: userId } : {})
+        name: dto.name
       }
     });
 
-    this.notifyHouseholdMembers(householdId);
+    this.notify.byHousehold(householdId, ['household', 'store'], 'household-mutation');
 
     return { success: true };
   }
@@ -90,7 +91,7 @@ export class HouseholdsService {
 
     this.sseBroadcast.notifyHouseholdRemoved([userId], householdId);
 
-    this.notifyHouseholdMembers(householdId);
+    this.notify.byHousehold(householdId, ['household', 'store'], 'household-mutation');
 
     return { success: true };
   }
@@ -105,8 +106,8 @@ export class HouseholdsService {
       throw new NotFoundException('Household not found');
     }
 
-    // Verify ownership - allow if ownerId matches OR if it's a legacy household (null ownerId)
-    if (household.ownerId && household.ownerId !== userId) {
+    // Verify ownership — only the owner can delete
+    if (household.ownerId !== userId) {
       throw new ForbiddenException('Only the owner can delete the household');
     }
 
@@ -118,74 +119,13 @@ export class HouseholdsService {
     const now = new Date();
 
     await this.prisma.$transaction(async (tx) => {
-      // Cascade soft-delete: ListItems → Lists → Items → Sections → Stores → Household
-      const stores = await tx.store.findMany({
-        where: { householdId, deleted: false },
-        select: { id: true }
-      });
-      const storeIds = stores.map(s => s.id);
-
-      if (storeIds.length > 0) {
-        const lists = await tx.list.findMany({
-          where: { storeId: { in: storeIds }, deleted: false },
-          select: { id: true }
-        });
-        const listIds = lists.map(l => l.id);
-
-        if (listIds.length > 0) {
-          await tx.listItem.updateMany({
-            where: { listId: { in: listIds }, deleted: false },
-            data: { deleted: true, deletedAt: now }
-          });
-        }
-
-        await tx.list.updateMany({
-          where: { storeId: { in: storeIds }, deleted: false },
-          data: { deleted: true, deletedAt: now }
-        });
-
-        await tx.item.updateMany({
-          where: { storeId: { in: storeIds }, deleted: false },
-          data: { deleted: true, deletedAt: now }
-        });
-
-        await tx.section.updateMany({
-          where: { storeId: { in: storeIds }, deleted: false },
-          data: { deleted: true, deletedAt: now }
-        });
-
-        await tx.store.updateMany({
-          where: { id: { in: storeIds } },
-          data: { deleted: true, deletedAt: now }
-        });
-      }
-
-      await tx.household.update({
-        where: { id: householdId },
-        data: { deleted: true, deletedAt: now }
-      });
+      await cascadeSoftDeleteHousehold(tx, householdId, now);
     });
 
     this.sseBroadcast.notifyHouseholdRemoved([userId], householdId);
 
-    this.notifyHouseholdMembers(householdId);
+    this.notify.byHousehold(householdId, ['household', 'store'], 'household-mutation');
 
     return { success: true };
-  }
-
-  private notifyHouseholdMembers(householdId: string) {
-    this.prisma.household
-      .findUnique({
-        where: { id: householdId },
-        select: { users: { select: { id: true } } },
-      })
-      .then((household) => {
-        if (household) {
-          this.sseBroadcast.notify(household.users.map((u) => u.id));
-        }
-      })
-      .catch(() => {
-        // Best-effort
-      });
   }
 }

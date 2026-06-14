@@ -1,5 +1,3 @@
-"use client"
-
 import { useRef, useCallback } from "react"
 
 interface UseListNavigationProps<T> {

@@ -1,5 +1,4 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
-import { IsBoolean, IsNotEmpty, IsNumber, IsOptional, IsString, Min } from 'class-validator';
 import { ListsService } from './lists.service';
 import { AuthGuard, JwtPayload } from '../auth/auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
@@ -17,7 +16,7 @@ export class ListsController {
     @Body() dto: CreateListDto,
     @CurrentUser() user: JwtPayload,
   ) {
-    return this.listsService.createList(dto, user.sub);
+    return this.listsService.createList(dto, user.userId!);
   }
 
   @Get('store/:storeId')
@@ -25,7 +24,7 @@ export class ListsController {
     @Param('storeId') storeId: string,
     @CurrentUser() user: JwtPayload,
   ) {
-    return this.listsService.getLists(storeId, user.sub);
+    return this.listsService.getLists(storeId, user.userId!);
   }
 
   @Get('store/:storeId/active')
@@ -33,7 +32,7 @@ export class ListsController {
     @Param('storeId') storeId: string,
     @CurrentUser() user: JwtPayload,
   ) {
-    return this.listsService.getActiveListForStore(storeId, user.sub);
+    return this.listsService.getActiveListForStore(storeId, user.userId!);
   }
 
   @Get(':listId')
@@ -41,7 +40,7 @@ export class ListsController {
     @Param('listId') listId: string,
     @CurrentUser() user: JwtPayload,
   ) {
-    return this.listsService.getList(listId, user.sub);
+    return this.listsService.getList(listId, user.userId!);
   }
 
   @Post('items/add')
@@ -49,7 +48,7 @@ export class ListsController {
     @Body() dto: AddItemDto,
     @CurrentUser() user: JwtPayload,
   ) {
-    return this.listsService.addItemToList(dto, user.sub);
+    return this.listsService.addItemToList(dto, user.userId!, user.sub);
   }
 
   @Patch('items/toggle')
@@ -57,7 +56,7 @@ export class ListsController {
     @Body() dto: ToggleItemDto,
     @CurrentUser() user: JwtPayload,
   ) {
-    return this.listsService.toggleListItem(dto, user.sub);
+    return this.listsService.toggleListItem(dto, user.userId!, user.sub);
   }
 
   @Patch('items/quantity')
@@ -65,7 +64,7 @@ export class ListsController {
     @Body() dto: UpdateQuantityDto,
     @CurrentUser() user: JwtPayload,
   ) {
-    return this.listsService.updateListItemQuantity(dto, user.sub);
+    return this.listsService.updateListItemQuantity(dto, user.userId!, user.sub);
   }
 
   @Delete('items/:listItemId')
@@ -73,7 +72,7 @@ export class ListsController {
     @Param('listItemId') listItemId: string,
     @CurrentUser() user: JwtPayload,
   ) {
-    return this.listsService.removeItemFromList(listItemId, user.sub);
+    return this.listsService.removeItemFromList(listItemId, user.userId!, user.sub);
   }
 
   @Post(':listId/complete')
@@ -81,7 +80,7 @@ export class ListsController {
     @Param('listId') listId: string,
     @CurrentUser() user: JwtPayload,
   ) {
-    return this.listsService.completeList(listId, user.sub);
+    return this.listsService.completeList(listId, user.userId!, user.sub);
   }
 
   @Post(':listId/start-shopping')
@@ -89,7 +88,7 @@ export class ListsController {
     @Param('listId') listId: string,
     @CurrentUser() user: JwtPayload,
   ) {
-    return this.listsService.startShopping(listId, user.sub);
+    return this.listsService.startShopping(listId, user.userId!, user.sub);
   }
 
   @Post(':listId/cancel-shopping')
@@ -97,6 +96,6 @@ export class ListsController {
     @Param('listId') listId: string,
     @CurrentUser() user: JwtPayload,
   ) {
-    return this.listsService.cancelShopping(listId, user.sub);
+    return this.listsService.cancelShopping(listId, user.userId!, user.sub);
   }
 }

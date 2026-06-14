@@ -14,7 +14,7 @@ export class InvitationsController {
     @Body() dto: CreateInvitationDto,
     @CurrentUser() user: JwtPayload,
   ) {
-    return this.invitationsService.createInvitation(dto, user.sub);
+    return this.invitationsService.createInvitation(dto, user.userId!);
   }
 
   @Post('join')
@@ -22,7 +22,7 @@ export class InvitationsController {
     @Body() dto: JoinHouseholdDto,
     @CurrentUser() user: JwtPayload,
   ) {
-    return this.invitationsService.joinHousehold(dto, user.sub);
+    return this.invitationsService.joinHousehold(dto, user.userId!);
   }
 
   @Patch('revoke')
@@ -30,7 +30,7 @@ export class InvitationsController {
     @Body() dto: RevokeInvitationDto,
     @CurrentUser() user: JwtPayload,
   ) {
-    return this.invitationsService.revokeInvitation(dto, user.sub);
+    return this.invitationsService.revokeInvitation(dto, user.userId!);
   }
 
   @Get(':token/details')
@@ -38,6 +38,6 @@ export class InvitationsController {
     @Param('token') token: string,
     @CurrentUser() user: JwtPayload,
   ) {
-    return this.invitationsService.getInvitationDetails(token, user.sub);
+    return this.invitationsService.getInvitationDetails(token, user.userId!);
   }
 }

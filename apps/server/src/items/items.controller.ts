@@ -1,21 +1,14 @@
 import { Body, Controller, Get, Query, Patch, Param, UseGuards } from '@nestjs/common';
-import { IsOptional, IsNotEmpty, IsNumber, IsString, Min } from 'class-validator';
 import { ItemsService } from './items.service';
 import { AuthGuard, JwtPayload } from '../auth/auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
 import { UpdateItemDto } from './dto/update-item.dto';
-import { SearchItemsDto, GetTopItemsDto } from './dto/query-items.dto';
-
-interface SearchItemsParams {
-  storeId: string;
-  query: string;
-}
+import { SearchItemsDto } from './dto/query-items.dto';
 
 @Controller('items')
 export class ItemsController {
   constructor(private readonly itemsService: ItemsService) {}
 
-  // Phase 2 endpoints
   @Patch(':id')
   @UseGuards(AuthGuard)
   async updateItem(
@@ -23,7 +16,7 @@ export class ItemsController {
     @Body() dto: UpdateItemDto,
     @CurrentUser() user: JwtPayload,
   ) {
-    return this.itemsService.updateItem(itemId, dto, user.sub);
+    return this.itemsService.updateItem(itemId, dto, user.userId!);
   }
 
   @Get('search')
@@ -32,8 +25,7 @@ export class ItemsController {
     @Query() dto: SearchItemsDto,
     @CurrentUser() user: JwtPayload,
   ) {
-    // Cast explicitly because nestjs-zod DTOs behave slightly differently at compile time sometimes
-    return this.itemsService.searchItems(dto as SearchItemsParams, user.sub);
+    return this.itemsService.searchItems(dto, user.userId!);
   }
 
   @Get('top')
@@ -50,7 +42,7 @@ export class ItemsController {
         limit: limit ? parseInt(limit) : 5,
         threshold: threshold ? parseInt(threshold) : 1,
       },
-      user.sub,
+      user.userId!,
     );
   }
 }

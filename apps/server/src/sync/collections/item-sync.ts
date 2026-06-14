@@ -1,3 +1,12 @@
+/**
+ * Item sync — hybrid collection.
+ *
+ * Pull: client caches all items for local display and search.
+ * Push: ACCEPTED for item creation during active shopping (add-to-list).
+ *       Duplicate (storeId, name) conflicts are canonicalised server-side.
+ *       Item metadata updates (name, section, unit) go through REST.
+ */
+
 import { BadRequestException, ForbiddenException } from '@nestjs/common';
 import { Prisma } from '../../generated/prisma/client';
 import { SyncDeps } from '../sync-deps';
@@ -15,24 +24,37 @@ export async function pullItems(
   limit: number,
   userId: string,
 ): Promise<PullResponse> {
-  const accessibleStoreIds = await deps.getAccessibleStoreIds(userId);
+  const accessibleStoreIds = await deps.getAccessibleStoreIdsForSync(userId);
 
   if (accessibleStoreIds.length === 0) {
     return { documents: [], checkpoint: null };
   }
 
-  const where = checkpoint
-    ? {
-        storeId: { in: accessibleStoreIds },
+  const tombstoneWindow = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+
+  const where: Record<string, unknown> = {
+    storeId: { in: accessibleStoreIds },
+    AND: [
+      {
         OR: [
-          { updatedAt: { gt: new Date(checkpoint.updatedAt) } },
-          {
-            updatedAt: { equals: new Date(checkpoint.updatedAt) },
-            id: { gt: checkpoint.id },
-          },
+          { deleted: false },
+          { deletedAt: { gte: tombstoneWindow } },
         ],
-      }
-    : { storeId: { in: accessibleStoreIds } };
+      },
+    ],
+  };
+
+  if (checkpoint) {
+    (where.AND as Array<Record<string, unknown>>).push({
+      OR: [
+        { updatedAt: { gt: new Date(checkpoint.updatedAt) } },
+        {
+          updatedAt: { equals: new Date(checkpoint.updatedAt) },
+          id: { gt: checkpoint.id },
+        },
+      ],
+    });
+  }
 
   const rows = await deps.prisma.item.findMany({
     where,
@@ -125,6 +147,35 @@ export async function pushItems(
         ? new Date(clientUpdatedAt)
         : new Date();
 
+      // Check for soft-deleted row to restore
+      const softDeleted = await deps.prisma.item.findFirst({
+        where: { storeId, name: newDocumentState.name as string, deleted: true },
+      });
+      if (softDeleted) {
+        await deps.prisma.item.update({
+          where: { id: softDeleted.id },
+          data: {
+            name: newDocumentState.name as string,
+            sectionId: newDocumentState.sectionId as string | null,
+            defaultUnit: newDocumentState.defaultUnit as string | null,
+            deleted: false,
+            deletedAt: null,
+            updatedAt,
+          },
+        });
+        continue;
+      }
+
+      // Check for active duplicate
+      const activeDuplicate = await deps.prisma.item.findFirst({
+        where: { storeId, name: newDocumentState.name as string, deleted: false },
+      });
+      if (activeDuplicate) {
+        conflicts.push(itemToSyncDoc(activeDuplicate));
+        continue;
+      }
+
+      // Race-condition safety net
       try {
         await deps.prisma.item.create({
           data: {
@@ -138,17 +189,13 @@ export async function pushItems(
         });
       } catch (err) {
         if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
-          // Duplicate (storeId, name) from another offline client —
-          // find the canonical server row so the client can reconcile.
           const existing = await deps.prisma.item.findFirst({
-            where: { storeId, name: newDocumentState.name as string, deleted: false },
+            where: { storeId, name: newDocumentState.name as string },
           });
           if (existing) {
             conflicts.push(itemToSyncDoc(existing));
             continue;
           }
-          // Edge case: unique constraint hit but item not returned
-          // (e.g. soft-deleted with same name). Re-throw.
         }
         throw err;
       }
@@ -165,6 +212,7 @@ function itemToSyncDoc(row: {
   sectionId: string | null;
   defaultUnit: string | null;
   purchaseCount: number;
+  lastPurchased: Date | null;
   updatedAt: Date;
   deleted: boolean;
 }): SyncDocument {
@@ -175,6 +223,7 @@ function itemToSyncDoc(row: {
     ...(row.sectionId ? { sectionId: row.sectionId } : {}),
     ...(row.defaultUnit ? { defaultUnit: row.defaultUnit } : {}),
     purchaseCount: row.purchaseCount,
+    ...(row.lastPurchased ? { lastPurchased: row.lastPurchased.toISOString() } : {}),
     updatedAt: row.updatedAt.toISOString(),
     _deleted: row.deleted,
   };

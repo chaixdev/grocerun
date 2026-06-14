@@ -47,7 +47,7 @@ export class SyncController {
       collection as SyncCollection,
       checkpoint,
       batchSize ? parseInt(batchSize, 10) : 100,
-      user.sub,
+      user.userId!,
     );
   }
 
@@ -68,6 +68,7 @@ export class SyncController {
       const conflicts = await this.syncService.push(
         collection as SyncCollection,
         rows,
+        user.userId!,
         user.sub,
       );
 
@@ -76,13 +77,16 @@ export class SyncController {
           collection as SyncCollection,
           rows,
         );
-        this.sseBroadcast.notify(memberIds.length > 0 ? memberIds : [user.sub]);
+        this.sseBroadcast.notifyChanged(
+          memberIds.length > 0 ? memberIds : [user.userId!],
+          { collections: [collection], reason: `${collection}.push` },
+        );
       }
 
       return conflicts;
     } catch (err) {
       this.logger.error(
-        `Push failed: ${collection} user=${user.sub} rows=${rows?.length ?? '?'}`,
+          `Push failed: ${collection} user=${user.userId} rows=${rows?.length ?? '?'}`,
         err instanceof Error ? err.stack : String(err),
       );
       throw err;
@@ -119,7 +123,7 @@ export class SyncController {
   }
 
   private openStream(req: Request, res: Response) {
-    const userId = (req['user'] as JwtPayload).sub;
+    const userId = req.user.userId!;
 
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');

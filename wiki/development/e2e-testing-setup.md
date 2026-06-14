@@ -1,5 +1,7 @@
 # End-to-End Testing with Playwright
 
+> **⚠️ Deprecation notice:** This document describes NextAuth v5 session injection, which no longer applies after the Vite SPA refactor replaced NextAuth with `oidc-spa` (Google-only OIDC). The `apps/e2e` session helper still imports `next-auth/jwt` and needs to be rewritten to use `oidc-spa` token injection. See `planning/tickets/google-only-auth-cleanup.md`. Until updated, treat this document as historical reference.
+
 ## Overview
 
 This project uses Playwright for end-to-end testing. The test suite is located in `apps/e2e` and includes authentication session injection to bypass OAuth flows during testing.

@@ -2,7 +2,7 @@ import { useEffect, useState } from "react"
 import { useMutation } from "@/core/lib/useMutation"
 import { api } from "@/core/lib/api"
 import { removeHouseholdSubtreeFromLocalDb } from "@/core/rxdb/cleanup"
-import { getRxDb, resyncHouseholds, resyncStores, resyncLists, resyncListItems, resyncItems, resyncSections } from "@/core/rxdb"
+import { getRxDb, resyncHouseholds, resyncStores } from "@/core/rxdb"
 import { toast } from "sonner"
 
 // ----- Types -----
@@ -66,7 +66,8 @@ export function useCreateDefaultHousehold() {
     mutationFn: () => api.post("/households", { name: "My Household" }),
     onSuccess: () => {
       resyncHouseholds()
-      toast.success("Household created!")
+      resyncStores()
+      toast.success("Household created")
     },
     onError: () => {
       toast.error("Failed to create household")
@@ -79,6 +80,7 @@ export function useCreateHousehold() {
     mutationFn: (data: { name: string }) => api.post("/households", data),
     onSuccess: () => {
       resyncHouseholds()
+      resyncStores()
       toast.success("Household created")
     },
     onError: () => {
@@ -93,6 +95,7 @@ export function useRenameHousehold() {
       api.patch(`/households/${householdId}`, { name }),
     onSuccess: () => {
       resyncHouseholds()
+      resyncStores()
       toast.success("Household updated")
     },
     onError: () => {
@@ -105,13 +108,9 @@ export function useDeleteHousehold() {
   return useMutation({
     mutationFn: (id: string) => api.delete(`/households/${id}`),
     onSuccess: async (_data, id) => {
-      await removeHouseholdSubtreeFromLocalDb(id)
       resyncHouseholds()
       resyncStores()
-      resyncLists()
-      resyncListItems()
-      resyncItems()
-      resyncSections()
+      await removeHouseholdSubtreeFromLocalDb(id)
       toast.success("Household deleted")
     },
     onError: () => {

@@ -4,7 +4,7 @@
  * - One database per browser session, created lazily on first use.
  * - Uses Dexie (IndexedDB) as the storage adapter.
  * - Wires Section replication against /api/v1/sync/section/{pull,push,stream}.
- * - Auth tokens are fetched via the existing auth-token module.
+ * - Auth tokens are fetched via oidc-spa (getOidc).
  *
  * Call `getRxDb()` to get the initialised database. It is safe to call from
  * multiple React components — they all get the same promise-cached instance.
@@ -16,7 +16,7 @@ import { wrappedValidateZSchemaStorage } from 'rxdb/plugins/validate-z-schema'
 import { getRxStorageDexie } from 'rxdb/plugins/storage-dexie'
 import { replicateRxCollection } from 'rxdb/plugins/replication'
 import { Subject } from 'rxjs'
-import { getToken, refreshToken as forceTokenRefresh } from '../lib/auth-token'
+import { getOidc } from '../auth/oidc'
 import { emitDiagnostic } from '../diagnostics/event-bus'
 import {
   sectionSchema,
@@ -32,6 +32,27 @@ import {
   storeSchema,
   StoreDocType,
 } from './schema'
+
+// ---------------------------------------------------------------------------
+// OIDC token helpers
+// ---------------------------------------------------------------------------
+
+async function getAccessToken(): Promise<string | null> {
+  const oidc = await getOidc()
+  if (!oidc.isUserLoggedIn) return null
+  return oidc.getAccessToken()
+}
+
+async function refreshAndGetToken(): Promise<string | null> {
+  const oidc = await getOidc()
+  if (!oidc.isUserLoggedIn) return null
+  try {
+    await oidc.renewTokens()
+    return oidc.getAccessToken()
+  } catch {
+    return null
+  }
+}
 
 // ---------------------------------------------------------------------------
 // JWT helpers for diagnostics (decode without verification)
@@ -102,7 +123,6 @@ const RXDB_NAME = 'grocerun-v8'
 let sharedSyncStreamOpened = false
 let periodicResyncTimer: ReturnType<typeof setInterval> | null = null
 let visibilityListenerAdded = false
-let sseHealthy = false
 let sharedSyncEventSource: EventSource | null = null
 
 export function getRxDb(): Promise<GrocerunDatabase> {
@@ -120,11 +140,10 @@ export function getRxDb(): Promise<GrocerunDatabase> {
 export async function resetRxDb(): Promise<void> {
   if (sharedSyncEventSource) {
     sharedSyncEventSource.close()
-    sharedSyncEventSource = null
   }
-  stopPeriodicResync()
+  sharedSyncEventSource = null
   sharedSyncStreamOpened = false
-  sseHealthy = false
+  stopPeriodicResync()
   sharedPullStreams.clear()
 
   if (dbPromise) {
@@ -169,14 +188,24 @@ async function initDatabase(): Promise<GrocerunDatabase> {
     },
   })
 
-  // Start replication — fire and forget. The calling code subscribes to the
-  // collection directly; replication errors are retried automatically.
+  // Start replication for all six collections.
+  //
+  // All six pull (client caches server data). Only item and listItem
+  // push — these are the local-first active shopping writes. Section,
+  // list, store, and household are server-authoritative: all mutations
+  // go through REST, and the server broadcasts SSE → pull for convergence.
   startSectionReplication(db.sections)
   startItemReplication(db.items)
   startListReplication(db.lists)
   startListItemReplication(db.listItems)
   startHouseholdReplication(db.households)
   startStoreReplication(db.stores)
+
+  // Trigger initial pull across all collections so the database is
+  // populated before the first hook query (critical after resetRxDb).
+  // Periodic resync runs as a fallback until the SSE stream opens.
+  resyncAll()
+  startPeriodicResync()
 
   return db
 }
@@ -352,7 +381,7 @@ function startPullReplication<DocType, Checkpoint extends { id: string; updatedA
         }
 
         const t0 = Date.now()
-        const token = await getToken()
+        const token = await getAccessToken()
         emitDiagnostic({ type: 'auth', hasToken: !!token, expiresAt: decodeJwtExp(token), userId: decodeJwtSub(token), at: t0 })
 
         let res = await fetch(`${basePath}/pull?${params}`, {
@@ -363,7 +392,7 @@ function startPullReplication<DocType, Checkpoint extends { id: string; updatedA
         // On 401, force-refresh the token and retry once so RxDB
         // doesn't loop with a stale cached token.
         if (res.status === 401) {
-          const freshToken = await forceTokenRefresh()
+          const freshToken = await refreshAndGetToken()
           if (freshToken) {
             res = await fetch(`${basePath}/pull?${params}`, {
               cache: 'no-store',
@@ -389,7 +418,7 @@ function startPullReplication<DocType, Checkpoint extends { id: string; updatedA
             batchSize: 50,
             async handler(rows: RxReplicationWriteToMasterRow<DocType>[]) {
               const t0 = Date.now()
-              const token = await getToken()
+              const token = await getAccessToken()
               let res = await fetch(`${basePath}/push`, {
                 method: 'POST',
                 headers: {
@@ -401,7 +430,7 @@ function startPullReplication<DocType, Checkpoint extends { id: string; updatedA
 
               // On 401, force-refresh the token and retry once.
               if (res.status === 401) {
-                const freshToken = await forceTokenRefresh()
+                const freshToken = await refreshAndGetToken()
                 if (freshToken) {
                   res = await fetch(`${basePath}/push`, {
                     method: 'POST',
@@ -429,18 +458,8 @@ function startPullReplication<DocType, Checkpoint extends { id: string; updatedA
   })
 }
 
-/**
- * Returns the direct SSE stream URL, bypassing Next.js rewrite buffering.
- *
- * EventSource connects to the NestJS API directly so that streaming
- * chunks are never buffered or dropped by the dev proxy. Normal REST
- * pull/push calls still use the Next.js rewrite path (/api/v1/...).
- */
 function getSyncStreamUrl(): string {
-  const baseUrl =
-    process.env.NEXT_PUBLIC_API_URL ??
-    (process.env.NODE_ENV === 'development' ? 'http://localhost:3001' : '/api/v1')
-  return `${baseUrl.replace(/\/$/, '')}/sync/stream`
+  return '/api/v1/sync/stream'
 }
 
 /**
@@ -492,10 +511,9 @@ function stopPeriodicResync() {
 }
 
 async function openSharedSyncStream(url: string, forceRefresh = false) {
-  const token = forceRefresh ? await forceTokenRefresh() : await getToken()
+  const token = forceRefresh ? await refreshAndGetToken() : await getAccessToken()
   // EventSource doesn't support custom headers — token is appended as a
-  // query param. The Next.js rewrite proxies /api/v1 to the NestJS server,
-  // which then validates it via the AuthGuard.
+  // query param. The server only accepts query-token auth on SSE endpoints.
   const params = new URLSearchParams()
   if (token) params.set('token', token)
   const src = new EventSource(`${url}?${params.toString()}`)
@@ -530,14 +548,12 @@ async function openSharedSyncStream(url: string, forceRefresh = false) {
 
   // SSE open = connection healthy: stop fallback timer.
   src.onopen = () => {
-    sseHealthy = true
     emitDiagnostic({ type: 'sse', state: 'open', at: Date.now() })
     stopPeriodicResync()
   }
 
   src.onerror = () => {
     src.close()
-    sseHealthy = false
     emitDiagnostic({ type: 'sse', state: 'error', at: Date.now() })
     if (sharedSyncEventSource === src) {
       sharedSyncEventSource = null
@@ -548,7 +564,7 @@ async function openSharedSyncStream(url: string, forceRefresh = false) {
     setTimeout(() => {
       if (!sharedSyncStreamOpened) {
         sharedSyncStreamOpened = true
-        void openSharedSyncStream(url, true /* force token refresh on reconnect */)
+        void openSharedSyncStream(url)
       }
     }, 5_000)
   }
@@ -572,16 +588,16 @@ export async function removeHouseholdSubtreeFromLocalDb(householdId: string) {
       : []
 
     await Promise.all([
-      ...listItems.map((doc) => doc.remove()),
-      ...lists.map((doc) => doc.remove()),
-      ...items.map((doc) => doc.remove()),
-      ...sections.map((doc) => doc.remove()),
-      ...stores.map((doc) => doc.remove()),
+      ...listItems.filter((doc) => !doc.deleted).map((doc) => doc.remove()),
+      ...lists.filter((doc) => !doc.deleted).map((doc) => doc.remove()),
+      ...items.filter((doc) => !doc.deleted).map((doc) => doc.remove()),
+      ...sections.filter((doc) => !doc.deleted).map((doc) => doc.remove()),
+      ...stores.filter((doc) => !doc.deleted).map((doc) => doc.remove()),
     ])
   }
 
   const household = await db.households.findOne(householdId).exec()
-  if (household) {
+  if (household && !household.deleted) {
     await household.remove()
   }
 }

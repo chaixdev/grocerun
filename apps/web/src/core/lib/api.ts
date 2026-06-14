@@ -1,15 +1,15 @@
 /**
- * Client-side API client for Phase 3.
+ * Client-side API client.
  *
  * Browser-side fetch wrapper that calls /api/v1/* (proxied to NestJS via
- * Next.js rewrite). Auth tokens are managed by auth-token.ts.
+ * Vite proxy). Auth tokens are managed by oidc-spa.
  *
- * Mirrors the server-side apiClient pattern (api-client.ts) but runs in
- * the browser. See ADR 001 for the simple REST + Zod approach.
+ * Mirrors the server-side API client pattern but runs in the browser.
+ * See ADR 001 for the simple REST + Zod approach.
  */
 
 import { z } from 'zod'
-import { getToken, refreshToken, clearToken } from './auth-token'
+import { getOidc } from '@/core/auth/oidc'
 
 export class ApiError extends Error {
   constructor(
@@ -27,46 +27,50 @@ async function request<T>(
   options: RequestInit = {},
   schema?: z.ZodSchema<T>,
 ): Promise<T> {
-  const token = await getToken()
+  const oidc = await getOidc()
 
   const res = await fetch(`/api/v1${endpoint}`, {
     ...options,
     headers: {
       'Content-Type': 'application/json',
-      ...(token && { Authorization: `Bearer ${token}` }),
+      ...(oidc.isUserLoggedIn && {
+        Authorization: `Bearer ${await oidc.getAccessToken()}`
+      }),
       ...options.headers,
     },
   })
 
-  // On 401, try refreshing the token once and retry
-  if (res.status === 401) {
-    const newToken = await refreshToken()
-    if (!newToken) {
-      clearToken()
-      window.location.href = '/login'
+  // On 401, try refreshing tokens once and retry
+  if (res.status === 401 && oidc.isUserLoggedIn) {
+    try {
+      await oidc.renewTokens()
+      const accessToken = await oidc.getAccessToken()
+
+      const retryRes = await fetch(`/api/v1${endpoint}`, {
+        ...options,
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${accessToken}`,
+          ...options.headers,
+        },
+      })
+
+      if (!retryRes.ok) {
+        const errorData = await retryRes.json().catch(() => ({}))
+        throw new ApiError(
+          errorData.message || `API request failed: ${retryRes.statusText}`,
+          retryRes.status,
+          errorData
+        )
+      }
+
+      const data = await retryRes.json()
+      return schema ? schema.parse(data) : data as T
+    } catch {
+      // Token renewal failed — redirect to login
+      oidc.logout({ redirectTo: "home" })
       throw new ApiError('Session expired', 401)
     }
-
-    const retryRes = await fetch(`/api/v1${endpoint}`, {
-      ...options,
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${newToken}`,
-        ...options.headers,
-      },
-    })
-
-    if (!retryRes.ok) {
-      const errorData = await retryRes.json().catch(() => ({}))
-      throw new ApiError(
-        errorData.message || `API request failed: ${retryRes.statusText}`,
-        retryRes.status,
-        errorData
-      )
-    }
-
-    const data = await retryRes.json()
-    return schema ? schema.parse(data) : data as T
   }
 
   if (!res.ok) {
@@ -83,7 +87,7 @@ async function request<T>(
 }
 
 /**
- * Client-side API client — browser equivalent of apiClient from api-client.ts.
+ * Client-side API client.
  */
 export const api = {
   get<T>(endpoint: string, schema?: z.ZodSchema<T>): Promise<T> {

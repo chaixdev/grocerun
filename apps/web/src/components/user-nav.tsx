@@ -1,7 +1,6 @@
-"use client"
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import Link from "next/link"
+import { Link } from "@tanstack/react-router"
 
 interface UserNavProps {
     user: {
@@ -13,9 +12,9 @@ interface UserNavProps {
 
 export function UserNav({ user }: UserNavProps) {
     return (
-        <Link href="/settings" className="relative h-8 w-8 rounded-full outline-none ring-offset-background transition-all hover:opacity-80 focus:ring-2 focus:ring-ring focus:ring-offset-2 flex items-center justify-center">
+        <Link to="/settings" className="relative h-8 w-8 rounded-full outline-none ring-offset-background transition-all hover:opacity-80 focus:ring-2 focus:ring-ring focus:ring-offset-2 flex items-center justify-center">
             <Avatar className="h-8 w-8">
-                <AvatarImage src={user.image || ""} alt={user.name || "User avatar"} />
+                <AvatarImage src={user.image || ""} alt={user.name || "User avatar"} referrerPolicy="no-referrer" />
                 <AvatarFallback className="bg-primary text-primary-foreground text-xs font-medium">
                     {user.email?.[0]?.toUpperCase() || "U"}
                 </AvatarFallback>

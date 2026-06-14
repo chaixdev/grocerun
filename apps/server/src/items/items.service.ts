@@ -1,10 +1,11 @@
 import { z } from 'zod'; // Import z from zod
 import { SearchItemsSchema } from '@grocerun/dto';
 
-import { Injectable, NotFoundException, ForbiddenException, Logger } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
+import { AccessService } from '../shared/access.service';
+import { NotificationService } from '../shared/notification.service';
 import { UpdateItemDto } from './dto/update-item.dto';
-import { SseBroadcastService } from '../sync/sse-broadcast.service';
 
 type SearchItemsParams = z.infer<typeof SearchItemsSchema>;
 
@@ -16,42 +17,24 @@ type GetTopItemsDto = {
 
 @Injectable()
 export class ItemsService {
-  private readonly logger = new Logger(ItemsService.name);
-
   constructor(
     private prisma: PrismaService,
-    private sseBroadcast: SseBroadcastService,
+    private access: AccessService,
+    private notify: NotificationService,
   ) {}
 
-  // Phase 2 methods
   async updateItem(itemId: string, dto: UpdateItemDto, userId: string) {
-    // 1. Get item and verify access
+    // 1. Get item to obtain storeId, then verify access via shared service
     const item = await this.prisma.item.findFirst({
       where: { id: itemId, deleted: false },
-      select: {
-        storeId: true,
-        store: {
-          select: {
-            household: {
-              select: {
-                users: {
-                  where: { id: userId },
-                  select: { id: true },
-                },
-              },
-            },
-          },
-        },
-      },
+      select: { storeId: true },
     });
 
     if (!item) {
       throw new NotFoundException('Item not found');
     }
 
-    if (item.store.household.users.length === 0) {
-      throw new ForbiddenException('Access denied');
-    }
+    await this.access.verifyStoreAccess(item.storeId, userId);
 
     // 2. Update the item
     await this.prisma.item.update({
@@ -65,26 +48,14 @@ export class ItemsService {
 
     // 3. Notify other household members via SSE (fire-and-forget —
     //    failure must never block the REST response).
-    try {
-      const storeWithHousehold = await this.prisma.store.findUnique({
-        where: { id: item.storeId },
-        select: { household: { select: { users: { select: { id: true } } } } },
-      });
-      const memberIds = storeWithHousehold?.household?.users?.map(u => u.id) ?? [];
-      this.sseBroadcast.notifyChanged(memberIds, {
-        collections: ['item'],
-        reason: 'item-updated',
-      });
-    } catch (err) {
-      this.logger.error('Failed to notify household members about item update', err);
-    }
+    this.notify.byStore(item.storeId, ['item'], 'item-updated');
 
     return { status: 'UPDATED' };
   }
 
   async searchItems(dto: SearchItemsParams, userId: string) {
     // Verify access to store
-    await this.verifyStoreAccess(dto.storeId, userId);
+    await this.access.verifyStoreAccess(dto.storeId, userId);
 
     // SQLite raw query for case-insensitive search
     const likePattern = `%${dto.query}%`;
@@ -112,7 +83,7 @@ export class ItemsService {
 
   async getTopItems(dto: GetTopItemsDto, userId: string) {
     // Verify access to store
-    await this.verifyStoreAccess(dto.storeId, userId);
+    await this.access.verifyStoreAccess(dto.storeId, userId);
 
     const items = await this.prisma.item.findMany({
       where: {
@@ -138,27 +109,4 @@ export class ItemsService {
     return items;
   }
 
-  private async verifyStoreAccess(storeId: string, userId: string) {
-    const store = await this.prisma.store.findFirst({
-      where: { id: storeId, deleted: false },
-      select: {
-        household: {
-          select: {
-            users: {
-              where: { id: userId },
-              select: { id: true },
-            },
-          },
-        },
-      },
-    });
-
-    if (!store) {
-      throw new NotFoundException('Store not found');
-    }
-
-    if (store.household.users.length === 0) {
-      throw new ForbiddenException('Access denied');
-    }
-  }
 }

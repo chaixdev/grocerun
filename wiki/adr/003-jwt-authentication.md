@@ -1,9 +1,11 @@
 # ADR 003: JWT Authentication for API Layer
 
-**Status:** Accepted  
+**Status:** Superseded  
 **Date:** 2026-01-09  
 **Deciders:** Development Team  
 **Context:** Phase 2 - API Proxy Layer Authentication Strategy
+
+> **Superseded by:** Google-only OIDC integration using `oidc-spa`. Next.js and NextAuth were removed in the Vite SPA refactor. JWT validation is now handled by `oidc-spa/server` with JWKS, not by shared `AUTH_SECRET`. See `planning/tickets/google-only-auth-cleanup.md`.
 
 ---
 
