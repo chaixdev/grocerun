@@ -76,13 +76,15 @@ else
 fi
 
 # ── 3. Apply database schema ──
+# Uses Prisma Migrate (not db push) for deterministic, versioned migrations.
+# Safe for fresh deploys (runs all migrations) and existing DBs (only runs unapplied ones).
 
-echo "[init] Applying database schema..."
-if ! npx prisma db push --accept-data-loss --schema=apps/server/prisma/schema.prisma --url="$DATABASE_URL" 2>&1; then
+echo "[init] Applying database migrations..."
+if ! npx prisma migrate deploy --config=apps/server/prisma.config.ts 2>&1; then
     echo "[init] CRITICAL: Database migration failed."
     exit 1
 fi
-echo "[init] Database schema synchronized."
+echo "[init] Database migrations applied."
 
 # ── 4. Runtime frontend config ──
 
