@@ -59,7 +59,7 @@ grocerun/
 | Auth | oidc-spa | 1.x | Google OIDC authentication (Google-only) |
 | Node.js | Node.js | 22.21.1 | Runtime (managed via .nvmrc) |
 | Workspace | NPM Workspaces | - | Monorepo management |
-| Version | 1.0.0-rc.1 | - | All workspace packages |
+| Version | 1.0.0-rc.4 | - | All workspace packages |
 
 ### Current State Diagram
 
@@ -213,7 +213,6 @@ We abandoned a ground-up rewrite approach in favor of incremental migration to:
 
 *Schema hardening:*
 - 4 new migrations: unique constraint fix, ownerId backfill + non-nullable, FK indexes
-- `--accept-data-loss` flag on `prisma db push` for staging deploys
 
 *Phase 5c — Codebase-wide audit fixes (19 findings across 5 slices):*
 
@@ -341,7 +340,7 @@ PORT=3001
 |---|------|--------|
 | 1 | Deploy to staging and smoke test | ⬜ Not done (`deploy-staging.sh` exists, not yet executed) |
 | 2 | Run Playwright e2e tests | ✅ 14/14 passing (Chromium) — `npm run e2e:run -w e2e` |
-| 3 | Production data migration strategy | 📋 Planned (see [data-migration-strategy.md](2026-06-10T230536_data-migration-strategy.md)) |
+| 3 | Production data migration strategy | ✅ Implemented (see [data-migration-strategy.md](2026-06-10T230536_data-migration-strategy.md)) |
 | 4 | UI jitter reduction (Phase 5 Step 6) | ✅ Likely resolved — not reproducible after `useRxQuery` centralization and subscription narrowing. Mark resolved unless jitter surfaces in staging. |
 | 5 | Add unit tests for shared services | 🔄 Partially done — `shopping-lock.spec.ts` (8 tests) and `sync-helpers.spec.ts` (12 tests) added. `cascadeSoftDelete` covered by soft-delete smoke spec. `NotificationService` is fire-and-forget (integration candidate, not unit). `AccessService` covered by household-access spec. |
 | 6 | Dependency cleanup audit | ✅ Complete — migrated from Next.js to React SPA (Vite + TanStack Router + oidc-spa). Note: `next-themes` was incorrectly flagged; it's a framework-agnostic React library (not Next.js-specific) and remains actively used for dark/light mode. |
@@ -351,9 +350,8 @@ PORT=3001
 
 ## Next Steps
 
-1. **Deploy to staging** — smoke-test audit fixes end-to-end (`./deploy-staging.sh`)
-2. **Data migration strategy** — plan production migration from pre-Phase-1 schema to current (see [data-migration-strategy.md](2026-06-10T230536_data-migration-strategy.md))
-3. **Phase 5 Step 7** — review remaining transitional comments/docs for cleanup
+1. **Phase 5 Step 7** — review remaining transitional comments/docs for cleanup
+2. **Production migration** — run `migrate-prod-baseline.sh` against staging (prod DB copy), validate, then prod
 4. **User stories** — US-1 (Autocomplete), US-2 (Common Items), US-5 (Mobile Quantity Editing), US-9 (Shopping Lifecycle) remain planned. US-10 (Settings) missing profile editing + additional preferences. See [user-stories/README.md](user-stories/README.md).
 
 ---
@@ -458,8 +456,8 @@ npx prisma migrate dev
 - ✅ `next-themes` confirmed not a Next.js dependency — framework-agnostic React library for dark/light mode, actively used
 - ✅ Auth session persistence improved — `sessionRestorationMethod: "full page redirect"` avoids doomed iframe silent-login
 - ✅ PWA support added — `manifest.json` + meta tags for installable app experience (Android WebAPK, iOS standalone)
-- [ ] Deploy to staging and smoke test
-- [ ] Production data migration strategy executed
+- [x] Deploy to staging — rc.4 image built and pushed to ghcr.io
+- [x] Data migration strategy implemented — `migrate-prod-baseline.sh` with `prisma migrate deploy`, entrypoint switched, verified against prod DB copy
 
 ---
 
