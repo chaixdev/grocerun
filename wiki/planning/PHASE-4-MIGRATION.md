@@ -1,304 +1,259 @@
-# Phase 4: RxDB Local-First Migration Plan
+# Phase 4: RxDB Foundation and Active Shopping Baseline
 
-> **Status:** In Progress — read path complete, write path incomplete  
+> **Status:** Delivered baseline; strategic hardening moved to Phase 5  
 > **Branch:** `feature/phase-4-rxdb`  
 > **Created:** March 23, 2026  
-> **Estimated effort:** 16–25 working days (see breakdown below)
+> **Last updated:** June 8, 2026
 
 ---
 
-## Goal
+## Reality Check
 
-Replace React Query + REST fetching with RxDB local-first architecture. The browser
-stores all domain data in IndexedDB (via RxDB + Dexie.js), queries resolve instantly
-from the local database, and a background replication protocol syncs changes with the
-NestJS backend.
+Phase 4 started as a broad RxDB local-first migration. The implementation delivered
+a strong RxDB foundation and a partially local-first active shopping flow, but the
+next direction is no longer "make the whole app local-first."
 
+Phase 5 supersedes the broad interpretation with a narrower target:
+
+```text
+Server-first app management
++
+Local-first active shopping session
++
+Shared sync/invalidation layer for convergence
 ```
-BEFORE (Phase 3):
-  Component → useQuery() → fetch /api/v1/* → NestJS → SQLite
 
-AFTER (Phase 4):
-  Component → RxDB collection.find().$  (instant, reactive, offline-capable)
-                    ↕ background sync
-              NestJS sync endpoints → SQLite
-```
+This Phase 4 document records what was delivered, what remains useful, and what has
+been moved to [Phase 5: Active Shopping Sync Simplification](./PHASE-5-SIMPLIFICATION.md).
 
 ---
 
-## Current State (Phase 3 Complete)
+## Original Goal
 
-- **8 queries, 18 mutations, 2 plain async functions** on the client via React Query
-- **30 API endpoints** on the NestJS backend (28 authenticated)
-- **6 domain models** to replicate: Household, Store, Section, Item, List, ListItem
-- **3 models** that stay server-only: User/Account/Session (NextAuth), Invitation (ephemeral)
-- **No offline support, no service workers, no local persistence** currently
-- Auth: `/api/token` returns JWT, stored in memory, sent as Bearer — designed for RxDB
-  compatibility (ADR 006)
+The original Phase 4 goal was to replace React Query + REST fetching with RxDB-backed
+local state:
 
-### Sync-Relevant Schema Gaps
+```text
+BEFORE:
+  Component -> useQuery() -> /api/v1/* -> NestJS -> SQLite
 
-| Gap | Impact |
-|-----|--------|
-| No soft-delete (`deleted` field) on any model | RxDB replication requires tombstones |
-| No `updatedAt` on User model | Can't sync user profile changes |
-| Implicit M:N join table `_HouseholdToUser` | RxDB can't sync what it can't see |
-| `Item.purchaseCount` / `lastPurchased` are server-computed | Can't be naively synced from client |
-| All deletes are hard deletes (`prisma.*.delete()`) | Deleted records reappear on offline clients |
-| No composite index on `(updatedAt, id)` | Needed for efficient pull queries |
+AFTER:
+  Component -> RxDB observable query -> IndexedDB
+                         <-> sync protocol <-> NestJS -> SQLite
+```
+
+That goal was useful as a migration vector, but it was broader than the product need.
+The strongest product need is offline-resilient active shopping with live partner
+updates when online.
 
 ---
 
-## Decision Gates
+## Delivered in Phase 4
 
-### Decision 1: RxDB vs. Alternatives
+### Client foundation
 
-**Resolved: RxDB + Dexie.js (free tier)**
+- RxDB + Dexie installed in the web app.
+- Local database singleton created in `apps/web/src/core/rxdb/database.ts`.
+- RxDB schemas created for six collections:
+  - `households`
+  - `stores`
+  - `sections`
+  - `items`
+  - `lists`
+  - `listItems`
+- React Query removed.
+- Server Actions removed from normal app data flow.
+- Client pages converted to client-rendered shells using custom hooks.
+- Main reads moved to RxDB subscriptions/read-through local cache.
 
-| Considered | Outcome |
-|-----------|---------|
-| RxDB + Dexie.js | **Selected** — proven sync protocol, reactive queries, free replication, multi-tab, sufficient for our data volumes |
-| RxDB + Premium storage | Not needed — Dexie over IndexedDB is fine for hundreds of documents per household |
-| Electric SQL | Rejected — requires Postgres, we use SQLite |
-| PowerSync | Rejected — commercial SaaS, less self-hosted control |
-| Custom sync + Dexie alone | Rejected — building conflict resolution, checkpoints, multi-tab from scratch is weeks of work |
+### Server sync foundation
 
-**Licensing validated:** RxDB core + replication protocol + Dexie adapter are all Apache-2.0.
-Dexie Cloud (paid) is their hosted sync service — irrelevant to us since we sync against our
-own NestJS backend. RxDB Premium (paid) is faster storage adapters — unnecessary for grocery
-list data volumes.
+- Sync module added to NestJS.
+- Pull/push/stream endpoints implemented under `/api/v1/sync/*`.
+- Pull replication implemented for six collections.
+- Push handlers implemented on the server for six collections.
+- Soft-delete fields added to domain models to support tombstones.
+- SSE stream implemented for resync notifications.
+- Server-side notifications added to several REST mutation paths.
 
-### Decision 2: Soft-Delete Migration Strategy
+### Active shopping baseline
 
-**Resolved: A. Big bang — single migration for all 6 models.** See [ADR 007](../adr/007-phase4-local-first-strategy.md) §Decision 1.
+- `item` push replication enabled on the client.
+- `listItem` push replication enabled on the client.
+- Local-first shopping mutations implemented for:
+  - add item to list
+  - remove item from list
+  - toggle checked state
+  - update quantity / purchased quantity
+- Item autocomplete reads from local RxDB item data.
+- Shopping lock model exists via `List.assignedTo`.
 
-### Decision 3: Conflict Resolution Strategy
+### Operations still intentionally server-first
 
-**Resolved: Server wins + shopping lock + guard rails.** See [ADR 007](../adr/007-phase4-local-first-strategy.md) §Decision 2.
-
-### Decision 4: What Stays Server-Authoritative?
-
-**Resolved: full mutation table in ADR.** See [ADR 007](../adr/007-phase4-local-first-strategy.md) §Decision 3.
-
-### Decision 5: Migration Approach (Gradual vs. Big Bang)
-
-**Resolved: B. Collection-by-collection**
-
-Start with one collection end-to-end (Section as proof of concept), validate sync works,
-then add collections incrementally per the 4a/4b/4c sequencing plan. The coexistence risk
-is mitigated by migrating per-model fully — no model is ever half in one layer and half in
-another. The hook interface (Decision 6) ensures components are unaffected during transition.
-
-### Decision 6: React Query Coexistence
-
-**Resolved: C. Same hook interface, new implementation**
-
-Hooks like `useStore(id)` keep their call signature but swap internals from
-`useQuery(fetch...)` to `collection.findOne().$` observable. Components never change.
-The hook file is the migration boundary. Once all hooks are migrated, React Query is
-removed as an unused dependency. Option B (React Query reading from RxDB) was rejected
-as pointless indirection — React Query's caching model adds nothing when the data is
-already local.
-
----
-
-## Effort Estimate
-
-| Work Package | Effort | Risk |
-|-------------|--------|------|
-| Backend: Soft-delete migration (Prisma schema + service changes) | 2–3 days | Medium |
-| Backend: Sync endpoints (pull/push/stream, generic handler) | 3–4 days | High |
-| Backend: Conflict guards (uniqueness, state machine) | 1–2 days | Medium |
-| Frontend: RxDB setup (install, schemas, DB init, multi-tab) | 1–2 days | Low |
-| Frontend: Replication config (per-collection, auth headers) | 2–3 days | High |
-| Frontend: Rewire hooks (RxDB observables replace React Query) | 3–5 days | Medium |
-| Frontend: Offline UX (network indicator, pending state) | 1–2 days | Low |
-| Frontend: Remove React Query + cleanup | 1 day | Low |
-| Testing: Sync correctness (offline/online, conflicts, multi-tab) | 2–3 days | High |
-| **Total** | **16–25 days** | |
+- Start shopping.
+- Cancel shopping.
+- Complete shopping trip.
+- Household creation/deletion/leave/join.
+- Invitations.
+- Store CRUD.
+- Section CRUD and reorder.
+- Profile/auth.
 
 ---
 
-## High-Risk Chokepoints
+## Important Delivered Tradeoffs
 
-1. **Soft-delete is prerequisite for everything** — can't test sync without tombstones. Should
-   be done first, possibly before Phase 4 proper (backward-compatible backend change).
+### React Query was removed
 
-2. **Sync endpoint contract** — the pull/push/stream protocol is the hardest part. Once one
-   collection works end-to-end, the rest are mechanical. Prototype with simplest model
-   (`Section` — 4 fields, no relations, no server-computed state).
+This was intentional and remains defensible. RxDB is now the durable local data
+source and reactive query layer. Keeping React Query in front of RxDB would create
+a second cache with unclear authority.
 
-3. **`completeList` transaction** — atomically sets status, increments `purchaseCount` on
-   items, sets `lastPurchased`. Client writes `list.status = COMPLETED` locally, but the
-   purchaseCount side-effect must happen server-side during push. Needs custom push handler.
+### Broad reads are local, broad writes are not
 
-4. **Implicit M:N join table** (`_HouseholdToUser`) — Prisma manages this silently. RxDB
-   can't sync it. Options: model explicitly, or treat household membership as
-   server-authoritative (recommended).
+Phase 4 moved many reads to RxDB, including households/stores/sections/lists needed
+to render app screens. That does not imply all writes should become local-first.
 
-5. **Uniqueness constraints** — `Item[storeId, name]` and `ListItem[listId, itemId]` are
-   enforced at DB level. Offline clients could create duplicates that conflict on sync.
+Phase 5 keeps the useful read-through cache where it supports shopping UX, but avoids
+expanding local-first writes into admin/config domains without a strong product reason.
 
----
+### Sync exists, but robustness is incomplete
 
-## Sync Protocol Requirements
+The sync architecture is functional enough to prove the model, but not yet robust
+enough to treat as complete offline/collaborative infrastructure.
 
-RxDB replication expects 3 server endpoints per collection:
+Known risk areas moved to Phase 5:
 
-### Pull: `GET /sync/:collection/pull`
-
-```
-Query: ?updatedAt=<timestamp>&id=<lastId>&batchSize=<n>
-Response: {
-  documents: [{ id, ...fields, updatedAt, _deleted }],
-  checkpoint: { id, updatedAt }
-}
-```
-
-Server SQL: `WHERE (updatedAt > ? OR (updatedAt = ? AND id > ?)) ORDER BY updatedAt ASC, id ASC LIMIT ?`
-
-### Push: `POST /sync/:collection/push`
-
-```
-Body: [{ newDocumentState, assumedMasterState }]
-Response: [conflicting master states]  // empty array = all succeeded
-```
-
-Server compares `assumedMasterState.updatedAt` with actual DB state. Mismatch = conflict.
-Server always overwrites `updatedAt` with its own timestamp (client clocks untrusted).
-
-### Stream: `GET /sync/:collection/stream` (SSE)
-
-```
-Event data: { documents: [...], checkpoint: { id, updatedAt } }
-Special event: "RESYNC" (tells client to re-pull from checkpoint)
-```
-
-For 6 collections = 18 endpoints (shareable via generic handler parameterized by model).
+- token refresh inside replication
+- targeted invalidation instead of broad/manual resync
+- tombstone propagation for cascaded deletes
+- duplicate item/list-item conflict handling
+- shopping lock enforcement in sync push
+- UI jitter from optimistic state vs. remote pulls
+- stale local data after membership/access changes
 
 ---
 
-## Data Model for Sync
+## What Was Ported to Phase 5
 
-### Models to replicate (6):
+The following work is no longer considered remaining Phase 4 implementation. It is
+now Phase 5 refocus/simplification work.
 
-| Model | Fields | Sync Notes |
-|-------|--------|------------|
-| Household | id, name, ownerId, createdAt, updatedAt | M:N with User handled server-side |
-| Store | id, name, location, imageUrl, householdId, createdAt, updatedAt | Cascade delete → soft-delete cascade |
-| Section | id, name, order, storeId, createdAt, updatedAt | Reorder conflicts possible |
-| Item | id, name, storeId, sectionId, purchaseCount, lastPurchased, defaultUnit, createdAt, updatedAt | purchaseCount is server-authoritative |
-| List | id, name, storeId, status, createdAt, updatedAt | State machine: PLANNING→SHOPPING→COMPLETED |
-| ListItem | id, listId, itemId, isChecked, quantity, unit, purchasedQuantity, createdAt, updatedAt | Highest mutation frequency |
+### Ported: sync hardening
 
-### Models that stay server-only (not synced):
+- Refresh JWTs from RxDB pull/push/SSE paths.
+- Surface delayed/failed sync in active shopping.
+- Make diagnostics optional and non-critical.
 
-| Model | Reason |
-|-------|--------|
-| User, Account, Session, VerificationToken | NextAuth-managed |
-| Invitation | Ephemeral token-based flow, no offline use case |
+### Ported: invalidation simplification
+
+- Replace scattered `resync*()` calls and broad `RESYNC` usage with targeted
+  server-originated invalidation.
+- Centralize sync notification in one server helper.
+
+### Ported: tombstone correctness
+
+- Ensure normal pull replication can deliver deleted rows after store/household
+  deletes and membership changes.
+- Reduce reliance on special `HOUSEHOLD_REMOVED` cleanup as the only correctness path.
+
+### Ported: write-scope reduction
+
+- Keep local-first writes focused on active shopping.
+- Do not expand local-first writes to households, stores, sections, membership,
+  invitations, profile, or other admin/config domains by default.
+- Delete or disable unused push paths for non-local-first collections.
+
+### Ported: active shopping robustness
+
+- Enforce shopping lock in sync push handlers.
+- Canonicalize duplicate item/list-item pushes.
+- Define simple server-authoritative conflict rules.
+
+### Ported: UI jitter reduction
+
+- Track pending local writes separately from server-confirmed state.
+- Avoid optimistic state snap-back during active edits.
+- Flush debounced writes safely.
+- Narrow subscriptions/recomputes.
+
+### Ported: transitional cleanup
+
+- Remove dead migration scaffolding.
+- Remove stale broad local-first assumptions from code and docs.
+- Keep polling only as degraded fallback.
 
 ---
 
-## Recommended Sequencing
+## Current Architecture After Phase 4
 
-### Pre-Phase 4 (can start now, backward-compatible):
-1. ~~Resolve Decision Gates 2–6~~ — **DONE** (see ADR 007)
-2. ~~Write ADR 007 documenting decisions~~ — **DONE**
-3. Backend: Add `deleted` field + soft-delete to all 6 domain models
+```text
+Browser UI
+  -> custom hooks
+  -> RxDB / IndexedDB local reads
+  -> local item/listItem writes for shopping actions
+  -> RxDB push replication for item/listItem
+  -> NestJS sync endpoints
+  -> Prisma / SQLite
+  -> SSE resync notification
+  -> client pull replication
+  -> RxDB
+  -> UI
+```
 
-### Phase 4a — Proof of Concept (1 collection end-to-end):
-4. Backend: Build generic sync endpoints, test with `Section` collection
-5. Frontend: Install RxDB + Dexie, create `Section` schema, wire replication
-6. Frontend: Swap `useSections` hook to read from RxDB
-7. Validate: sync, multi-tab, offline edit → reconnect → sync
+REST still handles server-first commands:
 
-### Phase 4b — Core Shopping Flow:
-8. Add `List`, `ListItem`, `Item` collections + replication
-9. Swap list/item hooks to RxDB
-10. Wire `ItemAutocomplete` to local RxDB query (instant search)
-11. Custom push handler for `completeList` side-effects
+```text
+Browser UI
+  -> REST command
+  -> NestJS service
+  -> Prisma / SQLite
+  -> SSE notification where implemented
+  -> client pull replication
+  -> RxDB
+  -> UI
+```
 
-### Phase 4c — Full Offline + Cleanup:
-12. Add `Store`, `Household` collections + replication
-13. Swap remaining hooks, add offline UX (network indicator)
-14. Remove React Query entirely
-15. E2E testing of offline scenarios
+The Phase 5 goal is to make those two paths converge through one consistent
+invalidation and RxDB-pull model.
 
-### Follow-on Work
+---
 
-Post-Phase-4 simplification and hardening is tracked in a dedicated document:
+## Phase 4 Completion Criteria
 
-- [Phase 5: Simplification / 3am Hardening](./PHASE-5-SIMPLIFICATION.md)
+Phase 4 should be considered complete as a foundation when these statements are true:
 
-> **Note:** Phase 5 work was started before Phase 4 was complete. The sync service
-> split, client replication simplification, and dependency trimming done under Phase 5
-> are valid and do not need to be undone — but the Phase 4 write path (local-first
-> mutations) must be completed before Phase 4 is considered done.
+- The app has an RxDB/Dexie local database.
+- The main domain collections can pull from the server.
+- Active shopping item/list-item operations can write locally.
+- The server can receive pushed item/list-item changes.
+- Client UI reads shared shopping state from RxDB.
+- React Query and Server Actions are no longer the normal app data layer.
 
-### What Is Complete (Phase 4)
+Those criteria have been met enough to move to Phase 5.
 
-- All 6 collections synced via RxDB pull replication ✓
-- SSE stream + 5s periodic resync ✓
-- Soft-delete on all 6 domain models ✓
-- Household scope changes: `HOUSEHOLD_REMOVED` SSE event + local subtree purge ✓
-- Shopping lock (`List.assignedTo`) ✓
-- React Query fully removed ✓
-- Running in staging ✓
+---
 
-### What Is Remaining (Phase 4)
+## Non-Goals for Phase 4
 
-The **write path** was never implemented. Every mutation in the codebase is REST-only —
-it calls the server directly with no local write. If the network is unavailable, the
-mutation fails immediately.
+These are explicitly not Phase 4 completion blockers anymore:
 
-Per ADR 007 Decision 3, the following operations are designated **local-first** and must
-write to RxDB first, with push replication syncing to the server in the background:
+- Whole-app local-first writes.
+- Offline household/store/section administration.
+- Offline invitations or membership changes.
+- Fully robust conflict handling.
+- Fully robust tombstone retention/purge policy.
+- Polished pending-sync UI.
+- Production-grade multi-process SSE fanout.
 
-| Operation | Hook | Priority |
-|-----------|------|----------|
-| `toggleListItem` | `useToggleItem` | Critical — happens constantly in-store |
-| `updateListItemQuantity` | `useUpdateItemQuantity` | Critical — same context |
-| `addItemToList` | `useAddItem` | High |
-| `removeItemFromList` | `useRemoveItem` | High |
-| `createList` | `useCreateList` | High |
-| `createStore` | `useCreateStore` | Medium |
-| `updateStore` | `useUpdateStore` | Medium |
-| `deleteStore` | `useDeleteStore` | Medium |
-| `createSection` | `useCreateSection` | Medium |
-| `updateSection` | `useUpdateSection` | Medium |
-| `deleteSection` | `useDeleteSection` | Medium |
-| `reorderSections` | `useReorderSections` | Low — bulk atomic, may stay server-auth |
-| `updateItem` | `useUpdateItem` | Medium |
-
-The server-authoritative operations in ADR 007 Decision 3 (`startShopping`,
-`completeList`, `createHousehold`, household membership operations) are correctly
-implemented as REST-only and require no changes.
-
-### Post-Refactor Household Management Gaps
-
-These are intentionally out of scope for the RxDB refactor and should be handled as
-follow-up product work after Phase 4 stabilizes:
-
-- Ownership transfer between household members
-- Household member list UI
-- Owner ability to remove/kick a member
-- Better delete/leave flows for multi-member households
-- Clearer membership/admin policies for edge cases (legacy households, sole owner leaving, etc.)
-
-Current product rule during the refactor:
-
-- A household owner may delete a household only when they are the sole remaining member
-- Multi-member household deletion is blocked in the UI and by the backend
+They are either Phase 5 work or future product work.
 
 ---
 
 ## References
 
-- [ADR 002: Evolutive Architecture](../adr/002-evolutive-architecture.md) — Phase 4 definition
-- [ADR 003: JWT Authentication](../adr/003-jwt-authentication.md) — Phase 4 auth pattern
-- [ADR 006: Phase 3 Auth Strategy](../adr/006-phase3-auth-strategy.md) — Token endpoint designed for RxDB compat
-- [ADR 007: Phase 4 Local-First Strategy](../adr/007-phase4-local-first-strategy.md) — Soft-delete, conflict resolution, local vs. server authority
+- [Phase 5: Active Shopping Sync Simplification](./PHASE-5-SIMPLIFICATION.md)
+- [ADR 007: Phase 4 Local-First Strategy](../adr/007-phase4-local-first-strategy.md)
 - [RxDB Documentation](https://rxdb.info/)
 - [RxDB Replication Protocol](https://rxdb.info/replication.html)
-- [Dexie.js](https://dexie.org/) — Apache-2.0 IndexedDB wrapper
+- [Dexie.js](https://dexie.org/)

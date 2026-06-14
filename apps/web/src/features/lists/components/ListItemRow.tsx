@@ -1,5 +1,6 @@
 "use client"
 
+import { useEffect, useRef, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import {
@@ -67,22 +68,58 @@ export function ListItemRow({
     const isShoppingMode = !isPlanningMode && !isReadOnly
     const isInteractionDisabled = isReadOnly || isLocked
 
+    // Optimistic checked state: flip immediately on tap without waiting for RxDB.
+    const [optimisticChecked, setOptimisticChecked] = useState(listItem.isChecked)
+    useEffect(() => {
+        setOptimisticChecked(listItem.isChecked)
+    }, [listItem.isChecked])
+
+    // Optimistic quantity state: update immediately on tap so the stepper
+    // reflects the new value without waiting for the RxDB round-trip.
+    const committedQty = isShoppingMode
+        ? (listItem.purchasedQuantity ?? listItem.quantity)
+        : listItem.quantity
+    const [optimisticQty, setOptimisticQty] = useState(committedQty)
+
+    // When RxDB emits an updated value, sync the optimistic state.
+    useEffect(() => {
+        setOptimisticQty(committedQty)
+    }, [committedQty])
+
+    // Debounce the actual mutation: fire 300ms after the last tap.
+    // Shopping-mode quantity changes implicitly check the item.
+    const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+    const flushQtyWrite = (qty: number, unit: string | undefined) => {
+        if (debounceRef.current) clearTimeout(debounceRef.current)
+        debounceRef.current = setTimeout(() => {
+            if (isPlanningMode) {
+                onUpdateQuantity?.(listItem.id, qty, unit)
+            } else {
+                // Shopping mode: quantity changes always check the item.
+                onToggle(listItem.id, true, qty)
+            }
+        }, 300)
+    }
+    // Cancel any pending write if the row unmounts.
+    useEffect(() => () => { if (debounceRef.current) clearTimeout(debounceRef.current) }, [])
+
     return (
         <div
             ref={itemRef}
             data-testid={`list-item-row-${listItem.item.name.toLowerCase().replace(/\s+/g, '-')}`}
-            className={`group flex items-center gap-3 p-3 border-b last:border-0 transition-all duration-200 ${isPlanningMode || isInteractionDisabled ? "" : "hover:bg-muted/30 cursor-pointer"} ${listItem.isChecked ? "opacity-50" : ""} ${isHighlighted ? "bg-primary/10" : ""} ${isLocked ? "opacity-70" : ""}`}
+            className={`group flex items-center gap-3 p-3 border-b last:border-0 transition-all duration-200 ${isPlanningMode || isInteractionDisabled ? "" : "hover:bg-muted/30 cursor-pointer"} ${optimisticChecked ? "opacity-50" : ""} ${isHighlighted ? "bg-primary/10" : ""} ${isLocked ? "opacity-70" : ""}`}
             onClick={() => {
                 if (!isInteractionDisabled && !isPlanningMode) {
-                    // Implicit toggle: Bought = Planned (reset purchasedQuantity to null if unchecking)
-                    onToggle(listItem.id, !listItem.isChecked, undefined)
+                    const next = !optimisticChecked
+                    setOptimisticChecked(next)
+                    onToggle(listItem.id, next, undefined)
                 }
             }}
         >
             {/* 1. Checkbox */}
             {(!isPlanningMode || isReadOnly) && (
                 <Checkbox
-                    checked={listItem.isChecked}
+                    checked={optimisticChecked}
                     onCheckedChange={() => { }} // Handled by div click
                     disabled={isInteractionDisabled}
                     className="h-5 w-5 rounded-[4px] border-muted-foreground/30 data-[state=checked]:bg-primary data-[state=checked]:border-primary transition-all shrink-0"
@@ -97,21 +134,22 @@ export function ListItemRow({
                     </span>
                 ) : (
                     <QuantityStepper
-                        value={isShoppingMode ? (listItem.purchasedQuantity ?? listItem.quantity) : listItem.quantity}
+                        value={optimisticQty}
                         unit={listItem.unit}
                         plannedValue={isShoppingMode ? listItem.quantity : undefined}
                         onChange={(qty, unit) => {
                             if (isInteractionDisabled) {
                                 return
                             }
-                            if (isPlanningMode) {
-                                onUpdateQuantity?.(listItem.id, qty, unit)
-                            } else {
-                                // Shopping Mode: Update purchasedQuantity ONLY.
-                                // User request: "modifying the quantity ... shouldn't do that [check off item]"
-                                // We pass the CURRENT isChecked state so it doesn't toggle.
-                                onToggle(listItem.id, listItem.isChecked, qty)
+                            // Optimistically update the displayed value immediately,
+                            // before the async RxDB write completes.
+                            setOptimisticQty(qty)
+                            // Shopping-mode quantity changes implicitly check the item.
+                            if (isShoppingMode && !optimisticChecked) {
+                                setOptimisticChecked(true)
                             }
+                            // Debounce the actual write so rapid taps produce one mutation.
+                            flushQtyWrite(qty, unit)
                         }}
                     />
                 )}
@@ -121,7 +159,7 @@ export function ListItemRow({
             <div className="flex-1 min-w-0 flex flex-col justify-center">
                 <span
                     data-testid="item-name"
-                    className={`text-base font-medium truncate transition-colors ${listItem.isChecked ? "line-through text-muted-foreground/70" : "text-foreground"}`}
+                    className={`text-base font-medium truncate transition-colors ${optimisticChecked ? "line-through text-muted-foreground/70" : "text-foreground"}`}
                 >
                     {listItem.item.name}
                 </span>

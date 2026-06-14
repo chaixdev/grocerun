@@ -1,4 +1,5 @@
-import { BadRequestException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException } from '@nestjs/common';
+import { Prisma } from '../../generated/prisma/client';
 import { SyncDeps } from '../sync-deps';
 import {
   PullResponse,
@@ -68,11 +69,21 @@ export async function pushItems(
       throw new BadRequestException(`Missing storeId in document ${id}`);
     }
 
-    await deps.verifyStoreAccess(storeId, userId);
+    try {
+      await deps.verifyStoreAccess(storeId, userId);
+    } catch (err) {
+      if (err instanceof ForbiddenException) {
+        // User no longer has access to this store (e.g. left the household).
+        // Return a tombstone conflict so RxDB stops retrying this row.
+        conflicts.push({ id, updatedAt: new Date().toISOString(), _deleted: true });
+        continue;
+      }
+      throw err;
+    }
 
     const current = await deps.prisma.item.findUnique({ where: { id } });
 
-    if (current && assumedMasterState !== null) {
+    if (current && assumedMasterState != null) {
       const assumedAt = new Date(assumedMasterState.updatedAt as string).getTime();
       const actualAt = current.updatedAt.getTime();
       if (assumedAt !== actualAt) {
@@ -89,6 +100,14 @@ export async function pushItems(
         });
       }
     } else if (current) {
+      // Pin updatedAt to what the client sent so assumedMasterState
+      // comparison on the next push doesn't false-conflict against
+      // Prisma's @updatedAt (which would use server time otherwise).
+      const clientUpdatedAt = newDocumentState.updatedAt;
+      const updatedAt = typeof clientUpdatedAt === 'string'
+        ? new Date(clientUpdatedAt)
+        : new Date();
+
       await deps.prisma.item.update({
         where: { id },
         data: {
@@ -97,18 +116,42 @@ export async function pushItems(
           defaultUnit: newDocumentState.defaultUnit as string | null,
           deleted: false,
           deletedAt: null,
+          updatedAt,
         },
       });
     } else {
-      await deps.prisma.item.create({
-        data: {
-          id,
-          name: newDocumentState.name as string,
-          storeId,
-          sectionId: newDocumentState.sectionId as string | null,
-          defaultUnit: newDocumentState.defaultUnit as string | null,
-        },
-      });
+      const clientUpdatedAt = newDocumentState.updatedAt;
+      const updatedAt = typeof clientUpdatedAt === 'string'
+        ? new Date(clientUpdatedAt)
+        : new Date();
+
+      try {
+        await deps.prisma.item.create({
+          data: {
+            id,
+            name: newDocumentState.name as string,
+            storeId,
+            sectionId: newDocumentState.sectionId as string | null,
+            defaultUnit: newDocumentState.defaultUnit as string | null,
+            updatedAt,
+          },
+        });
+      } catch (err) {
+        if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
+          // Duplicate (storeId, name) from another offline client —
+          // find the canonical server row so the client can reconcile.
+          const existing = await deps.prisma.item.findFirst({
+            where: { storeId, name: newDocumentState.name as string, deleted: false },
+          });
+          if (existing) {
+            conflicts.push(itemToSyncDoc(existing));
+            continue;
+          }
+          // Edge case: unique constraint hit but item not returned
+          // (e.g. soft-deleted with same name). Re-throw.
+        }
+        throw err;
+      }
     }
   }
 

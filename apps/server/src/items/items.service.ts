@@ -1,9 +1,10 @@
 import { z } from 'zod'; // Import z from zod
 import { SearchItemsSchema } from '@grocerun/dto';
 
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { UpdateItemDto } from './dto/update-item.dto';
+import { SseBroadcastService } from '../sync/sse-broadcast.service';
 
 type SearchItemsParams = z.infer<typeof SearchItemsSchema>;
 
@@ -15,7 +16,12 @@ type GetTopItemsDto = {
 
 @Injectable()
 export class ItemsService {
-  constructor(private prisma: PrismaService) {}
+  private readonly logger = new Logger(ItemsService.name);
+
+  constructor(
+    private prisma: PrismaService,
+    private sseBroadcast: SseBroadcastService,
+  ) {}
 
   // Phase 2 methods
   async updateItem(itemId: string, dto: UpdateItemDto, userId: string) {
@@ -56,6 +62,22 @@ export class ItemsService {
         defaultUnit: dto.defaultUnit || null,
       },
     });
+
+    // 3. Notify other household members via SSE (fire-and-forget —
+    //    failure must never block the REST response).
+    try {
+      const storeWithHousehold = await this.prisma.store.findUnique({
+        where: { id: item.storeId },
+        select: { household: { select: { users: { select: { id: true } } } } },
+      });
+      const memberIds = storeWithHousehold?.household?.users?.map(u => u.id) ?? [];
+      this.sseBroadcast.notifyChanged(memberIds, {
+        collections: ['item'],
+        reason: 'item-updated',
+      });
+    } catch (err) {
+      this.logger.error('Failed to notify household members about item update', err);
+    }
 
     return { status: 'UPDATED' };
   }

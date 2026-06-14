@@ -13,7 +13,7 @@ import { Response } from 'express';
  */
 @Injectable()
 export class SseBroadcastService {
-  // userId -> Set of open SSE Response objects
+  // userId -> Set of open SSE connections
   private connections = new Map<string, Set<Response>>();
 
   /**
@@ -46,6 +46,23 @@ export class SseBroadcastService {
       if (!set) continue;
       for (const res of set) {
         res.write(`event: RESYNC\ndata: {}\n\n`);
+      }
+    }
+  }
+
+  notifyChanged(userIds: string[], payload: { collections: string[]; reason: string }) {
+    const data = JSON.stringify(payload);
+    for (const userId of userIds) {
+      const set = this.connections.get(userId);
+      if (!set) continue;
+      for (const res of set) {
+        // Emit RESYNC first — backward-compatible with clients that only
+        // listen for the older event name (e.g. stale browser tabs / HMR
+        // sessions that haven't picked up the SYNC_CHANGED listener yet).
+        res.write(`event: RESYNC\ndata: {}\n\n`);
+        // Then emit SYNC_CHANGED with metadata so newer clients can make
+        // smarter decisions (targeted collection pulls, diagnostics, etc.)
+        res.write(`event: SYNC_CHANGED\ndata: ${data}\n\n`);
       }
     }
   }
