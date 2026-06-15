@@ -3,14 +3,31 @@
 Canonical coding standards, conventions, and contributor guidance.
 
 These documents define **how** work is done. They are stable, accepted truth —
-not proposals or works-in-progress.
+not proposals or works-in-progress. Rules apply to both human contributors
+and AI agents.
+
+## Structure
+
+- **`coding-standards.md`** — Portable TypeScript/Node/React/NestJS best
+  practices. Reusable across projects in the same stack.
+- **Topic-level rules** — Project-specific conventions, grouped by domain.
+  These enforce consistency and prevent regressions against known patterns.
 
 ## For Agents
 
 The `grocerun-coding-style` skill provides a fast navigation map from concern
-tracks to specific sections of `coding-standards.md`. Load it before any
+tracks to specific sections of these rule files. Load it before any
 implementation, refactor, or review task.
 
 ## Documents
 
-- `coding-standards.md` — TypeScript, React, NestJS, Prisma, RxDB, testing, and git standards
+| File | Scope |
+|------|-------|
+| [`coding-standards.md`](./coding-standards.md) | Portable universal rules — TypeScript, error handling, logging, git |
+| [`testing-standards.md`](./testing-standards.md) | Testing pyramid, tooling, integration/component/e2e conventions |
+| [`prisma.md`](./prisma.md) | Soft-delete, query patterns, transactions, migrations |
+| [`nestjs.md`](./nestjs.md) | Module structure, controller/service patterns, validation |
+| [`react.md`](./react.md) | File organization, hooks, component structure, state architecture |
+| [`rxdb.md`](./rxdb.md) | Replication, schema, local-first write patterns, offline persistence |
+| [`auth.md`](./auth.md) | OIDC, JWT, guard patterns, shopping lock identity |
+| [`monorepo-boundaries.md`](./monorepo-boundaries.md) | Import rules, shared code, documentation hierarchy |

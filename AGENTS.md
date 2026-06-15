@@ -43,7 +43,7 @@ lives in `planning/`.
 
 When delegating implementation or review tasks, always load:
 
-- `grocerun-coding-style` — Concern track → coding standards section mapping
+- `grocerun-coding-style` — Concern track → rule file mapping
 - `grocerun-knowledge-sources` — Project documentation pointers
 
 The deep reviewer automatically loads both.
