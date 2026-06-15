@@ -27,8 +27,9 @@ The canonical project status is at:
 grocerun-local/
 ├── apps/
 │   ├── web/          # Next.js frontend (port 3000)
-│   └── server/       # NestJS backend (port 3001)
-├── packages/         # Shared code (future)
+│   ├── server/       # NestJS backend (port 3001)
+│   └── _shared/      # Shared app source
+│       └── dtos/     # Shared DTOs (Zod schemas)
 └── wiki/             # Documentation
 ```
 
@@ -153,7 +154,7 @@ Server Action → HTTP Fetch (JWT) → NestJS API → Prisma → SQLite
 **Key Technical Decisions:**
 - No feature flags — direct replacement per domain
 - JWT signing pattern: `SignJWT` from `jose`, signed with `AUTH_SECRET`
-- Shared DTOs (`packages/dto`) kept clean — web-only fields (e.g. `storeId` for revalidation) use local `.extend()` in action files
+- Shared DTOs (`apps/_shared/dtos`) kept clean — web-only fields (e.g. `storeId` for revalidation) use local `.extend()` in action files
 - `GET /household-overview` reused for both `getDashboardData()` and `getStoreDirectoryData()`
 - Auth infrastructure (`PrismaAdapter` in `auth.ts`) intentionally kept — NextAuth sessions still use Prisma directly
 

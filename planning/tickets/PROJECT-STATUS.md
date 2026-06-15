@@ -29,9 +29,9 @@ grocerun/
 ├── apps/
 │   ├── web/          # Vite SPA frontend (port 3000)
 │   ├── server/       # NestJS backend (port 3001)
-│   └── e2e/          # Playwright end-to-end tests
-├── packages/
-│   └── dto/          # Shared DTOs (Zod schemas)
+│   ├── e2e/          # Playwright end-to-end tests
+│   └── _shared/
+│       └── dtos/     # Shared DTOs (Zod schemas)
 ├── wiki/             # Canonical documentation (truth)
 │   ├── adr/          # Architecture Decision Records
 │   ├── architecture/ # System architecture docs

@@ -1,7 +1,7 @@
 # Codebase Audit — June 2026 (Comprehensive)
 
 ## Scope
-Entire grocerun monorepo: `apps/web`, `apps/server`, `packages/dto`, cross-cutting concerns, documentation.
+Entire grocerun monorepo: `apps/web`, `apps/server`, `apps/_shared/dtos`, cross-cutting concerns, documentation.
 
 ## Philosophy
 > "The best part is no part. Code is a liability. Every line is a potential bug."
@@ -111,7 +111,7 @@ apps/web/src/
 |---------|---------------|---------|
 | Auth (server) | JWT via oidc-spa, AuthGuard, SSE query-token fallback | ✅ Solid |
 | Auth (client) | OIDC singleton, Bearer token on all requests, 401 retry | ✅ Solid |
-| Validation | Zod schemas in `packages/dto`, global ZodValidationPipe in NestJS | ✅ Solid |
+| Validation | Zod schemas in `apps/_shared/dtos`, global ZodValidationPipe in NestJS | ✅ Solid |
 | Soft-delete | Prisma filter `deleted: false` on 6 domain models | ⚠️ One module misses it |
 | Notifications | Manual `this.notify.byStore()` in every service method | ⚠️ Boilerplate; no interceptor |
 | Error handling | Thrown NestJS exceptions + discriminated union result type | ⚠️ Inconsistent |

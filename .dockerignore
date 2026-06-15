@@ -6,7 +6,7 @@
 # Dependencies (installed in Docker build)
 node_modules
 apps/*/node_modules
-packages/*/node_modules
+apps/_shared/*/node_modules
 
 # Build outputs (rebuilt in Docker)
 apps/web/.next
@@ -28,7 +28,7 @@ apps/*/*.db
 # Docs
 wiki
 *.md
-!packages/dto/README.md
+!apps/_shared/dtos/README.md
 
 # Test artifacts
 test-results
@@ -42,4 +42,4 @@ Thumbs.db
 # Turbo cache
 .turbo
 apps/*/.turbo
-packages/*/.turbo
+apps/_shared/*/.turbo

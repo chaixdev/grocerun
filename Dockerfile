@@ -11,11 +11,11 @@ COPY package.json package-lock.json* ./
 COPY turbo.json ./
 COPY apps/web/package.json ./apps/web/
 COPY apps/server/package.json ./apps/server/
-COPY packages/dto/package.json ./packages/dto/
+COPY apps/_shared/dtos/package.json ./apps/_shared/dtos/
 
 RUN --mount=type=cache,target=/root/.npm npm ci
 
-# ── Stage 3: Build server, SPA, and shared packages ──
+# ── Stage 3: Build server, SPA, and shared workspaces ──
 FROM base AS builder
 WORKDIR /app
 
@@ -47,11 +47,11 @@ COPY package.json package-lock.json* ./
 COPY turbo.json ./
 COPY apps/web/package.json ./apps/web/
 COPY apps/server/package.json ./apps/server/
-COPY packages/dto/package.json ./packages/dto/
+COPY apps/_shared/dtos/package.json ./apps/_shared/dtos/
 
 RUN --mount=type=cache,target=/root/.npm npm ci --omit=dev --workspace apps/server --include-workspace-root=false
 
-# Strip packages unnecessary at runtime.
+# Strip dependencies unnecessary at runtime.
 # - typescript: pulled by @prisma/client but not needed at runtime (~23MB)
 # - @electric-sql: extraneous on Linux, only needed by @prisma/dev for PG (~25MB)
 # - sharp + @img + next: legacy from Next.js era if still present
@@ -89,8 +89,8 @@ COPY --from=builder /app/apps/server/prisma.config.ts ./apps/server/
 COPY --from=builder /app/apps/web/dist ./apps/web/dist
 
 # Shared DTO workspace package.
-COPY --from=builder /app/packages/dto/dist ./packages/dto/dist
-COPY --from=builder /app/packages/dto/package.json ./packages/dto/
+COPY --from=builder /app/apps/_shared/dtos/dist ./apps/_shared/dtos/dist
+COPY --from=builder /app/apps/_shared/dtos/package.json ./apps/_shared/dtos/
 
 COPY --chown=grocerun:grocerun scripts/docker-entrypoint.sh ./
 

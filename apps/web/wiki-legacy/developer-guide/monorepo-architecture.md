@@ -10,7 +10,7 @@ grocerun-local/
 ├── apps/
 │   ├── web/          # Next.js frontend (port 3000)
 │   └── server/       # NestJS backend (port 3001)
-├── packages/         # Shared libraries (future)
+├── apps/_shared/     # Shared app source
 ├── .nvmrc            # Node version (22)
 └── package.json      # Root workspace config
 ```

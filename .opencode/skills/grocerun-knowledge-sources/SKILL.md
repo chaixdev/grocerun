@@ -51,7 +51,7 @@ It contains the current phase, completed work, open questions, and next steps.
 | Auth | oidc-spa (Google-only OIDC) | `apps/web/src/core/auth/` |
 | Data Fetching | React Query 5 | `apps/web/src/features/*/hooks/` |
 | Local DB | RxDB + Dexie.js | `apps/web/src/core/rxdb/` |
-| Validation | Zod | Shared in `packages/dto/` |
+| Validation | Zod | Shared in `apps/_shared/dtos/` |
 | E2E | Playwright | `apps/e2e/` |
 | Monorepo | Turborepo + npm workspaces | Root `package.json`, `turbo.json` |
 
@@ -61,7 +61,7 @@ It contains the current phase, completed work, open questions, and next steps.
 npm run dev          # Start both apps (Vite :3000, NestJS :3001)
 npm test             # Run unit tests
 npm run lint         # Run linting
-npm run build        # Build all packages
+npm run build        # Build all workspaces
 ```
 
 NestJS-specific:

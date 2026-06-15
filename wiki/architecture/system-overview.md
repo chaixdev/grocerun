@@ -26,7 +26,7 @@ graph LR
 | `apps/web/src/core/rxdb` | Browser database singleton, RxDB schemas, replication setup, SSE resync handling. |
 | `apps/web/src/core/auth` | oidc-spa singleton, app auth facade, mobile token-cache fallback, route auth guard. |
 | `apps/server` | NestJS REST API, sync API, static SPA serving in production, auth validation. |
-| `packages/dto` | Shared Zod DTOs for API boundary validation. |
+| `apps/_shared/dtos` | Shared Zod DTOs for API boundary validation. |
 | `apps/server/prisma` | SQLite schema, migrations, Prisma client generation. |
 | `apps/e2e` | Playwright critical journeys. |
 
@@ -70,7 +70,7 @@ graph LR
 
 - Browser is the primary application runtime; no Next.js/BFF layer is active.
 - NestJS owns server-side persistence and API authorization.
-- Shared DTOs in `packages/dto` define API input/output contracts.
+- Shared DTOs in `apps/_shared/dtos` define API input/output contracts.
 - Local-first behavior depends on IndexedDB availability and RxDB replication.
 - Google OIDC is currently the only supported identity provider.
 - Production must set `OIDC_AUDIENCE` to the Google client ID.

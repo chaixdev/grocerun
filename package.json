@@ -5,7 +5,7 @@
   "packageManager": "npm@10.9.4",
   "workspaces": [
     "apps/*",
-    "packages/*"
+    "apps/_shared/*"
   ],
   "scripts": {
     "dev": "turbo dev",
