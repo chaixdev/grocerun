@@ -13,7 +13,7 @@ description: >
 ### Canonical Documentation (`wiki/`)
 Stable, accepted truth about the project:
 
-- **ADR** (`wiki/adr/`) — Architecture Decision Records (7 records: API approach, evolutive architecture, JWT auth, feature flags, e2e testing, auth strategy, local-first strategy)
+- **ADR** (`wiki/adr/`) — Architecture Decision Records, including superseded NextAuth-era auth decisions and current local-first/auth restoration decisions
 - **Architecture** (`wiki/architecture/`) — Domain model, system viewpoints
 - **Rules** (`wiki/rules/`) — Coding standards, testing conventions, API design guidelines
 - **Patterns** (`wiki/patterns/`) — Stable implementation mechanisms (sync, auth, feature flags)
@@ -32,7 +32,8 @@ Current and future work — not yet canonical:
 It contains the current phase, completed work, open questions, and next steps.
 
 ### External Documentation
-- **Next.js**: Latest docs at https://nextjs.org/docs (App Router)
+- **Vite**: Latest docs at https://vite.dev/guide/
+- **TanStack Router**: Latest docs at https://tanstack.com/router/latest
 - **NestJS**: Latest docs at https://docs.nestjs.com
 - **Prisma**: Latest docs at https://www.prisma.io/docs
 - **TanStack Query**: Latest docs at https://tanstack.com/query/latest
@@ -43,13 +44,13 @@ It contains the current phase, completed work, open questions, and next steps.
 
 | Layer | Technology | Location |
 |-------|-----------|----------|
-| Frontend | Next.js 16 (App Router) | `apps/web/` |
-| Backend | NestJS 10 | `apps/server/` |
+| Frontend | Vite 6 + React 19 + TanStack Router | `apps/web/` |
+| Backend | NestJS 11 | `apps/server/` |
 | ORM | Prisma 7 | `apps/server/prisma/` |
 | Database | SQLite | `apps/server/dev.db` |
-| Auth | NextAuth 5 (Google OAuth) | `apps/web/src/core/auth/` |
+| Auth | oidc-spa (Google-only OIDC) | `apps/web/src/core/auth/` |
 | Data Fetching | React Query 5 | `apps/web/src/features/*/hooks/` |
-| Local DB | RxDB + Dexie.js (Phase 4) | `apps/web/src/core/db/` |
+| Local DB | RxDB + Dexie.js | `apps/web/src/core/rxdb/` |
 | Validation | Zod | Shared in `packages/dto/` |
 | E2E | Playwright | `apps/e2e/` |
 | Monorepo | Turborepo + npm workspaces | Root `package.json`, `turbo.json` |
@@ -57,7 +58,7 @@ It contains the current phase, completed work, open questions, and next steps.
 ## Common Commands
 
 ```bash
-npm run dev          # Start both apps (Next.js :3000, NestJS :3001)
+npm run dev          # Start both apps (Vite :3000, NestJS :3001)
 npm test             # Run unit tests
 npm run lint         # Run linting
 npm run build        # Build all packages
@@ -74,8 +75,10 @@ npx prisma studio         # Open database browser
 ## Key Files
 
 - Root config: `package.json`, `turbo.json`, `.nvmrc`
-- Frontend entry: `apps/web/next.config.mjs`
+- Frontend config: `apps/web/vite.config.ts`
+- Frontend root route/auth bootstrap: `apps/web/src/routes/__root.tsx`
 - API client: `apps/web/src/core/lib/api.ts`
-- Auth token: `apps/web/src/core/lib/auth-token.ts`
+- App auth facade: `apps/web/src/core/auth/session.ts`
+- OIDC singleton: `apps/web/src/core/auth/oidc.ts`
 - DB schema: `apps/server/prisma/schema.prisma`
 - Auth guard: `apps/server/src/auth/auth.guard.ts`

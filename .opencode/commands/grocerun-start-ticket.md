@@ -1,20 +1,26 @@
 ---
-description: Start work on a planning ticket or user story
+description: Legacy alias for /grocerun-plan. Analyze or refine a planning ticket before implementation.
 ---
 
-# Start Ticket Workflow
+# Start Ticket Workflow (Legacy)
 
-Load the `grocerun-ticket-analyzer` skill and the `grocerun-knowledge-sources` skill.
+Prefer `/grocerun-plan` for new work. This command remains as a compatibility
+alias for existing muscle memory.
+
+Load the `grocerun-planning-ticket-notes`, `grocerun-ticket-analyzer`,
+`grocerun-architecture-alignment`, `grocerun-test-impact`,
+`grocerun-knowledge-sources`, and `grocerun-coding-style` skills.
 
 ---
 
 ## Instructions
 
-1. Read the ticket from `planning/tickets/` or the user story from `planning/tickets/user-stories/`
-2. Run the Clarity Gate assessment (Phase 0 from `grocerun-ticket-analyzer`)
+1. Read the ticket from `planning/tickets/`, user story, intake item, or brainstorm document.
+2. Run the Clarity Gate assessment (Phase 0 from `grocerun-ticket-analyzer`).
 3. If CLARIFY or REJECT: present the questions to the user and STOP
-4. If PROCEED: run the full Phase 1 analysis (codebase exploration, solution designs)
-5. Present the analysis for user approval before writing any code
+4. If PROCEED: run the full Phase 1 analysis (codebase exploration, solution designs).
+5. Ensure the planning ticket includes ADR/rule context, test impact, e2e semantics, and documentation impact guess.
+6. Present the analysis for user approval before writing any code.
 
 ---
 
@@ -30,10 +36,9 @@ Proceed with the implementation. After each meaningful step:
 ## Completion
 
 ```
-1. Move ticket to done status (update status in the doc)
-2. Update the parent user story acceptance criteria if applicable
-3. Update `planning/tickets/PROJECT-STATUS.md` with progress
-4. Run `/grocerun-review` to validate the changes
+1. Update implementation notes, deviations, gotchas, and test notes in the ticket.
+2. Run `/grocerun-review` to validate the changes.
+3. Run `/grocerun-dod` before calling work complete.
 ```
 
 ## Ticket Context
