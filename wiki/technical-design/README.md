@@ -62,13 +62,18 @@ mechanism.
 
 ## Current Documents
 
-_None yet. Extract stable technical designs from implemented features as they
-become worth preserving._
+| Document | Topic |
+|---|---|
+| [`shopping-list-state-machine.md`](./shopping-list-state-machine.md) | PLANNING → SHOPPING → COMPLETED lifecycle, transition guards, and the one-active-list-per-store invariant |
+| [`shopping-mode-lock.md`](./shopping-mode-lock.md) | Lock acquisition, enforcement, and release during SHOPPING mode |
+| [`rxdb-sync-protocol.md`](./rxdb-sync-protocol.md) | RxDB push/pull replication, checkpoint pagination, conflict detection, SSE + polling fallback |
+| [`soft-delete-cascade.md`](./soft-delete-cascade.md) | Soft-delete pattern, cascade deletion order, and restore-on-create convergence |
+| [`dto-api-validation.md`](./dto-api-validation.md) | Zod-based DTO validation pipeline from shared schemas through `ZodValidationPipe` to controllers |
+| [`household-invitation-lifecycle.md`](./household-invitation-lifecycle.md) | Invitation token lifecycle, status state machine, and lazy expiry |
+| [`sse-resync-broadcast.md`](./sse-resync-broadcast.md) | In-memory SSE broadcast service, connection lifecycle, and event types |
+| [`auth-restoration.md`](./auth-restoration.md) | Mobile session restoration, localStorage token-cache fallback, and logout guard |
+| [`offline-persistence.md`](./offline-persistence.md) | RxDB/Dexie IndexedDB storage, offline write queuing, connectivity recovery, and diagnostic events |
 
-Initial candidates:
+Additional candidates:
 
-- shopping list state machine and trip-completion flow
-- shopping lock acquisition, enforcement, and release sequence
-- RxDB push/pull replication and SSE-triggered resync flow
-- mobile auth restoration token-cache fallback
-- household invitation token lifecycle
+- service layer architecture and dependency direction
