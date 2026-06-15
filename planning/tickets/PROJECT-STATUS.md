@@ -27,7 +27,7 @@ This document provides a comprehensive overview of the Grocerun project's curren
 ```
 grocerun/
 ├── apps/
-│   ├── web/          # Next.js frontend (port 3000)
+│   ├── web/          # Vite SPA frontend (port 3000)
 │   ├── server/       # NestJS backend (port 3001)
 │   └── e2e/          # Playwright end-to-end tests
 ├── packages/
@@ -36,8 +36,7 @@ grocerun/
 │   ├── adr/          # Architecture Decision Records
 │   ├── architecture/ # System architecture docs
 │   ├── rules/        # Coding standards & conventions
-│   ├── patterns/     # Stable implementation mechanisms
-│   ├── concepts/     # Durable domain abstractions
+│   ├── technical-design/ # Feature-level technical mechanics
 │   └── development/  # Developer guides & workflows
 ├── planning/         # Work-in-progress & speculative
 │   ├── tickets/      # Phase plans, user stories, designs
@@ -51,9 +50,9 @@ grocerun/
 
 | Component | Technology | Version | Purpose |
 |-----------|-----------|---------|---------|
-| Frontend | Next.js | 16.x | React framework with RxDB local-first |
+| Frontend | Vite + React | 7.x / 19.x | SPA framework with RxDB local-first |
 | Local DB | RxDB + Dexie.js | - | Offline-first reactive storage |
-| Backend | NestJS | 10.0.0 | Node.js REST + Sync API framework |
+| Backend | NestJS | 11.x | Node.js REST + Sync API framework |
 | Database | SQLite | - | Relational database (Prisma ORM) |
 | ORM | Prisma | 7.2.0 | Database client and migrations |
 | Auth | oidc-spa | 1.x | Google OIDC authentication (Google-only) |

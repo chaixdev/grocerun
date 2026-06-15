@@ -14,7 +14,7 @@ Load the `grocerun-minimum-dod`, `grocerun-documentation-extraction`,
 2. Complete the Minimum DoD checklist.
 3. Explicitly review documentation impact.
 4. Explicitly review e2e journey semantics.
-5. Verify overarching ADR/rule/pattern alignment.
+5. Verify overarching ADR/rule/technical-design alignment.
 6. Confirm verification commands run or record why deferred.
 7. Classify any review findings as fixed, deferred, rejected, or user decision needed.
 8. Update the planning ticket/final summary with the DoD result.

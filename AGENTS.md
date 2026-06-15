@@ -28,14 +28,13 @@ See `.opencode/skills/repo-dev-commands/SKILL.md` for full command reference.
 |----------------------|-------------|-------------------|
 | An architectural decision | `wiki/adr/` | `NNN-short-title.md` (numbered) |
 | A coding rule or convention | `wiki/rules/` | `topic-slug.md` |
-| A stable implementation pattern | `wiki/patterns/` | `topic-slug.md` |
-| A durable domain concept | `wiki/concepts/` | `topic-slug.md` |
+| A feature-level technical design | `wiki/technical-design/` | `topic-slug.md` |
 | A developer guide | `wiki/development/` | `topic-slug.md` |
 | A work ticket/plan | `planning/tickets/` | Descriptive slug or phase name |
 | Speculative solution exploration | `planning/brainstorm/` | `YYYY-MM-DDTHHMM_topic-slug.md` |
 | A code review | `planning/reviews/` | `YYYY-MM-DD_review_branch-name.md` |
 
-**Promotion path:** `planning/brainstorm/` → `planning/tickets/` → `wiki/adr|patterns|concepts|rules/`
+**Promotion path:** `planning/brainstorm/` → `planning/tickets/` → `wiki/adr|technical-design|rules/`
 
 Only canonical, accepted truth lives in `wiki/`. Everything in-progress or speculative
 lives in `planning/`.

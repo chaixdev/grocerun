@@ -22,9 +22,8 @@ implementation plans here.
 |---|---|
 | How the system fits together | `wiki/architecture/` |
 | Why a decision was made | `wiki/adr/` |
-| A repeatable implementation technique | `wiki/patterns/` |
+| Feature-level technical mechanics | `wiki/technical-design/` |
 | A coding convention or hard rule | `wiki/rules/` |
-| Domain language/product concepts | `wiki/concepts/` |
 | Developer workflow/procedure | `wiki/development/` |
 | Work in progress or speculative design | `planning/` |
 

@@ -42,20 +42,21 @@ Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
 
 ## 📚 Documentation
 
-- **[User Guide](wiki/user-guide/features.md)**: How to use Grocerun.
-- **[Self-Hosting](wiki/user-guide/self-hosting.md)**: Detailed deployment instructions.
-- **[Developer Guide](wiki/developer-guide/devops-philosophy.md)**: Architecture and contribution.
+- **[User Guide](../../wiki/user-guide/README.md)**: App features and self-hosting instructions.
+- **[Architecture](../../wiki/architecture/README.md)**: System views and constraints.
+- **[Developer Workflow](../../wiki/development/agentic-workflow.md)**: AI-assisted development process.
 
 ## 🛠️ Tech Stack
 
-- **Frontend**: Next.js 15 (App Router), Tailwind CSS, Shadcn UI
-- **Backend**: Next.js Server Actions
-- **Database**: SQLite (Prisma ORM)
-- **Auth**: NextAuth.js (Google OAuth)
+- **Frontend**: Vite 6, React 19, TanStack Router, Tailwind CSS
+- **Backend**: NestJS 11 REST API
+- **Database**: SQLite with Prisma 7
+- **Auth**: `oidc-spa` with Google-only OIDC
 
 ## 🤝 Contributing
 
-Contributions are welcome! Please check the [Developer Guide](wiki/developer-guide/devops-philosophy.md) for our development philosophy.
+Contributions are welcome. Please check the [developer workflow](../../wiki/development/agentic-workflow.md)
+and [coding standards](../../wiki/rules/coding-standards.md) first.
 
 ## 📄 License
 

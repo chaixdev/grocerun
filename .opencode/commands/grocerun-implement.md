@@ -12,7 +12,7 @@ and `repo-dev-commands` skills.
 
 1. Confirm the planning ticket is approved or ask before coding.
 2. Create/use a feature branch unless already on the correct branch.
-3. Read relevant project status, ADRs, rules, patterns, and affected code.
+3. Read relevant project status, ADRs, rules, technical designs, and affected code.
 4. Implement in small logical slices.
 5. Keep the planning ticket updated with implementation notes, deviations, gotchas, test notes, and follow-ups.
 6. Run focused verification as slices complete.

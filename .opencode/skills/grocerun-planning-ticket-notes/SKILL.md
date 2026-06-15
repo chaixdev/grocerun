@@ -30,7 +30,7 @@ Use this skill to create or maintain implementation-ready planning tickets under
 ## Relevant Context
 - ADRs
 - coding rules
-- durable patterns
+- technical designs
 - project status constraints
 
 ## Affected Areas
@@ -61,5 +61,5 @@ Use this skill to create or maintain implementation-ready planning tickets under
 
 - The planning ticket is a living document; update it during implementation.
 - Record deviations and gotchas when they happen, not only at the end.
-- Include relevant ADR/rule/pattern context before implementation begins.
+- Include relevant ADR/rule/technical-design context before implementation begins.
 - Include why tests are or are not needed at each level.

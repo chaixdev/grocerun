@@ -246,7 +246,7 @@ Refactored all existing tests to use fixtures and helpers:
 
 ### Documentation (2 files updated)
 1. `/apps/e2e/README.md` - Updated with new structure
-2. `/wiki/development/test-code-alignment-analysis.md` - Gap analysis document
+2. `./test-code-alignment-analysis.md` - Gap analysis document
 
 ---
 

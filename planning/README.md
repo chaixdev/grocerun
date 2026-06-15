@@ -30,19 +30,24 @@ Use ISO datetime prefix naming: `YYYY-MM-DDTHHMM_topic-slug.md`
 ### `reviews/`
 Code review output from the `grocerun-deep-reviewer`. Named by date and branch.
 
+### `archive/`
+Historical plans, investigations, and summaries that are no longer canonical but
+remain useful as project context. Archived documents should not be used as
+current implementation guidance without checking `wiki/`, `apps/*/README.md`,
+and `planning/tickets/PROJECT-STATUS.md` first.
+
 ## Relationship to `wiki/`
 
 `planning/` is work-in-progress. `wiki/` is canonical truth.
 
 Promotion path:
 ```
-planning/brainstorm/  →  planning/tickets/  →  wiki/adr|patterns|concepts|rules/
+planning/brainstorm/  →  planning/tickets/  →  wiki/adr|technical-design|rules/
 ```
 
 Once a ticket is implemented and the solution is accepted:
 - Architectural decisions → `wiki/adr/`
-- Stable implementation mechanisms → `wiki/patterns/`
-- Durable domain concepts → `wiki/concepts/`
+- Feature-level technical mechanics → `wiki/technical-design/`
 - Contributor guidance and conventions → `wiki/rules/`
 
 ## Naming Conventions
@@ -50,6 +55,7 @@ Once a ticket is implemented and the solution is accepted:
 - **Brainstorm docs**: `YYYY-MM-DDTHHMM_topic-slug.md` (ISO datetime prefix)
 - **Tickets**: Descriptive slug or phase name (e.g., `PHASE-5-SIMPLIFICATION.md`)
 - **Reviews**: `YYYY-MM-DD_review_branch-name.md`
+- **Archives**: Grouped by topic and date, e.g. `archive/e2e-testing-2026-01/`
 
 ## Template
 

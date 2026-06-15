@@ -27,13 +27,12 @@ This guide explains how to deploy Grocerun on your own server using Docker Compo
     # .env
     GROCERUN_VERSION=latest
     
-    # Auth
-    AUTH_SECRET=your_generated_secret_here # openssl rand -base64 32
-    AUTH_GOOGLE_ID=your_google_client_id
-    AUTH_GOOGLE_SECRET=your_google_client_secret
+    # Google OAuth (create at https://console.cloud.google.com/apis/credentials)
+    OIDC_CLIENT_ID=your-google-client-id.apps.googleusercontent.com
+    OIDC_CLIENT_SECRET=GOCSPX-your-google-client-secret
     
-    # Required if running behind a reverse proxy (hosting on your own domain)
-    AUTH_TRUST_HOST=true
+    # Must equal OIDC_CLIENT_ID — validates JWT audience tokens
+    OIDC_AUDIENCE=${OIDC_CLIENT_ID}
     ```
 
 3.  **Start the Service**

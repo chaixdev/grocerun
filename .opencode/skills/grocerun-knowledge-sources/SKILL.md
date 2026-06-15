@@ -16,9 +16,9 @@ Stable, accepted truth about the project:
 - **ADR** (`wiki/adr/`) — Architecture Decision Records, including superseded NextAuth-era auth decisions and current local-first/auth restoration decisions
 - **Architecture** (`wiki/architecture/`) — Domain model, system viewpoints
 - **Rules** (`wiki/rules/`) — Coding standards, testing conventions, API design guidelines
-- **Patterns** (`wiki/patterns/`) — Stable implementation mechanisms (sync, auth, feature flags)
-- **Concepts** (`wiki/concepts/`) — Durable domain abstractions (shopping state machine, household model)
-- **Development** (`wiki/development/`) — Agentic workflow, devops philosophy, e2e guides
+- **Technical Design** (`wiki/technical-design/`) — Feature-level technical mechanics, state machines, call sequences, layer boundaries, and design patterns
+- **Development** (`wiki/development/`) — Agentic workflow and devops philosophy
+- **E2E guide** (`apps/e2e/README.md`) — Current Playwright harness and critical journeys
 
 ### Planning & Work-in-Progress (`planning/`)
 Current and future work — not yet canonical:

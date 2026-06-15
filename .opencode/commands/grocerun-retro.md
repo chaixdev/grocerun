@@ -14,7 +14,7 @@ Load the `grocerun-process-retro`, `grocerun-documentation-extraction`,
 3. Run the process retrospective checklist.
 4. Identify command/skill/template/process improvements.
 5. Record no-op rationale if no process change is needed.
-6. Do not move coding-rule/pattern/ADR extraction into retro; route those through documentation extraction.
+6. Do not move coding-rule/technical-design/ADR extraction into retro; route those through documentation extraction.
 
 ## Retro Context
 

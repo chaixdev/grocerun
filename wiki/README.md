@@ -23,39 +23,41 @@ For work-in-progress (phase plans, user stories, brainstorm, reviews), see `plan
 ### `wiki/architecture/`
 Multi-viewpoint architecture documentation.
 
+- [Architecture Index](architecture/README.md) — View guide and documentation routing
+- [System Overview](architecture/system-overview.md) — SPA, API/server, local DB, deployment, and core flows
 - [Domain Model](architecture/domain-model.md) — Core entities and relationships
+- [Data Sync and Concurrency](architecture/data-sync-and-concurrency.md) — RxDB replication, conflicts, locks, and sync boundaries
+- [Security and Auth](architecture/security-and-auth.md) — Google OIDC, Bearer tokens, guards, and mobile auth restoration
 
 ### `wiki/rules/`
 Coding standards, conventions, and contributor guidance.
 
 - [Coding Standards](rules/coding-standards.md) — TypeScript, React, NestJS, Prisma, RxDB, testing
 
-### `wiki/patterns/`
-Stable implementation mechanisms that recur across the codebase.
+### `wiki/technical-design/`
+Feature-level technical design notes for noteworthy accepted implementation
+mechanics: state machines, call sequences, layer boundaries, OOP models, and
+design patterns.
 
-_Extract stable patterns from the codebase as they emerge._
-
-### `wiki/concepts/`
-Durable domain abstractions that outlive specific implementations.
-
-_Extract from planning docs as they stabilize._
+- [Technical Design Index](technical-design/README.md)
 
 ### `wiki/development/`
 Developer guides and workflow documentation.
 
 - [Agentic Workflow](development/agentic-workflow.md) — AI-assisted development process
 - [DevOps Philosophy](development/devops-philosophy.md) — Deployment and quality practices
-- [E2E Testing Setup](development/e2e-testing-setup.md)
-- [E2E Test Organization Guide](development/e2e-test-organization-guide.md)
-- [E2E Refactoring Summary](development/e2e-refactoring-summary.md)
-- [Fixture Analysis](development/fixture-analysis.md)
-- [Regression Test Coverage Analysis](development/regression-test-coverage-analysis.md)
-- [Test Code Alignment Analysis](development/test-code-alignment-analysis.md)
+- [Development Index](development/README.md) — Scope rules for this folder
+
+Historical E2E planning and analysis artifacts live under
+`planning/archive/e2e-testing-2026-01/`. The active E2E harness guide is
+[`apps/e2e/README.md`](../apps/e2e/README.md).
 
 ### `wiki/user-guide/`
-User-facing documentation and feature guides.
+User-facing documentation for app users and self-hosters.
 
-- [Features](user-guide/features.md) — Product capabilities
+- [User Guide Index](user-guide/README.md)
+- [App Feature Tour](user-guide/app-features.md) — How to use Grocerun
+- [Self-Hosting Guide](user-guide/self-hosting.md) — Deploy on your own server
 
 ---
 
@@ -75,9 +77,9 @@ User-facing documentation and feature guides.
 
 Nothing in-progress or speculative touches `wiki/`. Promotion path:
 ```
-planning/brainstorm/  →  planning/tickets/  →  wiki/adr|patterns|concepts|rules/
+planning/brainstorm/  →  planning/tickets/  →  wiki/adr|technical-design|rules/
 ```
 
 ---
 
-**Last Updated:** June 8, 2026
+**Last Updated:** June 15, 2026

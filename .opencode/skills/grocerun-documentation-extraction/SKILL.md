@@ -1,6 +1,6 @@
 ---
 name: grocerun-documentation-extraction
-description: Use after Grocerun feature acceptance or review findings to decide whether wiki docs, ADRs, patterns, rules, guides, or tickets need updating.
+description: Use after Grocerun feature acceptance or review findings to decide whether wiki docs, ADRs, technical designs, rules, guides, or tickets need updating.
 ---
 
 # Grocerun Documentation Extraction
@@ -13,10 +13,9 @@ canonical documentation.
 | Durable knowledge | Destination |
 |---|---|
 | Architectural decision | `wiki/adr/` |
-| Stable implementation pattern | `wiki/patterns/` |
+| Feature-level technical design | `wiki/technical-design/` |
 | Coding convention or recurring rule | `wiki/rules/` |
 | Developer procedure | `wiki/development/` |
-| Domain concept | `wiki/concepts/` |
 | Current phase/status | `planning/tickets/PROJECT-STATUS.md` |
 | Follow-up work | `planning/tickets/` or intake |
 
@@ -26,7 +25,7 @@ canonical documentation.
 ## Documentation Extraction
 
 - **User/developer guide update:** yes/no — rationale
-- **Pattern doc:** yes/no — rationale
+- **Technical design doc:** yes/no — rationale
 - **Coding rule:** yes/no — rationale
 - **ADR:** yes/no — rationale
 - **Project status:** yes/no — rationale
@@ -39,7 +38,7 @@ If oracle, UAT, or implementation notes reveal recurring issues, decide whether
 they should become:
 
 - a coding rule
-- a stable implementation pattern
+- a technical design document
 - a planning template section
 - an ADR update
 - a developer guide note
