@@ -30,11 +30,11 @@ These rules are non-negotiable and apply across all code:
 
 ### Zod validation
 
-- All API inputs must pass through a Zod schema in `packages/dto/`.
+- All API inputs must pass through a Zod schema in `apps/_shared/dtos/`.
 - Server: `createZodDto` from `nestjs-zod` + global `ZodValidationPipe`.
 - Client: form schemas derive from shared DTOs via `.pick()`, `.omit()`,
   `.extend()` — never duplicate Zod schemas.
-- Shared DTOs in `packages/dto/src/index.ts` are the single source of
+- Shared DTOs in `apps/_shared/dtos/src/index.ts` are the single source of
   validation truth.
 
 ### No `any`
@@ -235,8 +235,8 @@ model Store {
 
 - **apps must not import from each other.** `apps/web` never imports from
   `apps/server`, and vice versa.
-- **Shared code lives in `packages/`.** Currently only `packages/dto/` —
-  Zod schemas and inferred types.
+- **Shared app source lives in `apps/_shared/`.** Currently only
+  `apps/_shared/dtos/` — Zod schemas and inferred types.
 - **Cross-cutting server code in `shared/`:** AccessService,
   NotificationService, shopping-lock, cascade-delete.
 - **`wiki/` vs `planning/`:** `wiki/` is canonical accepted truth.

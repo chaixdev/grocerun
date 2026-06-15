@@ -65,11 +65,11 @@ The deep reviewer automatically loads both.
 ```
 grocerun/
 ├── apps/
-│   ├── web/          # Next.js 16 frontend (App Router, port 3000)
-│   ├── server/       # NestJS 10 backend (port 3001)
-│   └── e2e/          # Playwright end-to-end tests
-├── packages/
-│   └── dto/          # Shared DTOs (Zod schemas)
+│   ├── web/          # Vite SPA frontend (port 3000)
+│   ├── server/       # NestJS 11 backend (port 3001)
+│   ├── e2e/          # Playwright end-to-end tests
+│   └── _shared/
+│       └── dtos/     # Shared DTOs (Zod schemas)
 ├── wiki/             # Canonical documentation (truth)
 ├── planning/         # Work-in-progress and speculative
 ├── .opencode/        # Agent configurations
@@ -78,7 +78,7 @@ grocerun/
 
 ## Key Constraints
 
-- Monorepo: apps must not import from each other (use `packages/dto/`)
+- Monorepo: runnable apps must not import from each other (use `apps/_shared/dtos/`)
 - All API boundaries must have Zod validation
 - Soft-delete for all domain models — Prisma queries must filter `deleted: false`
 - Auth: JWT via `/api/token`, stored in memory, Bearer in API client

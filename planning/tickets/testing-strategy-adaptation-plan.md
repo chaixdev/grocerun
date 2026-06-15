@@ -380,8 +380,8 @@ The Playwright auth harness is stable. The web app `__root.tsx` now calls `boots
 
 **DTO Unit Tests** ✅
 
-- Added `test` script and vitest config to `packages/dto/`.
-- Wrote `packages/dto/src/index.test.ts` — 51 tests covering 20 Zod schemas across 7 domains:
+- Added `test` script and vitest config to `apps/_shared/dtos/`.
+- Wrote `apps/_shared/dtos/src/index.test.ts` — 51 tests covering 20 Zod schemas across 7 domains:
   - Valid input acceptance, missing required fields, empty string rejection, out-of-range numbers, default values.
 - All 51 tests pass.
 

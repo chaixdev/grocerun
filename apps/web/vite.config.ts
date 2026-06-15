@@ -41,7 +41,7 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
-      '@grocerun/dto': path.resolve(__dirname, '../../packages/dto/src/index.ts'),
+      '@grocerun/dto': path.resolve(__dirname, '../_shared/dtos/src/index.ts'),
     },
   },
   server: {
@@ -59,7 +59,7 @@ export default defineConfig({
   },
   build: {
     commonjsOptions: {
-      include: [/node_modules/, /packages\/dto\/dist/],
+      include: [/node_modules/, /apps\/_shared\/dtos\/dist/],
     },
   },
   define: {

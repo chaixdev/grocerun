@@ -56,8 +56,8 @@ The database file is `apps/server/dev.db` (SQLite).
 
 | Command | What it does |
 |---------|-------------|
-| `npm run build` | Build all packages (turborepo) |
-| `npm run lint` | Run ESLint across all packages |
+| `npm run build` | Build all workspaces (turborepo) |
+| `npm run lint` | Run ESLint across all workspaces |
 | `npm run lint --workspace=apps/web` | Lint only the frontend |
 
 ## Common Issues

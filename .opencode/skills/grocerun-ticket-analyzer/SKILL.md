@@ -27,7 +27,7 @@ Before exploring the codebase, assess the ticket across these dimensions:
 |-----------|--------------|
 | **Goal Clarity** | Is the desired outcome stated in user-facing terms? |
 | **Acceptance Criteria** | Are there specific, verifiable conditions for "done"? |
-| **Technical Scope** | Is the system boundary clear? Which apps/packages are affected? |
+| **Technical Scope** | Is the system boundary clear? Which workspaces/files are affected? |
 | **Dependencies** | Does this depend on other tickets, phases, or infrastructure? |
 | **Test Strategy** | Is it clear what should be tested and how? |
 

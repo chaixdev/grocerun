@@ -2,7 +2,7 @@
 
 Date: 2026-06-13
 
-Scope: `apps/server`, `apps/web`, `packages/dto`, relevant `wiki/` and `planning/` docs.
+Scope: `apps/server`, `apps/web`, `apps/_shared/dtos`, relevant `wiki/` and `planning/` docs.
 
 Review stance: code is liability. Prefer fewer moving parts, fewer ownership modes, fewer duplicate paths, and invariants encoded close to the write boundary. Avoid DRY that conflates responsibilities, but remove repeated logic when repetition is hiding divergent behavior.
 
