@@ -1,6 +1,6 @@
 import { createFileRoute, lazyRouteComponent } from "@tanstack/react-router"
 import { Outlet, useParams, Link, useRouterState } from "@tanstack/react-router"
-import { enforceLogin } from "@/core/auth/oidc"
+import { enforceAppLogin } from "@/core/auth/guard"
 import { SectionForm } from "@/features/stores/components/SectionForm"
 import { SectionList } from "@/features/stores/components/SectionList"
 import { useStore } from "@/features/stores/hooks/useStore"
@@ -10,7 +10,7 @@ import { ArrowLeft } from "lucide-react"
 import { PageLoading } from "@/components/ui/page-loading"
 
 export const Route = createFileRoute("/stores_/$storeId")({
-  beforeLoad: enforceLogin,
+  beforeLoad: enforceAppLogin,
   component: lazyRouteComponent(() => import("./stores_.$storeId"), "StoreDetailsPage"),
 })
 

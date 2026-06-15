@@ -19,9 +19,9 @@ RUN --mount=type=cache,target=/root/.npm npm ci
 FROM base AS builder
 WORKDIR /app
 
+# All workspace deps are hoisted to root node_modules by npm workspaces
+# — workspace-specific node_modules directories do not exist post-install.
 COPY --from=deps /app/node_modules ./node_modules
-COPY --from=deps /app/apps/web/node_modules ./apps/web/node_modules
-COPY --from=deps /app/apps/server/node_modules ./apps/server/node_modules
 
 COPY . .
 
@@ -74,8 +74,9 @@ ARG APP_VERSION
 ENV APP_VERSION=$APP_VERSION
 
 # Runtime dependencies and workspace metadata.
+# Server production deps are hoisted to root node_modules by npm workspaces
+# — apps/server/node_modules does not exist in the prod-deps stage.
 COPY --from=prod-deps /app/node_modules ./node_modules
-COPY --from=prod-deps /app/apps/server/node_modules ./apps/server/node_modules
 COPY --from=builder /app/package.json ./
 
 # NestJS server.

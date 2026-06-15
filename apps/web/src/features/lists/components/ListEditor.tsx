@@ -22,6 +22,7 @@ import { Label } from "@/components/ui/label"
 import { TripSummary } from "./TripSummary"
 import { useRouter } from "@tanstack/react-router"
 import { useOidc } from "@/core/auth/oidc"
+import { getCachedAppUser } from "@/core/auth/session"
 import { ShoppingCart, CheckCheck, X } from "lucide-react"
 import { ListItemRow } from "./ListItemRow"
 import { useScreenWakeLock } from "@/hooks/use-screen-wake-lock"
@@ -78,11 +79,12 @@ export function ListEditor({ list }: ListEditorProps) {
     const [isEditOpen, setIsEditOpen] = useState(false)
 
     // Screen Wake Lock for Shopping Mode
-    const oidc = useOidc({ assert: "user logged in" })
+    const oidc = useOidc()
+    const authSubject = oidc.isUserLoggedIn ? oidc.decodedIdToken.sub : getCachedAppUser()?.sub
     const isReadOnly = list.status === "COMPLETED"
     const isPlanningMode = list.status === "PLANNING"
     const isShoppingMode = list.status === "SHOPPING"
-    const isLockHolder = !isShoppingMode || list.assignedTo === oidc.decodedIdToken.sub
+    const isLockHolder = !isShoppingMode || list.assignedTo === authSubject
     const isShoppingLockedForOtherUser = isShoppingMode && !isLockHolder
 
     useScreenWakeLock(isShoppingMode)

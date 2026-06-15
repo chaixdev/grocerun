@@ -29,7 +29,8 @@ const spaDistPath = process.env.SPA_DIST_DIR ?? [
     // Serve the Vite-built SPA in production
     ServeStaticModule.forRoot({
       rootPath: spaDistPath,
-      exclude: ['/api/v1/(.*)', '/health'],
+      // path-to-regexp v8 syntax: {*path} replaces the old (.*)
+      exclude: ['/api/v1/{*path}', '/health'],
     }),
     SharedModule,
     AuthModule,

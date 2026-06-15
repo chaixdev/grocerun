@@ -59,7 +59,7 @@ grocerun/
 | Auth | oidc-spa | 1.x | Google OIDC authentication (Google-only) |
 | Node.js | Node.js | 22.21.1 | Runtime (managed via .nvmrc) |
 | Workspace | NPM Workspaces | - | Monorepo management |
-| Version | 1.0.0-rc.4 | - | All workspace packages |
+| Version | 1.0.0-rc.5 | - | All workspace packages |
 
 ### Current State Diagram
 

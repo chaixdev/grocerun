@@ -1,13 +1,13 @@
 import { createFileRoute, lazyRouteComponent } from "@tanstack/react-router"
 import { z } from "zod"
-import { enforceLogin } from "@/core/auth/oidc"
+import { enforceAppLogin } from "@/core/auth/guard"
 import { PageLoading } from "@/components/ui/page-loading"
 import { HouseholdStoreGroup } from "@/features/stores"
 import { CreateFirstHousehold } from "@/features/households"
 import { useStoreDirectory } from "@/features/stores/hooks/useStoreDirectory"
 
 export const Route = createFileRoute("/stores")({
-  beforeLoad: enforceLogin,
+  beforeLoad: enforceAppLogin,
   validateSearch: z.object({ householdId: z.string().optional() }),
   component: lazyRouteComponent(() => import("./stores"), "StoresPage"),
 })
