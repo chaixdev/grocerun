@@ -25,11 +25,11 @@ Before significant code changes, review:
 - the ticket/brainstorm source
 - relevant ADRs in `wiki/adr/`
 - `wiki/rules/coding-standards.md`
-- relevant patterns in `wiki/patterns/`
+- relevant technical designs in `wiki/technical-design/`
 - e2e journey semantics when user flow changes
 
 ## Rules
 
 - Do not let implementation drift silently from the ticket.
 - If a shortcut is taken, record it as a conscious deviation.
-- If a finding should become a rule/pattern/ADR, mark it for documentation extraction.
+- If a finding should become a rule/technical-design/ADR, mark it for documentation extraction.

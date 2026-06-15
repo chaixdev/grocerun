@@ -22,5 +22,4 @@ When a brainstorm proposal is accepted as a work item:
 
 When the implementation is complete and the solution is stable, promote:
 - Architectural decisions → `wiki/adr/`
-- Stable mechanisms → `wiki/patterns/`
-- Durable abstractions → `wiki/concepts/`
+- Feature-level technical mechanics → `wiki/technical-design/`

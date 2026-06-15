@@ -50,8 +50,8 @@ Pros, cons, risks, approximate effort.
 
 ## Required checks
 
-- Review relevant `wiki/adr/`, `wiki/rules/`, `wiki/patterns/`, and
+- Review relevant `wiki/adr/`, `wiki/rules/`, `wiki/technical-design/`, and
   `planning/tickets/PROJECT-STATUS.md` before recommending an approach.
 - Do not hide uncertainty. Open questions are useful output.
-- If a decision would contradict an ADR or durable pattern, call that out as a
+- If a decision would contradict an ADR or durable technical design, call that out as a
   user decision gate.

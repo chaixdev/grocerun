@@ -23,7 +23,7 @@ Every change must satisfy this gate.
 - Rationale:
 
 ### Overarching goals / architecture
-- ADRs/rules/patterns respected: yes/no
+- ADRs/rules/technical designs respected: yes/no
 - Tension or decision needed:
 
 ### Verification

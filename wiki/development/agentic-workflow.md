@@ -33,10 +33,11 @@ features move from rough ideas to accepted code.
 
 5. **Canonical docs lag only until acceptance.** Planning docs can be messy and
    historical. Once UAT accepts a feature, durable knowledge is extracted into
-   `wiki/` as guides, patterns, rules, ADRs, or concepts.
+   `wiki/` as guides, technical designs, rules, or ADRs.
 
 6. **The loop improves itself.** Oracle findings and user feedback should feed
-   back into either documentation extraction (rules, patterns, ADRs, guides) or
+   back into either documentation extraction (rules, technical designs, ADRs,
+   guides) or
    process improvements (templates, commands, skills, decision gates).
 
 7. **Work happens on a feature branch.** The loop should run on a separate
@@ -103,7 +104,7 @@ Use when:
 - several solution paths exist
 - architecture or ADR tension is likely
 - scope boundaries are unclear
-- the work may create durable patterns or rules
+- the work may create durable technical designs or rules
 
 Output:
 - `planning/brainstorm/YYYY-MM-DDTHHMM_<topic>.md`
@@ -113,7 +114,7 @@ A brainstorm should capture:
 - goals and non-goals
 - options considered
 - trade-offs
-- relevant existing ADRs, rules, and patterns
+- relevant existing ADRs, rules, and technical designs
 - recommendation
 - open questions
 - whether to promote to a planning ticket
@@ -136,7 +137,7 @@ A planning ticket should include:
 - acceptance criteria
 - scope and non-scope
 - affected apps/packages/files if known
-- relevant ADRs, coding rules, and durable patterns
+- relevant ADRs, coding rules, and technical designs
 - implementation outline
 - test strategy
 - e2e journey impact assessment
@@ -184,7 +185,7 @@ Implementation must happen with awareness of:
 - relevant planning/brainstorm documents
 - relevant ADRs in `wiki/adr/`
 - `wiki/rules/coding-standards.md`
-- durable patterns in `wiki/patterns/`
+- relevant technical designs in `wiki/technical-design/`
 - existing e2e journey semantics
 
 During implementation, enrich the planning ticket with:
@@ -291,9 +292,8 @@ After feature acceptance, review whether to update:
 | User-facing guide | `wiki/development/` or future user docs |
 | Developer guide | `wiki/development/` |
 | Architectural decision | `wiki/adr/` |
-| Stable implementation pattern | `wiki/patterns/` |
+| Feature-level technical design | `wiki/technical-design/` |
 | Coding rule/convention | `wiki/rules/` |
-| Durable domain concept | `wiki/concepts/` |
 | Project status | `planning/tickets/PROJECT-STATUS.md` |
 
 Documentation extraction is also where repeated review findings become durable
@@ -301,7 +301,7 @@ guidance. If oracle, UAT, or implementation notes reveal recurring issues,
 decide whether they should become:
 
 - a coding rule
-- a stable implementation pattern
+- a technical design document
 - a planning template section
 - an ADR update
 - a developer guide note
@@ -341,7 +341,7 @@ Every change, including small fixes, must satisfy this minimum gate.
 
 - Does `wiki/` need updating?
 - Does the planning ticket or project status need updating?
-- Did we introduce a durable pattern, gotcha, or decision?
+- Did we introduce a durable technical design, gotcha, or decision?
 - If no docs are updated, explicitly note: docs reviewed; no update needed.
 
 ### 2. E2E journey semantics reviewed

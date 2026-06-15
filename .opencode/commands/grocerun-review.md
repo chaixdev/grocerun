@@ -82,5 +82,5 @@ The review must explicitly cover:
 - planning ticket and implementation-note consistency
 - e2e journey semantics vs delivered behavior
 - documentation extraction candidates
-- ADR/rule/pattern tension
+- ADR/rule/technical-design tension
 - findings classified as fixed, deferred, rejected, or user decision needed

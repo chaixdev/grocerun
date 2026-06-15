@@ -1,5 +1,8 @@
 # DevOps Philosophy
 
+**Status:** Active
+**Last Updated:** June 15, 2026
+
 ## Core Principles
 
 ### 1. Trunk-Based Development
@@ -53,11 +56,13 @@
 ```yaml
 # docker-compose.prod.yml
 services:
-  web:
-    image: grocerun:${VERSION}
+  grocerun:
+    image: grocerun:${VERSION:-latest}
     environment:
-      - DATABASE_URL=${DATABASE_URL}
-      - CLERK_SECRET_KEY=${CLERK_SECRET_KEY}
+      DATABASE_URL: ${DATABASE_URL}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+      TEST_SECRET: ${TEST_SECRET:-}
 ```
 
 ### 4. Open Source First
@@ -73,52 +78,50 @@ services:
 - Portability across platforms
 
 **Examples:**
-- PostgreSQL (not DynamoDB)
+- SQLite/PostgreSQL (not proprietary, closed hosted-only datastores)
 - Docker (not proprietary PaaS)
 - Prisma ORM (not closed-source tools)
 
 ## Deployment Architecture
 
-### Current State: Single Container
+### Current State: Single Production Container
 ```
 ┌─────────────────────────────┐
 │   grocerun Docker Container │
 │                             │
 │  ┌──────────────────────┐  │
-│  │   Next.js App        │  │
-│  │   (Port 3000)        │  │
+│  │   Vite SPA assets    │  │
+│  │   served by NestJS   │  │
 │  └──────────────────────┘  │
 │           │                 │
 │           ▼                 │
 │  ┌──────────────────────┐  │
-│  │   Prisma Client      │  │
+│  │   NestJS API         │  │
+│  │   REST + sync + SSE  │  │
 │  └──────────────────────┘  │
-└─────────────┬───────────────┘
-              │
-              ▼
-    ┌──────────────────┐
-    │   PostgreSQL     │
-    │   (Neon/Supabase)│
-    └──────────────────┘
+│           │                 │
+│           ▼                 │
+│  ┌──────────────────────┐  │
+│  │   Prisma + SQLite    │  │
+│  └──────────────────────┘  │
+└─────────────────────────────┘
 ```
 
-### Future State: Microservices (Phase 4)
+### Development State: Split Processes
 ```
-┌─────────────────┐     ┌─────────────────┐
-│   Next.js Web   │────▶│   NestJS API    │
-│   (Client)      │     │   (Server)      │
-└─────────────────┘     └────────┬────────┘
-         │                       │
-         │                       ▼
-         │              ┌─────────────────┐
-         │              │   PostgreSQL    │
-         │              └─────────────────┘
-         ▼
-┌─────────────────┐
-│   RxDB Local    │
-│   (IndexedDB)   │
-└─────────────────┘
+┌──────────────────────┐      ┌──────────────────────┐
+│ Vite React SPA       │─────▶│ NestJS API           │
+│ localhost:3000       │      │ localhost:3001       │
+│ RxDB/Dexie IndexedDB │◀────▶│ REST + sync + SSE    │
+└──────────────────────┘      └──────────┬───────────┘
+                                          ▼
+                               ┌──────────────────────┐
+                               │ Prisma + SQLite      │
+                               └──────────────────────┘
 ```
+
+See [System Overview](../architecture/system-overview.md) for the detailed
+runtime architecture.
 
 ## Quality Gates
 
@@ -129,7 +132,7 @@ services:
 4. **Build**: `npm run build` must succeed
 
 ### Pre-Deploy Checks
-1. **Integration Tests**: E2E tests with Playwright (future)
+1. **Critical Journeys**: Playwright journey tests for browser-only behavior
 2. **Security Scans**: 
    - SAST (Static Application Security Testing)
    - Dependency vulnerability scanning (`npm audit`)
@@ -151,7 +154,7 @@ services:
 ### Logging Strategy
 - **Structured Logging**: JSON format for easy parsing
 - **Levels**: ERROR (alert), WARN (investigate), INFO (audit), DEBUG (development only)
-- **Correlation IDs**: Track requests across services (future microservices)
+- **Correlation IDs**: Track requests across layers if/when the runtime grows
 
 ### Metrics (Future)
 - Request latency (p50, p95, p99)
@@ -176,7 +179,3 @@ services:
 2. Monitor error logs for 15 minutes
 3. Run smoke tests (critical user flows)
 4. Update status page
-
----
-
-**Last Updated:** January 9, 2026

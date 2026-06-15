@@ -24,6 +24,6 @@ this skill reviews the loop mechanics.
 
 ## Rules
 
-- Do not move rule/pattern/ADR extraction into retro; that belongs to documentation extraction.
+- Do not move rule/technical-design/ADR extraction into retro; that belongs to documentation extraction.
 - Focus on whether the loop helped or hindered delivery.
 - Convert process issues into command/skill/template follow-ups when useful.

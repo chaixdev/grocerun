@@ -20,11 +20,14 @@
 - **Journey Tests** - Complete user flow verification (minimal fixtures)
 
 ### Fixture Prerequisites
-Each test scenario now lists required fixtures. See [Fixture Analysis](../development/fixture-analysis.md) for details.
+Each test scenario lists the fixture requirements from the January 2026 E2E
+planning pass. See the archived [Fixture Analysis](../archive/e2e-testing-2026-01/fixture-analysis.md)
+for historical context.
 
 **Related Documentation:**
-- [E2E Test Organization Guide](../development/e2e-test-organization-guide.md) - Testing philosophy
-- [Fixture Analysis](../development/fixture-analysis.md) - Fixture requirements per story
+- [E2E Test Organization Guide](../archive/e2e-testing-2026-01/e2e-test-organization-guide.md) - Historical testing philosophy
+- [Fixture Analysis](../archive/e2e-testing-2026-01/fixture-analysis.md) - Historical fixture requirements per story
+- [Current E2E Harness](../../apps/e2e/README.md) - Active Playwright setup
 
 ---
 
@@ -1038,7 +1041,6 @@ Type:** Core
 ## Related Documents
 
 - [ADR 005: E2E Testing](../adr/005-e2e-testing.md)
-- [E2E Testing Setup Guide](../development/e2e-testing-setup.md)
+- [Current E2E Harness](../../apps/e2e/README.md)
 - [Product Evolution Spec](./product-evolution-spec.md)
 - [Phase 2 Migration Plan](./PHASE-2-MIGRATION.md)
-
