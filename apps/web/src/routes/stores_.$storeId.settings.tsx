@@ -1,6 +1,6 @@
 import { createFileRoute, lazyRouteComponent } from "@tanstack/react-router"
 import { useParams, Link } from "@tanstack/react-router"
-import { enforceLogin } from "@/core/auth/oidc"
+import { enforceAppLogin } from "@/core/auth/guard"
 import { ChevronLeft } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -10,7 +10,7 @@ import { StoreDeleteSection, StoreSettingsForm } from "@/features/stores/compone
 import { useStore } from "@/features/stores/hooks/useStore"
 
 export const Route = createFileRoute("/stores_/$storeId/settings")({
-  beforeLoad: enforceLogin,
+  beforeLoad: enforceAppLogin,
   component: lazyRouteComponent(() => import("./stores_.$storeId.settings"), "StoreSettingsPage"),
 })
 

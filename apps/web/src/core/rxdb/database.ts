@@ -16,7 +16,7 @@ import { wrappedValidateZSchemaStorage } from 'rxdb/plugins/validate-z-schema'
 import { getRxStorageDexie } from 'rxdb/plugins/storage-dexie'
 import { replicateRxCollection } from 'rxdb/plugins/replication'
 import { Subject } from 'rxjs'
-import { getOidc } from '../auth/oidc'
+import { clearInvalidAppAuth, getAppAccessToken, refreshAppAccessToken } from '../auth/session'
 import { emitDiagnostic } from '../diagnostics/event-bus'
 import {
   sectionSchema,
@@ -48,20 +48,15 @@ async function getAccessToken(): Promise<string | null> {
   const testToken = getTestToken()
   if (testToken) return testToken
 
-  const oidc = await getOidc()
-  if (!oidc.isUserLoggedIn) return null
-  return oidc.getAccessToken()
+  return getAppAccessToken()
 }
 
 async function refreshAndGetToken(): Promise<string | null> {
   const testToken = getTestToken()
   if (testToken) return testToken
 
-  const oidc = await getOidc()
-  if (!oidc.isUserLoggedIn) return null
   try {
-    await oidc.renewTokens()
-    return oidc.getAccessToken()
+    return await refreshAppAccessToken()
   } catch {
     return null
   }
@@ -415,6 +410,7 @@ function startPullReplication<DocType, Checkpoint extends { id: string; updatedA
         }
 
         if (!res.ok) {
+          if (res.status === 401) clearInvalidAppAuth()
           emitDiagnostic({ type: 'pull', collection: collectionName, status: res.status, docCount: 0, checkpoint: null, durationMs: Date.now() - t0, error: `HTTP ${res.status}`, at: t0 })
           throw new Error(`Sync pull failed: ${res.status}`)
         }
@@ -457,6 +453,7 @@ function startPullReplication<DocType, Checkpoint extends { id: string; updatedA
               }
 
               if (!res.ok) {
+                if (res.status === 401) clearInvalidAppAuth()
                 emitDiagnostic({ type: 'push', collection: collectionName, status: res.status, rowCount: rows.length, conflictCount: 0, durationMs: Date.now() - t0, error: `HTTP ${res.status}`, at: t0 })
                 throw new Error(`Sync push failed: ${res.status}`)
               }

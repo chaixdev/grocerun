@@ -1,6 +1,6 @@
 {
   "name": "e2e",
-  "version": "1.0.0-rc.2",
+  "version": "1.0.0-rc.5",
   "private": true,
   "scripts": {
     "test": "echo '⚠️  Run npm run dev first, then: npm run e2e:run' && exit 0",

@@ -14,7 +14,7 @@
  */
 
 import { z } from 'zod'
-import { getOidc } from '@/core/auth/oidc'
+import { clearInvalidAppAuth, getAppAccessToken, refreshAppAccessToken } from '@/core/auth/session'
 
 const TEST_TOKEN_KEY = '__grocerun_test_token__'
 
@@ -28,9 +28,7 @@ async function resolveAccessToken(): Promise<string | null> {
   const testToken = getTestToken()
   if (testToken) return testToken
 
-  const oidc = await getOidc()
-  if (!oidc.isUserLoggedIn) return null
-  return oidc.getAccessToken()
+  return getAppAccessToken()
 }
 
 export class ApiError extends Error {
@@ -68,12 +66,11 @@ async function request<T>(
 
     // Refresh OIDC token outside try/catch so TypeScript can narrow types
     if (!retryToken) {
-      const oidc = await getOidc()
-      if (!oidc) { throw new ApiError('Auth unavailable', 401) }
-      await oidc.renewTokens?.()
-      const fresh = await oidc.getAccessToken?.()
-      if (!fresh) { throw new ApiError('Token unavailable', 401) }
-      retryToken = fresh
+      retryToken = await refreshAppAccessToken()
+    }
+    if (!retryToken) {
+      clearInvalidAppAuth()
+      throw new ApiError('Session expired', 401)
     }
 
     try {
@@ -98,11 +95,7 @@ async function request<T>(
       const data = await retryRes.json()
       return schema ? schema.parse(data) : data as T
     } catch {
-      const testToken = getTestToken()
-      if (!testToken) {
-        const oidc = await getOidc()
-        oidc?.logout?.({ redirectTo: "home" })
-      }
+      if (!getTestToken()) clearInvalidAppAuth()
       throw new ApiError('Session expired', 401)
     }
   }

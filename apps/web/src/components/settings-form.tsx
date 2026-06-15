@@ -18,6 +18,7 @@ import { ModeToggle } from "@/components/mode-toggle"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { useOidc } from "@/core/auth/oidc"
+import { clearAppAuth } from "@/core/auth/session"
 import { LogOut, RefreshCw } from "lucide-react"
 import { resetRxDb } from "@/core/rxdb"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -38,7 +39,7 @@ interface SettingsFormProps {
 }
 
 export function SettingsForm({ user, households, invitationTimeoutMinutes }: SettingsFormProps) {
-    const oidc = useOidc({ assert: "user logged in" })
+    const oidc = useOidc()
     const [mounted, setMounted] = useState(false)
     const updateProfile = useUpdateProfile()
 
@@ -201,7 +202,14 @@ export function SettingsForm({ user, households, invitationTimeoutMinutes }: Set
                 <CardContent>
                     <Button
                         variant="destructive"
-                        onClick={() => oidc.logout({ redirectTo: "home" })}
+                        onClick={() => {
+                            clearAppAuth()
+                            if (oidc.isUserLoggedIn) {
+                                oidc.logout({ redirectTo: "home" })
+                            } else {
+                                void router.navigate({ to: "/login" })
+                            }
+                        }}
                         className="w-full sm:w-auto"
                     >
                         <LogOut className="mr-2 h-4 w-4" />

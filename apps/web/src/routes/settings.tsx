@@ -1,23 +1,26 @@
 import { createFileRoute, lazyRouteComponent } from "@tanstack/react-router"
-import { useOidc, enforceLogin } from "@/core/auth/oidc"
+import { useOidc } from "@/core/auth/oidc"
+import { enforceAppLogin } from "@/core/auth/guard"
 import { PageLoading } from "@/components/ui/page-loading"
 import { SettingsForm } from "@/components/settings-form"
 import { useSettingsHouseholds } from "@/features/households/hooks/useInvitations"
 import { useCurrentUser } from "@/hooks/useProfile"
+import { getCachedAppUser } from "@/core/auth/session"
 
 const INVITATION_TIMEOUT_MINUTES = Number(import.meta.env.VITE_INVITATION_TIMEOUT_MINUTES) || 1440
 
 export const Route = createFileRoute("/settings")({
-  beforeLoad: enforceLogin,
+  beforeLoad: enforceAppLogin,
   component: lazyRouteComponent(() => import("./settings"), "SettingsPage"),
 })
 
 export function SettingsPage() {
-    const oidc = useOidc({ assert: "user logged in" })
+    const oidc = useOidc()
     const { data: households, isLoading: householdsLoading } = useSettingsHouseholds()
     const { data: user, isLoading: userLoading } = useCurrentUser()
+    const hasAuth = oidc.isUserLoggedIn || !!getCachedAppUser()
 
-    if (!oidc.isUserLoggedIn || householdsLoading) return <PageLoading />
+    if (!hasAuth || householdsLoading) return <PageLoading />
 
     // EnforceLogin guarantees auth; user should be available after loading.
     // If the API call hasn't resolved yet, show loading until it does.

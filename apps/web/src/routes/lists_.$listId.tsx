@@ -1,6 +1,6 @@
 import { createFileRoute, lazyRouteComponent } from "@tanstack/react-router"
 import { useParams, Link } from "@tanstack/react-router"
-import { enforceLogin } from "@/core/auth/oidc"
+import { enforceAppLogin } from "@/core/auth/guard"
 import { useListDetail } from "@/features/lists/hooks/useListQueries"
 import { ListEditor } from "@/features/lists"
 import { PageLoading } from "@/components/ui/page-loading"
@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge"
 import { ArrowLeft, ScrollText } from "lucide-react"
 
 export const Route = createFileRoute("/lists_/$listId")({
-  beforeLoad: enforceLogin,
+  beforeLoad: enforceAppLogin,
   component: lazyRouteComponent(() => import("./lists_.$listId"), "ListDetailsPage"),
 })
 

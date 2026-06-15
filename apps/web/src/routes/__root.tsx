@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react'
 import { Outlet, createRootRoute, Link } from '@tanstack/react-router'
 import { Header } from '@/components/header'
 import { ThemeProvider } from '@/components/theme-provider'
@@ -7,6 +8,8 @@ import { DiagnosticsGate } from '@/components/diagnostics-gate'
 import { PageLoading } from '@/components/ui/page-loading'
 import { ErrorComponent } from '@/components/error-boundary'
 import { bootstrapOidc, useOidc, OidcInitializationGate } from '@/core/auth/oidc'
+import { getCachedAppUser, persistLiveOidcSession } from '@/core/auth/session'
+import { consumeAuthFallbackFlag, markAuthFallbackAvailable } from '@/core/auth/token-cache'
 
 const TEST_TOKEN_KEY = '__grocerun_test_token__'
 const isTestMode = typeof window !== 'undefined'
@@ -99,16 +102,64 @@ function TestShell() {
   )
 }
 
+const ISSUER_URI = 'https://accounts.google.com'
+
+function getOidcSpaAuthState(): string | null {
+  try {
+    const configId = `${ISSUER_URI}:${oidcConfig.clientId}`
+    const raw = localStorage.getItem(`oidc-spa:auth-state:${configId}`)
+    return raw
+  } catch {
+    return null
+  }
+}
+
 function AuthenticatedShell() {
   const oidc = useOidc()
 
+  // If oidc-spa's session restoration failed (e.g. the preRedirectHook
+  // cleared the localStorage flag before a redirect that didn't complete
+  // on mobile), this backup flag gives us a second chance — but only if
+  // the token cache is also empty (otherwise the cached token is sufficient).
+  const [shouldRetry] = useState(() => {
+    if (oidc.isUserLoggedIn) return false
+    try {
+      // Don't retry if the user explicitly logged out
+      const oidcState = getOidcSpaAuthState()
+      if (oidcState?.includes('explicitly logged out')) return false
+      // Don't retry if we already have a valid cached token from the last session
+      if (getCachedAppUser()) return false
+      return consumeAuthFallbackFlag()
+    } catch { /* storage unavailable */ }
+    return false
+  })
+
+  // Persist backup flag when successfully logged in
+  useEffect(() => {
+    if (oidc.isUserLoggedIn) {
+      markAuthFallbackAvailable()
+      void persistLiveOidcSession()
+    }
+  }, [oidc.isUserLoggedIn])
+
+  const cachedUser = !oidc.isUserLoggedIn ? getCachedAppUser() : null
   const user = oidc.isUserLoggedIn
     ? {
         name: oidc.decodedIdToken.name,
         email: oidc.decodedIdToken.email,
         image: oidc.decodedIdToken.picture,
       }
+    : cachedUser
+      ? {
+          name: cachedUser.name,
+          email: cachedUser.email,
+          image: cachedUser.picture,
+        }
     : undefined
+
+  if (shouldRetry) {
+    return <PageLoading />
+  }
 
   return (
     <>
