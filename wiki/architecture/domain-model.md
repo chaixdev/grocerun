@@ -1,32 +1,116 @@
 # Domain Model
 
-## Core Entities & Relationships
+This view describes Grocerun's durable grocery-domain entities and their core
+relationships. The source of truth for fields and constraints is
+`apps/server/prisma/schema.prisma`.
+
+## Core Entities and Relationships
 
 ```mermaid
 erDiagram
-    User ||--o{ Household : "member of"
-    User ||--o{ ListItem : "marked off by"
-    Household ||--o{ Store : owns
-    Household ||--o{ Invitation : creates
+    User ||--o{ Account : "has external identities"
+    User ||--o{ Session : "legacy session records"
+    User ||--o{ Household : "owns"
+    User }o--o{ Household : "member of"
+    User ||--o{ Invitation : "creates"
+
+    Household ||--o{ Store : "owns"
+    Household ||--o{ Invitation : "has invitations"
+
     Store ||--o{ Section : "has layout"
-    Store ||--o{ ShoppingList : "uses for"
-    Store ||--o{ CatalogItem : "maintains catalog"
-    ShoppingList ||--o{ ListItem : contains
-    CatalogItem ||--o{ ListItem : "referenced by"
+    Store ||--o{ Item : "has catalog items"
+    Store ||--o{ List : "has shopping lists"
+
+    Section ||--o{ Item : "groups items"
+    List ||--o{ ListItem : "contains"
+    Item ||--o{ ListItem : "appears on lists"
 
     User {
         string id PK
-        string clerkId UK
-        string email
         string name
-        string imageUrl
-        datetime createdAt
-        datetime updatedAt
+        string email UK
+        datetime emailVerified
+        string image
+    }
+
+    Account {
+        string id PK
+        string userId FK
+        string type
+        string provider
+        string providerAccountId
+        string id_token
     }
 
     Household {
         string id PK
         string name
+        string ownerId FK
+        boolean deleted
+        datetime deletedAt
+        datetime createdAt
+        datetime updatedAt
+    }
+
+    Store {
+        string id PK
+        string name
+        string location
+        string imageUrl
+        string householdId FK
+        boolean deleted
+        datetime deletedAt
+        datetime createdAt
+        datetime updatedAt
+    }
+
+    Section {
+        string id PK
+        string name
+        int order
+        string storeId FK
+        boolean deleted
+        datetime deletedAt
+        datetime createdAt
+        datetime updatedAt
+    }
+
+    Item {
+        string id PK
+        string name
+        string storeId FK
+        string sectionId FK
+        int purchaseCount
+        datetime lastPurchased
+        string defaultUnit
+        boolean deleted
+        datetime deletedAt
+        datetime createdAt
+        datetime updatedAt
+    }
+
+    List {
+        string id PK
+        string name
+        string storeId FK
+        string status
+        string assignedTo
+        boolean deleted
+        datetime deletedAt
+        datetime createdAt
+        datetime updatedAt
+    }
+
+    ListItem {
+        string id PK
+        string listId FK
+        string itemId FK
+        boolean isChecked
+        float quantity
+        string unit
+        float purchasedQuantity
+        boolean deleted
+        datetime deletedAt
         datetime createdAt
         datetime updatedAt
     }
@@ -38,112 +122,112 @@ erDiagram
         string creatorId FK
         string status
         datetime expiresAt
-    }
-
-    Store {
-        string id PK
-        string name
-        string householdId FK
-        int position
         datetime createdAt
-    }
-
-    Section {
-        string id PK
-        string name
-        string storeId FK
-        int position
-        datetime createdAt
-    }
-
-    CatalogItem {
-        string id PK
-        string name
-        string storeId FK
-        string sectionId FK
-        datetime createdAt
-    }
-
-    ShoppingList {
-        string id PK
-        string name
-        string storeId FK
-        string status
-        datetime createdAt
-        datetime startedAt
-        datetime completedAt
-    }
-
-    ListItem {
-        string id PK
-        string listId FK
-        string catalogItemId FK
-        decimal quantity
-        string notes
-        boolean checked
-        string checkedById FK
-        datetime checkedAt
-        int position
+        datetime updatedAt
     }
 ```
 
-## Design Decisions
+## Entity Groups
 
-### 1. Household as Collaboration Unit
-- **Why**: Families and roommates share grocery shopping responsibilities.
-- **Implication**: All stores, lists, and catalog items are scoped to a household.
-- **Multi-tenancy**: Users can belong to multiple households (e.g., home + shared apartment).
+### Identity
 
-### 2. Store as Layout Anchor
-- **Why**: Physical store layouts differ (Trader Joe's ≠ Costco ≠ local grocer).
-- **Implication**: Each store has its own sections and catalog, optimized for that location.
-- **Routing**: Lists are created for a specific store to leverage its layout.
+- `User` is Grocerun's local user record.
+- `Account` links an external identity provider account to a local user. Current
+  production auth is Google OIDC through `oidc-spa`.
+- `Session` and `VerificationToken` remain in the schema from earlier auth eras,
+  but the active app auth path validates Google ID tokens via NestJS `AuthGuard`.
 
-### 3. Catalog Growth Strategy
-- **Initial State**: Empty catalog when store is created.
-- **Growth Mechanism**: As users add items to shopping lists, they enter item names. System creates catalog entries automatically.
-- **Intelligence**: Over time, the system learns which section items belong to (either from user input or smart suggestions).
-- **Reusability**: Once in catalog, items can be quickly added to future lists.
+### Collaboration
 
-### 4. Position-Based Ordering
-- **Sections**: Positioned to match physical store flow (produce → dairy → checkout).
-- **List Items**: Positioned within list to match section order for efficient shopping.
-- **User Control**: Users can reorder sections to match their preferred shopping path.
+- `Household` is the primary collaboration boundary.
+- A household has one owner (`ownerId`) and many member users.
+- Stores, invitations, and shopping data are scoped through households.
 
-### 5. Shopping State Machine
-Shopping lists follow a lifecycle:
-1. **PLANNING**: Default state, items can be freely added/removed.
-2. **SHOPPING**: Active shopping session, items checked off in real-time.
-3. **COMPLETED**: List archived, serves as history/template.
+### Store Layout and Catalog
 
-### 6. Identity & Authentication
-- **Google OIDC Integration**: Uses Google OIDC (oidc-spa) for authentication. Currently Google-only.
-- **User Creation**: First-time users automatically get a default household.
-- **Invitation System**: Token-based invitations for household sharing (see [household-invitation-system](../design/household-invitation-system.md)).
+- `Store` belongs to a household.
+- `Section` models a store's physical layout and ordering.
+- `Item` is the store-scoped catalog item. It replaced older `CatalogItem`
+  language in previous docs.
+- Items may belong to a section and accumulate usage signals such as
+  `purchaseCount` and `lastPurchased`.
 
-## Entity Lifecycle Examples
+### Shopping
 
-### New User Journey
+- `List` represents a shopping list for a store.
+- `List.status` follows the `PLANNING -> SHOPPING -> COMPLETED` lifecycle.
+- `List.assignedTo` stores the Google OIDC subject of the active shopping lock
+  holder, not the internal database user ID.
+- `ListItem` joins a list to an item and records checked/purchased state.
+
+### Invitations
+
+- `Invitation` uses an explicit status lifecycle:
+  `ACTIVE`, `COMPLETED`, `EXPIRED`, `REVOKED`.
+- Invitations are not soft-deleted because terminal statuses already model their
+  lifecycle.
+
+## Cross-Cutting Model Rules
+
+### Household as collaboration boundary
+
+All domain access must be scoped by household membership. Server services must
+verify access before returning or mutating household-owned data.
+
+### Store-specific catalogs
+
+Items are scoped to stores because grocery layouts and product habits differ per
+store. The same item name in two stores is represented as two `Item` records.
+
+### Soft-delete as default domain lifecycle
+
+The main domain models (`Household`, `Store`, `Section`, `Item`, `List`,
+`ListItem`) use `deleted` and `deletedAt`. Queries must filter active records
+unless explicitly dealing with tombstones/sync.
+
+### Sync checkpoint compatibility
+
+Replicated models include `(updatedAt, id)` indexes. Sync pull uses that pair for
+deterministic pagination.
+
+### Shopping lock identity
+
+Shopping lock ownership uses Google OIDC `sub` because the frontend can compare
+it directly against the decoded ID token. Server services map Google identity to
+internal user IDs for persistence/authorization, but the lock holder remains an
+OIDC subject.
+
+## Example Journeys
+
+### New User
+
+```text
+1. User signs in with Google.
+2. Auth service resolves or creates local User and Account records.
+3. System creates or exposes the user's household membership.
+4. User creates a Store.
+5. User creates Sections and Items for that store.
+6. User creates a List and adds ListItems.
 ```
-1. User signs in with Google → User record created
-2. System creates default Household "My Household"
-3. User creates first Store "Trader Joe's"
-4. User creates ShoppingList for that Store
-5. User adds "milk" → CatalogItem created → ListItem references it
-6. User assigns "milk" to "Dairy" section
-7. Next time: "milk" auto-suggests from catalog
+
+### Active Shopping
+
+```text
+1. Household member starts a List.
+2. List status changes from PLANNING to SHOPPING.
+3. assignedTo is set to that member's Google OIDC subject.
+4. Lock holder checks off ListItems during the trip.
+5. Other household members can observe changes through sync, but lock checks
+   prevent competing active-trip edits.
+6. Lock holder completes or cancels the trip.
 ```
 
-### Multi-User Shopping
-```
-1. User A creates list, adds items
-2. User A starts shopping (status: SHOPPING)
-3. User B (same household) opens same list
-4. User B checks off "bread" → checkedById = User B
-5. User A's view updates in real-time
-6. User A completes shopping → status: COMPLETED
-```
+## Related Architecture Views
+
+- [System Overview](./system-overview.md)
+- [Data Sync and Concurrency](./data-sync-and-concurrency.md)
+- [Security and Auth](./security-and-auth.md)
 
 ---
 
-**Last Updated:** January 9, 2026
+**Last Updated:** June 15, 2026

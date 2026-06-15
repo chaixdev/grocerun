@@ -12,17 +12,17 @@ description: >
 ```bash
 nvm use           # Activate Node 22 (from .nvmrc)
 npm install       # Install all workspace dependencies
-npm run dev       # Start both apps (Next.js :3000, NestJS :3001)
+npm run dev       # Start both apps (Vite :3000, NestJS :3001)
 ```
 
-The dev command uses `concurrently` to run both apps in watch mode.
-Next.js runs via Turbopack.
+The dev command runs both apps in watch mode via the monorepo task runner.
+The frontend is a Vite SPA.
 
 ## Run the Application
 
 | Command | What it does |
 |---------|-------------|
-| `npm run dev` | Start both apps (Next.js on :3000, NestJS on :3001) |
+| `npm run dev` | Start both apps (Vite on :3000, NestJS on :3001) |
 | `npm run dev --workspace=apps/web` | Start only the frontend |
 | `npm run dev --workspace=apps/server` | Start only the backend |
 
@@ -64,7 +64,7 @@ The database file is `apps/server/dev.db` (SQLite).
 
 ### Port conflicts
 ```bash
-fuser -k 3000/tcp   # Kill process on Next.js port
+fuser -k 3000/tcp   # Kill process on Vite frontend port
 fuser -k 3001/tcp   # Kill process on NestJS port
 ```
 
@@ -82,13 +82,14 @@ npm rebuild         # Rebuild native modules
 ```
 
 ### Google OAuth not working
-- Verify `AUTH_URL=http://localhost:3000` in `apps/web/.env`
-- Check Google Cloud Console redirect URIs include `http://localhost:3000/api/auth/callback/google`
+- Verify frontend OIDC env/config has `VITE_OIDC_CLIENT_ID` and `VITE_OIDC_CLIENT_SECRET`
+- Verify server has `OIDC_AUDIENCE` set to the same Google client ID in production
+- Check Google Cloud Console redirect URIs include the app root, e.g. `http://localhost:3000/`
 
 ## Port Map
 
 | Service | Port |
 |---------|------|
-| Next.js (frontend) | 3000 |
+| Vite SPA (frontend) | 3000 |
 | NestJS (backend) | 3001 |
 | Prisma Studio | 5555 |

@@ -54,6 +54,7 @@ The deep reviewer automatically loads both.
 ### Skills (`.opencode/skills/`)
 - `grocerun-coding-style` — Navigator from concern tracks to coding standards sections
 - `grocerun-knowledge-sources` — Project docs, tech stack, key files
+- `grocerun-doc-writer` — Produces wiki docs following folder README templates; Mermaid-only diagrams
 - `repo-dev-commands` — Development commands reference
 - `grocerun-deep-reviewer` — 4-phase parallel code review methodology
 

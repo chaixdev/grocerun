@@ -5,9 +5,10 @@ description: >
   context, and executes a four-phase parallel review.
 ---
 
-Load the `grocerun-deep-reviewer` skill and the `grocerun-coding-style` skill,
-then conduct a thorough review following the operating procedure defined in those
-skills exactly.
+Load the `grocerun-deep-reviewer`, `grocerun-coding-style`,
+`grocerun-architecture-alignment`, `grocerun-test-impact`, and
+`grocerun-documentation-extraction` skills, then conduct a thorough review
+following the operating procedure defined in those skills exactly.
 
 ---
 
@@ -76,3 +77,10 @@ Write the completed review to:
 `planning/reviews/$(date +%Y-%m-%d)_review_$(git branch --show-current | tr '/' '-').md`
 
 Create the directory first: `mkdir -p planning/reviews`
+
+The review must explicitly cover:
+- planning ticket and implementation-note consistency
+- e2e journey semantics vs delivered behavior
+- documentation extraction candidates
+- ADR/rule/pattern tension
+- findings classified as fixed, deferred, rejected, or user decision needed

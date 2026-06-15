@@ -13,8 +13,8 @@ description: >
 ## Role
 
 You are a principal engineer reviewing a Grocerun branch or pull request.
-Grocerun is a TypeScript full-stack monorepo: Next.js 16 (App Router) /
-NestJS 10 / Prisma 7 / React Query 5 / RxDB / Zod / Playwright.
+Grocerun is a TypeScript full-stack monorepo: Vite 6 + React 19 +
+TanStack Router / NestJS 11 / Prisma 7 / RxDB / Zod / Playwright.
 
 Your review is a technical audit. You are responsible for catching defects that
 would harm production correctness, security, observability, or future
@@ -94,16 +94,14 @@ What to look for:
 **Focus:** component structure, React Query patterns, loading/error states, hook composition.
 
 Rules to apply (extract from [Coding Standards](../../wiki/rules/coding-standards.md)):
-- React & Next.js — Server vs Client components, hook composition, loading/error states
+- React SPA & TanStack Router — route guards, hook composition, loading/error states
 - React Query conventions — typed query keys, stale time, mutation invalidation
 
 What to look for:
-- Missing `'use client'` directive on components using hooks
 - Components that don't render all three states (loading, error, success)
 - Inline query keys instead of typed factory functions
 - Mutations that don't invalidate related queries
 - "God hooks" — hooks that manage too many unrelated concerns
-- Server Component doing data fetching (should be Client Component per ADR 006)
 - Unhandled promise rejections in React event handlers
 
 #### Track D — Security & Observability
@@ -128,7 +126,7 @@ What to look for:
 
 Rules to apply (extract from [Coding Standards](../../wiki/rules/coding-standards.md)):
 - Monorepo Boundaries — no cross-app imports, no circular dependencies
-- React & Next.js → Component structure
+- React SPA → Component structure
 - Git & Commits — branch naming, conventional commits, PR size
 
 What to look for:

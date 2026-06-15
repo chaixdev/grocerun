@@ -21,9 +21,9 @@ standards by concern:
 |-------|---------------------------|
 | **Logic & Correctness** | TypeScript Idioms, Error Handling, NestJS → Validation pipes |
 | **Data & Persistence** | Prisma & Database, RxDB & Local-First |
-| **React & UI** | React & Next.js, React Query conventions, Loading and error states |
+| **React & UI** | React SPA, TanStack Router, React Query conventions, Loading and error states |
 | **API & Auth** | NestJS, Auth guards, TypeScript Idioms → Zod |
-| **Structure & Quality** | Monorepo Boundaries, React & Next.js → Component structure |
+| **Structure & Quality** | Monorepo Boundaries, React SPA → Component structure |
 | **Testing** | Testing |
 | **Security & Observability** | Logging, NestJS → Error responses, RxDB → Sync state |
 
