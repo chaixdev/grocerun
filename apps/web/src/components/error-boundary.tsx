@@ -1,12 +1,23 @@
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { AlertCircle, RotateCw } from "lucide-react"
+import { AlertCircle, RefreshCw, RotateCw } from "lucide-react"
+import { resetRxDb } from "@/core/rxdb"
+import { router } from "@/router"
 
 export function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
+    const [cleaning, setCleaning] = useState(false)
+
     useEffect(() => {
         console.error(error)
     }, [error])
+
+    async function handleCleanAndResync() {
+        if (!confirm('This will delete all local data and re-sync from the server. Continue?')) return
+        setCleaning(true)
+        await resetRxDb()
+        router.navigate({ to: "/lists", replace: true })
+    }
 
     return (
         <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center p-4">
@@ -27,7 +38,7 @@ export function ErrorComponent({ error, reset }: { error: Error; reset: () => vo
                         </div>
                     )}
                 </CardContent>
-                <CardFooter className="justify-center">
+                <CardFooter className="justify-center gap-2 flex-col sm:flex-row">
                     <Button
                         onClick={reset}
                         variant="outline"
@@ -35,6 +46,15 @@ export function ErrorComponent({ error, reset }: { error: Error; reset: () => vo
                     >
                         <RotateCw className="mr-2 h-4 w-4" />
                         Try again
+                    </Button>
+                    <Button
+                        onClick={handleCleanAndResync}
+                        variant="outline"
+                        disabled={cleaning}
+                        className="border-destructive/20 hover:bg-destructive/10 hover:text-destructive"
+                    >
+                        <RefreshCw className="mr-2 h-4 w-4" />
+                        {cleaning ? "Cleaning..." : "Clean & resync"}
                     </Button>
                 </CardFooter>
             </Card>

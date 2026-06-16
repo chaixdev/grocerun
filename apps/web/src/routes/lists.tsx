@@ -1,8 +1,13 @@
+import { useState } from "react"
 import { createFileRoute, lazyRouteComponent } from "@tanstack/react-router"
 import { enforceAppLogin } from "@/core/auth/guard"
 import { PageLoading } from "@/components/ui/page-loading"
+import { Button } from "@/components/ui/button"
 import { HouseholdListGroup } from "@/features/lists"
 import { useDashboard } from "@/features/lists/hooks/useDashboard"
+import { resetRxDb } from "@/core/rxdb"
+import { router } from "@/router"
+import { RefreshCw } from "lucide-react"
 
 export const Route = createFileRoute("/lists")({
   beforeLoad: enforceAppLogin,
@@ -11,10 +16,18 @@ export const Route = createFileRoute("/lists")({
 
 export function ListsPage() {
     const { data: households, isLoading, isError } = useDashboard()
+    const [cleaningLists, setCleaningLists] = useState(false)
 
     if (isLoading) return <PageLoading />
 
     if (isError) {
+        async function handleCleanAndResync() {
+            if (!confirm('This will delete all local data and re-sync from the server. Continue?')) return
+            setCleaningLists(true)
+            await resetRxDb()
+            router.navigate({ to: "/lists", replace: true })
+        }
+
         return (
             <div className="container max-w-4xl mx-auto py-12 px-4 text-center">
                 <div className="p-8 border rounded-lg bg-destructive/10 border-destructive/20">
@@ -22,6 +35,15 @@ export function ListsPage() {
                     <p className="text-muted-foreground mb-4">
                         We couldn&apos;t load your lists. Please try again later.
                     </p>
+                    <Button
+                        onClick={handleCleanAndResync}
+                        variant="outline"
+                        disabled={cleaningLists}
+                        className="border-destructive/20 hover:bg-destructive/10 hover:text-destructive"
+                    >
+                        <RefreshCw className="mr-2 h-4 w-4" />
+                        {cleaningLists ? "Cleaning..." : "Clean & resync"}
+                    </Button>
                 </div>
             </div>
         )
