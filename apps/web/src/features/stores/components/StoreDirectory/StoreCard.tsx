@@ -1,5 +1,5 @@
 
-import { MapPin, Settings, Store as StoreIcon, ArrowRight, Eye, Loader2 } from "lucide-react"
+import { MapPin, Settings, Store as StoreIcon, ArrowRight, Loader2 } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { useRouter } from "@tanstack/react-router"
@@ -16,7 +16,10 @@ export function StoreCard({ store }: StoreCardProps) {
     const activeListId = store.activeListId
 
     return (
-        <Card className="group hover:shadow-lg transition-all duration-300 border-border/50 bg-gradient-to-br from-card to-secondary/5">
+        <Card
+            className="group hover:shadow-lg transition-all duration-300 border-border/50 bg-gradient-to-br from-card to-secondary/5 cursor-pointer"
+            onClick={() => router.navigate({ to: "/stores/$storeId", params: { storeId: store.id } })}
+        >
             <CardContent className="p-5 flex flex-col justify-between h-full">
                 <div className="space-y-3">
                     <div className="flex justify-between items-start gap-2">
@@ -35,19 +38,6 @@ export function StoreCard({ store }: StoreCardProps) {
                             )}
                         </div>
                         <div className="flex items-center gap-1 -mr-2 -mt-2">
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8 text-muted-foreground hover:text-foreground transition-opacity"
-                                onClick={(e) => {
-                                    e.stopPropagation()
-                                    router.navigate({ to: "/stores/$storeId", params: { storeId: store.id } })
-                                }}
-                                title="View Store Details"
-                            >
-                                <Eye className="h-4 w-4" />
-                                <span className="sr-only">View Store Details</span>
-                            </Button>
                             <Button
                                 variant="ghost"
                                 size="icon"
