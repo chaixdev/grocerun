@@ -1,7 +1,7 @@
 import { Link } from "@tanstack/react-router"
-import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
+import { Card, CardHeader } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { ShoppingBasket, ShoppingCart, ListChecks, CalendarDays, ScrollText } from "lucide-react"
+import { ShoppingBasket, ListChecks, CalendarDays, ScrollText } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 interface ActiveListCardProps {

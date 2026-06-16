@@ -1,8 +1,8 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, within } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ListItemRow } from '@/features/lists/components/ListItemRow';
-import { buildListItem, type TestItem } from '@/test/test-fixtures';
+import { buildListItem } from '@/test/test-fixtures';
 
 describe('ListItemRow', () => {
   const defaultItem = buildListItem({ id: 'li-1', item: { id: 'item-1', name: 'Milk', sectionId: null, defaultUnit: 'carton', purchaseCount: 5 } });

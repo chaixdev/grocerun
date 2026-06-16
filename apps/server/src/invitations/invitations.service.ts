@@ -140,7 +140,7 @@ export class InvitationsService {
     return { success: true };
   }
 
-  async getInvitationDetails(token: string, userId: string) {
+  async getInvitationDetails(token: string) {
     const invitation = await this.prisma.invitation.findUnique({
       where: { token },
       include: {

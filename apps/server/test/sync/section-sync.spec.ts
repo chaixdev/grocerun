@@ -7,6 +7,7 @@ import {
   seedBaseFixtures,
   clearDomainData,
 } from '../helpers';
+import * as http from 'http';
 
 // ---------------------------------------------------------------------------
 // Sync endpoint integration tests — Section collection
@@ -95,7 +96,7 @@ describe('GET /sync/section/pull', () => {
       .get('/sync/section/pull')
       .expect(200);
 
-    const tombstone = res.body.documents.find((d: any) => d.id === sectionId);
+    const tombstone = res.body.documents.find((d: { id: string }) => d.id === sectionId);
     expect(tombstone).toBeDefined();
     expect(tombstone._deleted).toBe(true);
   });
@@ -159,17 +160,17 @@ describe('GET /api/v1/sync/section/stream', () => {
       if (server.listening) return res();
       server.listen(0, res);
     });
-    const port = (server.address() as any).port;
+    const port = (server.address() as { port: number }).port;
 
     await new Promise<void>((resolve, reject) => {
-      const req = require('http').get(
+      const req = http.get(
         {
           hostname: '127.0.0.1',
           port,
           path: '/api/v1/sync/section/stream',
           headers: { Authorization: `Bearer ${token}` },
         },
-        (res: any) => {
+        (res: http.IncomingMessage) => {
           expect(res.headers['content-type']).toMatch(/text\/event-stream/);
           let data = '';
           res.on('data', (chunk: Buffer) => {

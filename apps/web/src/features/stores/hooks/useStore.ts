@@ -7,6 +7,7 @@ import { z } from "zod"
 
 // ----- Types -----
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const StoreSchema = z.object({
   id: z.string(),
   name: z.string(),

@@ -180,7 +180,7 @@ describe('completeList', () => {
   it('completeList on a PLANNING list completes it directly (no error)', async () => {
     const listId = await createList();
 
-    const res = await agent(app)
+    await agent(app)
       .post(`/lists/${listId}/complete`)
       .expect(201);
 

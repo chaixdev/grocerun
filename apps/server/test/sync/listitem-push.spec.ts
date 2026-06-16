@@ -585,8 +585,7 @@ describe('ListItem push — assumedMasterState conflict', () => {
       .expect(200);
 
     // Get the server's current updatedAt
-    const serverLi = await db(app).listItem.findUnique({ where: { id: itemId } });
-    const serverUpdatedAt = serverLi!.updatedAt.toISOString();
+    await db(app).listItem.findUnique({ where: { id: itemId } });
 
     // Push with a wrong assumedMasterState.updatedAt
     const pushRes = await agent(app)

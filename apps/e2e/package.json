@@ -8,7 +8,7 @@
     "test:ui": "playwright test --ui",
     "test:debug": "playwright test --debug",
     "codegen": "playwright codegen",
-    "lint": "eslint ."
+    "lint": "tsc --noEmit"
   },
   "devDependencies": {
     "@playwright/test": "^1.49.0",

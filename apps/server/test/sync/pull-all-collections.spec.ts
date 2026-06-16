@@ -171,7 +171,7 @@ describe('GET /sync/:collection/pull', () => {
       ])
       .expect(200);
 
-    const addRes = await agent(app)
+    await agent(app)
       .post('/lists/items/add')
       .send({ listId, name: 'Pull LI Item', sectionId, quantity: 1 })
       .expect(201);
@@ -245,13 +245,13 @@ describe('Pull checkpoint pagination', () => {
 
     // Should include all stores (2 from beforeEach + 2 new = up to 4, but pull filters by household)
     // The two equal-timestamp stores should both appear, ordered by id
-    const eqDocs = allPull.body.documents.filter((d: any) =>
+    const eqDocs = allPull.body.documents.filter((d: { id: string }) =>
       d.id === 'store-eq-1' || d.id === 'store-eq-2'
     );
     expect(eqDocs).toHaveLength(2);
     // 'store-eq-1' should come before 'store-eq-2'
-    const idx1 = eqDocs.findIndex((d: any) => d.id === 'store-eq-1');
-    const idx2 = eqDocs.findIndex((d: any) => d.id === 'store-eq-2');
+    const idx1 = eqDocs.findIndex((d: { id: string }) => d.id === 'store-eq-1');
+    const idx2 = eqDocs.findIndex((d: { id: string }) => d.id === 'store-eq-2');
     expect(idx1).toBeLessThan(idx2);
   });
 });
@@ -276,7 +276,7 @@ describe('Pull tombstone delivery', () => {
       .get('/sync/section/pull')
       .expect(200);
 
-    const tombstone = res.body.documents.find((d: any) => d.id === sectionId);
+    const tombstone = res.body.documents.find((d: { id: string }) => d.id === sectionId);
     expect(tombstone).toBeDefined();
     expect(tombstone._deleted).toBe(true);
   });
@@ -302,7 +302,7 @@ describe('Pull tombstone delivery', () => {
       .get('/sync/section/pull')
       .expect(200);
 
-    const ancient = res.body.documents.find((d: any) => d.id === sectionId);
+    const ancient = res.body.documents.find((d: { id: string }) => d.id === sectionId);
     expect(ancient).toBeUndefined();
   });
 });
@@ -331,7 +331,7 @@ describe('Pull cross-household isolation', () => {
       },
     });
 
-    const otherStore = await db(app).store.upsert({
+    await db(app).store.upsert({
       where: { id: 'pull-iso-store' },
       update: {},
       create: {
@@ -346,7 +346,7 @@ describe('Pull cross-household isolation', () => {
       .get('/sync/store/pull')
       .expect(200);
 
-    const otherDoc = res.body.documents.find((d: any) => d.id === 'pull-iso-store');
+    const otherDoc = res.body.documents.find((d: { id: string }) => d.id === 'pull-iso-store');
     expect(otherDoc).toBeUndefined();
   });
 
@@ -422,7 +422,7 @@ describe('Pull cross-household isolation', () => {
       .get('/sync/listItem/pull')
       .expect(200);
 
-    const otherLi = res.body.documents.find((d: any) => d.id === 'pull-li-other-li');
+    const otherLi = res.body.documents.find((d: { id: string }) => d.id === 'pull-li-other-li');
     expect(otherLi).toBeUndefined();
   });
 });

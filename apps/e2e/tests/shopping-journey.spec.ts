@@ -31,7 +31,7 @@ async function seedShoppingList(
     body: JSON.stringify({ storeId, name }),
   });
   if (!listRes.ok) throw new Error(`Create list failed: ${listRes.status}`);
-  const list = await listRes.json();
+  const list: { id: string } = await listRes.json();
   const listId = list.id;
 
   for (const itemName of items) {
