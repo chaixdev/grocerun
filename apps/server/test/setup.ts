@@ -17,7 +17,13 @@ export async function setup() {
   const envPath = path.resolve(__dirname, '../.env.test');
   dotenv.config({ path: envPath });
 
-  // 2. Run `prisma migrate deploy` against the test DB.
+  // 2. Ensure DATABASE_URL is set (CI may not have .env.test).
+  //    SQLite is a file-based DB — CI can use it without any services.
+  if (!process.env.DATABASE_URL) {
+    process.env.DATABASE_URL = 'file:./test.db';
+  }
+
+  // 3. Run `prisma migrate deploy` against the test DB.
   //    `migrate deploy` applies pending migrations without prompting — safe for CI.
   //    It's a no-op if the DB is already up-to-date.
   const serverDir = path.resolve(__dirname, '..');
