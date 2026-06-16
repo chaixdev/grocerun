@@ -47,7 +47,7 @@ export function StoreDeleteSection({ storeId, storeName }: StoreDeleteSectionPro
                         <AlertDialogDescription>
                             This action cannot be undone. This will permanently delete
                             <span className="font-semibold"> {storeName} </span>
-                            and remove all data associated with it.
+                            and all associated shopping lists, sections, and items.
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>

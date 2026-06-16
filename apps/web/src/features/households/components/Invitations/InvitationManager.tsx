@@ -387,7 +387,7 @@ export function InvitationManager({ userId, households, invitationTimeoutMinutes
                         <DialogDescription>
                             {householdToDelete?.memberCount && householdToDelete.memberCount > 1
                                 ? <>You cannot delete <strong>{householdToDelete?.name}</strong> while it still has other members.</>
-                                : <>Are you sure you want to delete <strong>{householdToDelete?.name}</strong>? This action cannot be undone.</>}
+                                : <>Are you sure you want to delete <strong>{householdToDelete?.name}</strong>? This will permanently remove all associated stores, shopping lists, sections, and items. This action cannot be undone.</>}
                         </DialogDescription>
                     </DialogHeader>
                     <DialogFooter>
