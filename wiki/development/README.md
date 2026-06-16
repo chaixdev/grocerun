@@ -24,6 +24,7 @@ historical.
 
 - [Agentic Development Workflow](./agentic-workflow.md)
 - [DevOps Philosophy](./devops-philosophy.md)
+- [Deployment Model](./deployment-model.md)
 
 ## Related
 
