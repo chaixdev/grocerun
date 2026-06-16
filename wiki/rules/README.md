@@ -31,3 +31,5 @@ implementation, refactor, or review task.
 | [`rxdb.md`](./rxdb.md) | Replication, schema, local-first write patterns, offline persistence |
 | [`auth.md`](./auth.md) | OIDC, JWT, guard patterns, shopping lock identity |
 | [`monorepo-boundaries.md`](./monorepo-boundaries.md) | Import rules, shared code, documentation hierarchy |
+| [`production-quality.md`](./production-quality.md) | Performance, observability, reliability — rules that prevent the most expensive bugs |
+| [`ci-guardrails.md`](./ci-guardrails.md) | CI pipeline gates, ESLint rules, PR requirements — enforcement mechanisms |
