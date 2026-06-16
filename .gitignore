@@ -61,6 +61,7 @@ playwright/.cache/
 
 # logs
 *.log
+.opencode/pilot-audit.log.*
 job-logs.txt
 
 deploy-staging.sh

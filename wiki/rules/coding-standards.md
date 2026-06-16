@@ -227,6 +227,8 @@ async pushItems(items: PushItem[]) {
 ## 3. Logging
 
 - Server: framework `Logger` with contextual prefix (`new Logger("ModuleName")`).
+  **All logs must be structured JSON** — see [production-quality.md §2](./production-quality.md)
+  for the full observability standard (correlation IDs, severity taxonomy, instrumented metrics).
 
 **Correct:**
 ```typescript
@@ -256,33 +258,10 @@ async broadcast(userId: string, event: ResyncEvent) {
 
 ## 4. Testing
 
-- Vitest for unit/integration tests. Playwright for e2e smokes.
-- Server tests use a real database — no mocking the ORM.
-- Each domain module should have integration-tested critical paths.
-
-**Correct:**
-```typescript
-// Real database, real JWT, assert behavior not implementation.
-const response = await agent(app)
-  .post("/api/lists")
-  .set("Authorization", `Bearer ${makeTestToken(userId)}`)
-  .send({ storeId, name: "Test List" });
-
-expect(response.status).toBe(201);
-const created = await db(app).list.findFirst({ where: { id: response.body.id } });
-expect(created.deleted).toBe(false);
-```
-
-**Incorrect:**
-```typescript
-// Mocking the ORM means you're testing mocks, not the real query.
-expect(mockPrisma.list.create).toHaveBeenCalledWith({ data: { ... } });
-```
-
-- Component tests prefer `userEvent` over `fireEvent`. No snapshot tests.
-- Test filenames: `*.spec.ts` for unit/integration, `*.e2e-spec.ts` for e2e.
-- CI must run tests on every push and PR. Failing tests block merge.
-- Test data must be isolated per test. Never use real credentials.
+Core rules: use real databases (never mock the ORM), assert behavior not
+implementation, CI blocks merge on test failure. See
+[testing-standards.md](./testing-standards.md) for the full test pyramid,
+required test scenarios per feature type, and Playwright conventions.
 
 ---
 
@@ -340,3 +319,5 @@ expect(mockPrisma.list.create).toHaveBeenCalledWith({ data: { ... } });
 | [auth.md](./auth.md) | Auth: OIDC, JWT, guards, lock identity |
 | [monorepo-boundaries.md](./monorepo-boundaries.md) | Imports, shared code, wiki hierarchy |
 | [testing-standards.md](./testing-standards.md) | Test pyramid, integration tests, Playwright |
+| [production-quality.md](./production-quality.md) | Performance, observability, reliability |
+| [ci-guardrails.md](./ci-guardrails.md) | CI gates, lint rules, PR enforcement |

@@ -159,3 +159,7 @@
 
 **Last Updated:** January 9, 2026  
 **Next Domain:** Items (simplest, good starting point)
+
+---
+
+> **Superseded (June 2026):** This migration plan was bypassed by the architectural pivot to local-first. Instead of proxying server actions through NestJS (Phase 2), the app moved directly to a Vite SPA with RxDB local storage and NestJS as a sync server (Phase 4). The 0/38 count reflects that this *specific* migration approach was never executed, not that the architecture stagnated.
