@@ -15,7 +15,7 @@ aliases for automated updates:
 
 | Tag | Type | Purpose |
 |-----|------|---------|
-| `latest` | floating | Bleeding edge — pushed on every merge to `main` |
+| `latest` | floating | Bleeding edge — pushed manually via `deploy-staging.sh` |
 | `X` | floating | Latest `X.y.z` — bumped with each release in the `X` major series |
 | `X.Y` | floating | Latest `X.Y.z` — bumped with each patch release |
 | `X.Y.Z` | immutable | Pinned release — never overwritten |
@@ -62,26 +62,26 @@ independent targets — no cross-contamination.
 ```mermaid
 stateDiagram-v2
     direction LR
-    MainPush: Push to main
     VersionTag: Version tag (v0.1.6)
-    PR: PR to main
-    Build: Build & push
-    Staging: Deploy to staging
-    Prod: Deploy to production
-    Skip: Build only (verify)
+    Build: Build & push multi-arch
+    Prod: Trigger Watchtower (production)
+    StagingNote: Staging is manual (deploy-staging.sh)
 
-    MainPush --> Build
-    Build --> Staging
     VersionTag --> Build
     Build --> Prod
-    PR --> Skip
 ```
+
+Docker builds only run on version tags. PRs use `test.yml` (lint + test)
+as the quality gate — no Docker image is built for pull requests.
 
 | Trigger | Tags pushed | Watchtower effect |
 |---------|------------|-------------------|
-| Push to `main` | `latest` | grocewalk restarts |
 | Tag `v0.1.6` | `0.1.6`, `0.1`, `0` | grocerun restarts (watches `:0.1`) |
-| PR to `main` | none (build only) | nothing |
+| Push to `main` | none | nothing |
+| PR to `main` | none | nothing (lint + test only) |
+
+Staging deploys are intentional and manual — there is no automated staging
+deploy from CI. This keeps the incentive to test before merging.
 
 ## When Things Update
 
@@ -89,7 +89,7 @@ stateDiagram-v2
 |--------|-----------|----------|-----------------|
 | Push `:0.1.6`, bump `:0.1` | ❌ | ✅ auto | Nothing (Watchtower) |
 | Push `:0.2.0`, bump `:0.2` | ❌ | ❌ | Edit `group_vars`: `grocerun.image` to `:0.2`, redeploy |
-| Push `:latest` | ✅ auto | ❌ | Nothing |
+| Run `deploy-staging.sh` | ✅ manual | ❌ | Nothing (manual trigger) |
 | Major bump `1.0.0` | ❌ | ❌ | Edit `group_vars`, redeploy, manual verification |
 
 ## Manual Deployment Commands
