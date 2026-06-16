@@ -89,7 +89,7 @@ export async function seedPlaywrightFixtures(baseURL: string): Promise<TestAuth>
     console.error(`[seed] Household creation FAILED: ${hhRes.status} ${errBody}`);
     throw new Error(`Failed to create household: ${hhRes.status}`);
   }
-  const household = await hhRes.json();
+  const household: { id: string } = await hhRes.json();
   const householdId = household.id;
 
   // 2. Create store via API
@@ -103,7 +103,7 @@ export async function seedPlaywrightFixtures(baseURL: string): Promise<TestAuth>
     console.error(`[seed] Store creation FAILED: ${storeRes.status} ${errBody}`);
     throw new Error(`Failed to create store: ${storeRes.status}`);
   }
-  const store = await storeRes.json();
+  const store: { id: string } = await storeRes.json();
   const storeId = store.id;
 
   // 3. Create section via API
@@ -117,7 +117,7 @@ export async function seedPlaywrightFixtures(baseURL: string): Promise<TestAuth>
     console.error(`[seed] Section creation FAILED: ${sectionRes.status} ${errBody}`);
     throw new Error(`Failed to create section: ${sectionRes.status}`);
   }
-  const section = await sectionRes.json();
+  const section: { id: string } = await sectionRes.json();
 
   return { token, userId: TEST_USER_ID, householdId, storeId, sectionId: section.id };
 }

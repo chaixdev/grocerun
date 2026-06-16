@@ -162,7 +162,7 @@ export function useRxQuery<T>(
       cancelled = true
       cleanups.forEach((fn) => { fn() })
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // deps intentionally excluded — see function documentation
   }, deps)
 
   return { data, isLoading, error, isError: !!error }

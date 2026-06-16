@@ -24,8 +24,6 @@ import {
   db,
   seedBaseFixtures,
   clearDomainData,
-  makeTestToken,
-  TEST_USER_ID,
 } from '../helpers';
 
 let app: INestApplication;

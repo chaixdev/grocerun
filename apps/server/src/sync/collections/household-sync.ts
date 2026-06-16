@@ -11,7 +11,6 @@ import { SyncDeps } from '../sync-deps';
 import {
   PullResponse,
   SyncCheckpoint,
-  SyncDocument,
 } from '../sync.types';
 import { pullByAccess } from '../sync-helpers';
 
@@ -24,15 +23,15 @@ export async function pullHouseholds(
   return pullByAccess({
     deps, checkpoint, limit, userId,
     model: deps.prisma.household,
-    toDoc: (row: any) => ({
-      id: row.id,
-      name: row.name,
-      ...(row.ownerId ? { ownerId: row.ownerId } : {}),
-      memberCount: row._count?.users ?? 0,
-      updatedAt: row.updatedAt.toISOString(),
-      _deleted: row.deleted,
+    toDoc: (row: Record<string, unknown>) => ({
+      id: row.id as string,
+      name: row.name as string,
+      ...(row.ownerId ? { ownerId: row.ownerId as string } : {}),
+      memberCount: (row as { _count?: { users?: number } })._count?.users ?? 0,
+      updatedAt: (row.updatedAt as Date).toISOString(),
+      _deleted: row.deleted as boolean,
     }),
-    buildBaseFilter: async (_d, _u) => ({ users: { some: { id: userId } } }),
+    buildBaseFilter: async () => ({ users: { some: { id: userId } } }),
     extra: { include: { _count: { select: { users: true } } } },
   });
 }

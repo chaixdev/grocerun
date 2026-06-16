@@ -154,7 +154,7 @@ describe('Cross-household list access', () => {
 
 describe('Cross-household section access', () => {
   it('returns 403 when getting sections for another household store', async () => {
-    const otherSection = await db(app).section.create({
+    await db(app).section.create({
       data: { id: 'other-section', name: 'Other Section', storeId: otherStoreId },
     });
 

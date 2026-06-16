@@ -86,7 +86,7 @@ export function useCreateSection(storeId: string) {
   })
 }
 
-export function useUpdateSection(storeId: string) {
+export function useUpdateSection(_storeId: string) {
   return useMutation({
     mutationFn: ({ id, name }: { id: string; name: string }) =>
       api.patch(`/sections/${id}`, { name }),
@@ -99,7 +99,7 @@ export function useUpdateSection(storeId: string) {
   })
 }
 
-export function useDeleteSection(storeId: string) {
+export function useDeleteSection(_storeId: string) {
   return useMutation({
     mutationFn: (id: string) => api.delete(`/sections/${id}`),
     onSuccess: () => {

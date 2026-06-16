@@ -4,7 +4,7 @@ import { AuthGuard, JwtPayload } from '../auth/auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
 import { CreateListDto } from './dto/create-list.dto';
 import { AddItemDto } from './dto/add-item.dto';
-import { ToggleItemDto, UpdateQuantityDto, RemoveItemDto, ListIdDto } from './dto/manage-items.dto';
+import { ToggleItemDto, UpdateQuantityDto } from './dto/manage-items.dto';
 
 @Controller('lists')
 @UseGuards(AuthGuard)

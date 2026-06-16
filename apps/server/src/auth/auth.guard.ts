@@ -10,11 +10,11 @@ import * as jwt from 'jsonwebtoken';
 import { validateAndDecodeAccessToken } from './oidc-server';
 import { AuthService } from './auth.service';
 
-declare global {
-    namespace Express {
-        interface Request {
-            user?: JwtPayload
-        }
+import 'express';
+
+declare module 'express' {
+    interface Request {
+        user?: JwtPayload;
     }
 }
 

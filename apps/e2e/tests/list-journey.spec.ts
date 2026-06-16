@@ -26,7 +26,7 @@ async function createListViaApi(
     body: JSON.stringify({ storeId, name }),
   });
   if (!res.ok) throw new Error(`Create list failed: ${res.status}`);
-  const list = await res.json();
+  const list: { id: string } = await res.json();
   return list.id;
 }
 

@@ -90,8 +90,8 @@ export function ItemAutocomplete({
                 clearTimeout(debounceRef.current)
             }
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [value, fetchSuggestions]) // Intentionally omit showSuggestions to prevent double-fetch on focus
+        // Intentionally omit showSuggestions to prevent double-fetch on focus
+    }, [value, fetchSuggestions])
 
     // Load top items on focus (immediate, not debounced)
     const handleFocus = () => {

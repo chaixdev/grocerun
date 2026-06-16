@@ -90,14 +90,14 @@ describe('1. soft-delete a ListItem', () => {
 
     // Verify it appears in the list before deletion
     const before = await agent(app).get(`/lists/${listId}`).expect(200);
-    expect(before.body.items.some((i: any) => i.id === listItemId)).toBe(true);
+    expect(before.body.items.some((i: { id: string }) => i.id === listItemId)).toBe(true);
 
     // Delete it
     await agent(app).delete(`/lists/items/${listItemId}`).expect(200);
 
     // API: item is gone from the list
     const after = await agent(app).get(`/lists/${listId}`).expect(200);
-    expect(after.body.items.some((i: any) => i.id === listItemId)).toBe(false);
+    expect(after.body.items.some((i: { id: string }) => i.id === listItemId)).toBe(false);
 
     // DB: row still exists, marked deleted
     const row = await db(app).listItem.findFirst({
@@ -135,7 +135,7 @@ describe('2. soft-delete a Section', () => {
     const sectionsAfter = await agent(app)
       .get(`/sections/store/${storeId}`)
       .expect(200);
-    expect(sectionsAfter.body.some((s: any) => s.id === sectionId)).toBe(false);
+    expect(sectionsAfter.body.some((s: { id: string }) => s.id === sectionId)).toBe(false);
 
     // DB: section row still exists, marked deleted
     const sectionRow = await db(app).section.findFirst({
@@ -175,7 +175,7 @@ describe('3. soft-delete a Store (cascade)', () => {
     const storesAfter = await agent(app)
       .get('/stores?householdId=test-household-id')
       .expect(200);
-    expect(storesAfter.body.some((s: any) => s.id === storeId)).toBe(false);
+    expect(storesAfter.body.some((s: { id: string }) => s.id === storeId)).toBe(false);
 
     // DB: all 5 entity types are soft-deleted
     const store = await db(app).store.findFirst({ where: { id: storeId } });
