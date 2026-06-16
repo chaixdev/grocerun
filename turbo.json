@@ -12,7 +12,7 @@
       "outputs": []
     },
     "test": {
-      "dependsOn": [],
+      "dependsOn": ["^build"],
       "outputs": ["coverage/**", "playwright-report/**", "test-results/**"]
     },
     "typecheck": {

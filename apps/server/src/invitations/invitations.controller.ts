@@ -34,10 +34,7 @@ export class InvitationsController {
   }
 
   @Get(':token/details')
-  async getInvitationDetails(
-    @Param('token') token: string,
-    @CurrentUser() user: JwtPayload,
-  ) {
-    return this.invitationsService.getInvitationDetails(token, user.userId!);
+  async getInvitationDetails(@Param('token') token: string) {
+    return this.invitationsService.getInvitationDetails(token);
   }
 }
