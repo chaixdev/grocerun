@@ -60,14 +60,25 @@ describe('deriveHouseholdPermissions', () => {
     })
   })
 
-  describe('ownerId null/empty fallback', () => {
-    it('treats empty ownerId as non-owner', () => {
+  describe('ownerId null/empty — unknown owner', () => {
+    it('denies destructive actions when ownerId is null', () => {
+      const perms = deriveHouseholdPermissions(
+        { ownerId: null, memberCount: 1 },
+        userId,
+      )
+      expect(perms.isOwner).toBe(false)
+      expect(perms.canLeave).toBe(false)
+      expect(perms.canDelete).toBe(false)
+    })
+
+    it('denies destructive actions when ownerId is empty string', () => {
       const perms = deriveHouseholdPermissions(
         { ownerId: '', memberCount: 1 },
         userId,
       )
       expect(perms.isOwner).toBe(false)
-      expect(perms.canLeave).toBe(true)
+      expect(perms.canLeave).toBe(false)
+      expect(perms.canDelete).toBe(false)
     })
   })
 })
