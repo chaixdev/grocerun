@@ -14,7 +14,7 @@ export interface HouseholdPermissions {
 }
 
 export interface HouseholdForPermissions {
-  ownerId: string
+  ownerId: string | null
   memberCount: number
 }
 
@@ -22,15 +22,17 @@ export function deriveHouseholdPermissions(
   household: HouseholdForPermissions,
   userId: string,
 ): HouseholdPermissions {
-  const isOwner = household.ownerId === userId
+  // When ownerId is missing from local state, conservatively treat as
+  // unknown-owner: deny destructive actions until ownership is resolved.
+  const ownerKnown = household.ownerId != null && household.ownerId !== ''
+  const isOwner = ownerKnown && household.ownerId === userId
   const isOnlyMember = household.memberCount <= 1
 
   return {
     isOwner,
     isOnlyMember,
-    // Non-owners can always leave
-    canLeave: !isOwner,
-    // Only owner of solo-member household can delete
+    // Only allow leave/delete when ownership is definitively known
+    canLeave: ownerKnown && !isOwner,
     canDelete: isOwner && isOnlyMember,
   }
 }

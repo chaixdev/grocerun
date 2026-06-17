@@ -210,7 +210,7 @@ export function InvitationManager({ userId, households, invitationTimeoutMinutes
                 <h3 className="text-sm font-medium text-muted-foreground">Your Households</h3>
                 {households.map((household) => {
                     const perms = deriveHouseholdPermissions(
-                        { ownerId: household.ownerId ?? '', memberCount: household._count.users },
+                        { ownerId: household.ownerId, memberCount: household._count.users },
                         userId,
                     )
 
