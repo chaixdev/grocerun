@@ -36,7 +36,7 @@ export function ActiveListCard({ list, storeName }: ActiveListCardProps) {
                 {/* Planning Mode Background Indicator */}
                 {isPlanningMode && (
                     <div className="absolute top-0 right-0 p-2 opacity-5 group-hover:opacity-10 transition-opacity">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary -mr-4 -mt-4 rotate-12">
+                        <svg aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary -mr-4 -mt-4 rotate-12">
                             <path d="M12 20h9" />
                             <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
                         </svg>
@@ -46,15 +46,15 @@ export function ActiveListCard({ list, storeName }: ActiveListCardProps) {
                 <CardHeader className="pb-2 space-y-0">
                     <div className="flex justify-between items-start">
                         <div className="space-y-1.5 flex-1">
-                            <h3 className="font-bold text-lg leading-tight group-hover:text-primary transition-colors">
-                                {storeName}
-                            </h3>
-                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                <span className="font-semibold uppercase tracking-wider flex items-center gap-1">
-                                    <ScrollText className="h-3 w-3" />
-                                    <span>List</span>
-                                </span>
-                                <span className="text-muted-foreground/40">•</span>
+                            <div className="flex items-center gap-2">
+                                <div className="h-8 w-8 rounded-md bg-primary/10 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+                                    {isShopping ? <ShoppingBasket className="h-4 w-4" /> : <ScrollText className="h-4 w-4" />}
+                                </div>
+                                <h3 className="font-bold text-lg leading-tight group-hover:text-primary transition-colors">
+                                    {storeName}
+                                </h3>
+                            </div>
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground pl-10">
                                 <div className="flex items-center gap-1 text-primary font-medium">
                                     <CalendarDays size={12} />
                                     <span>{new Date(list.updatedAt).toLocaleDateString()}</span>
