@@ -281,3 +281,11 @@ lost in chat history without forcing premature planning.
 - **Raw request:** A calendar view showing when shopping trips happened — dots or markers on dates, tap to see trip summary. Natural companion to the trip detail view.
 - **Context / notes:** Low implementation cost if trip history exists — just a calendar renderer with aggregated trip dates. Could show trip count per day, total spend per day (if price tracking exists). Complements filter modes (#23) by giving a time-based lens on shopping patterns.
 - **Links:** #26
+
+### 2026-06-17 — Cross-section drag-and-drop for item reassignment
+
+- **Status:** captured
+- **Category:** UX
+- **Raw request:** Drag an item from one section to another within the same store to reassign it. Currently section reassignment requires editing the item's properties — DnD would make this a single gesture. Emerged during #7 (item ordering) design discussion — section-ordered lists make section boundaries visually obvious, and dragging an item across a boundary to change its section is a natural UX.
+- **Context / notes:** Builds on #7's DnD infrastructure and ordered list display. Requires distinction between same-section reorder (update `Item.order`) and cross-section move (update `Item.sectionId` + `Item.order`). Edge case: where does the item land in the target section? At drop position or at end?
+- **Links:** #7
