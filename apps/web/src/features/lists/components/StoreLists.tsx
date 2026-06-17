@@ -1,7 +1,7 @@
 
 import { Button } from "@/components/ui/button"
-import { Plus, ShoppingCart, ChevronDown, ChevronRight } from "lucide-react"
-import { useRouter, Link } from "@tanstack/react-router"
+import { ShoppingCart, ChevronDown, ChevronRight } from "lucide-react"
+import { Link } from "@tanstack/react-router"
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { formatRelativeTime } from "@/core/lib/time"
 import {
@@ -10,45 +10,34 @@ import {
     CollapsibleTrigger,
 } from "@/components/ui/collapsible"
 import { useState } from "react"
-import { useStoreLists, useCreateList } from "@/features/lists"
+import { useStoreLists } from "@/features/lists"
 import { PageLoading } from "@/components/ui/page-loading"
 
 export function StoreLists({ storeId }: { storeId: string }) {
     const [isOpen, setIsOpen] = useState(false)
-    const router = useRouter()
     const { data: lists, isLoading } = useStoreLists(storeId)
-    const createList = useCreateList()
 
     if (isLoading) return <PageLoading />
 
     const activeLists = (lists ?? []).filter(l => l.status !== "COMPLETED")
     const completedLists = (lists ?? []).filter(l => l.status === "COMPLETED")
 
-    const handleCreate = async () => {
-        const result = await createList.mutateAsync({ storeId })
-        router.navigate({ to: "/lists/$listId", params: { listId: result.id } })
-    }
-
     return (
         <div className="space-y-8">
             <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                    <h3 className="text-lg font-medium">Active Runs</h3>
-                    <Button onClick={handleCreate} disabled={createList.isPending || activeLists.length > 0} size="sm">
-                        <Plus className="mr-2 h-4 w-4" />
-                        New List
-                    </Button>
+                    <h3 className="text-lg font-medium">Active Run</h3>
                 </div>
 
                 {activeLists.length === 0 ? (
                     <div className="text-center p-8 border rounded-lg border-dashed text-muted-foreground bg-muted/10">
-                        No active runs. Start a new trip!
+                        No active run.
                     </div>
                 ) : (
-                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                    <div className="space-y-3">
                         {activeLists.map(list => (
                             <Link key={list.id} to="/lists/$listId" params={{ listId: list.id }}>
-                                <Card className="group hover:border-primary/50 transition-all cursor-pointer shadow-none border bg-card">
+                                <Card className="group hover:border-primary/50 transition-all cursor-pointer shadow-none border bg-card w-full">
                                     <CardHeader className="p-3">
                                         <div className="flex items-center justify-between mb-1">
                                             <div className="flex items-center gap-2">

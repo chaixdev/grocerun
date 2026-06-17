@@ -1,5 +1,5 @@
 
-import { MapPin, Settings, Store as StoreIcon, ArrowRight, Loader2 } from "lucide-react"
+import { MapPin, Store as StoreIcon, ArrowRight, Loader2 } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { useRouter } from "@tanstack/react-router"
@@ -36,21 +36,6 @@ export function StoreCard({ store }: StoreCardProps) {
                                     <span className="truncate">{store.location}</span>
                                 </div>
                             )}
-                        </div>
-                        <div className="flex items-center gap-1 -mr-2 -mt-2">
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8 text-muted-foreground hover:text-foreground transition-opacity"
-                                onClick={(e) => {
-                                    e.stopPropagation()
-                                    router.navigate({ to: "/stores/$storeId/settings", params: { storeId: store.id } })
-                                }}
-                                title="Store Settings"
-                            >
-                                <Settings className="h-4 w-4" />
-                                <span className="sr-only">Store Settings</span>
-                            </Button>
                         </div>
                     </div>
                 </div>

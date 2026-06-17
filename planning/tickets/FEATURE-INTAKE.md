@@ -57,10 +57,10 @@ lost in chat history without forcing premature planning.
 
 ### 2026-06-15 — Consolidate store detail and configuration into one page
 
-- **Status:** captured
+- **Status:** implemented (branch `feature/consolidate-store-detail-config`)
 - **Category:** UX
 - **Raw request:** "View store details" and "store configuration" buttons kind of do the same thing. Consolidate into a single page that covers both.
-- **Context / notes:** Reduces cognitive load — one store page with inline editing rather than two separate views.
+- **Context / notes:** Merged settings into collapsible panel on store detail page. Removed child route. Gear icon on StoreCard deep-links to settings-open via search params. Form state preserved with `hidden` attribute. A11y: `aria-expanded`, `aria-controls`, focus management.
 - **Links:** —
 
 ### 2026-06-15 — Confirm dialog for destructive store/household deletion

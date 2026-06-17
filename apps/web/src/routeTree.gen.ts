@@ -17,7 +17,6 @@ import { Route as HouseholdsRouteImport } from './routes/households'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as StoresStoreIdRouteImport } from './routes/stores_.$storeId'
 import { Route as ListsListIdRouteImport } from './routes/lists_.$listId'
-import { Route as StoresStoreIdSettingsRouteImport } from './routes/stores_.$storeId.settings'
 
 const StoresRoute = StoresRouteImport.update({
   id: '/stores',
@@ -59,11 +58,6 @@ const ListsListIdRoute = ListsListIdRouteImport.update({
   path: '/lists/$listId',
   getParentRoute: () => rootRouteImport,
 } as any)
-const StoresStoreIdSettingsRoute = StoresStoreIdSettingsRouteImport.update({
-  id: '/settings',
-  path: '/settings',
-  getParentRoute: () => StoresStoreIdRoute,
-} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -73,8 +67,7 @@ export interface FileRoutesByFullPath {
   '/settings': typeof SettingsRoute
   '/stores': typeof StoresRoute
   '/lists/$listId': typeof ListsListIdRoute
-  '/stores/$storeId': typeof StoresStoreIdRouteWithChildren
-  '/stores/$storeId/settings': typeof StoresStoreIdSettingsRoute
+  '/stores/$storeId': typeof StoresStoreIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -84,8 +77,7 @@ export interface FileRoutesByTo {
   '/settings': typeof SettingsRoute
   '/stores': typeof StoresRoute
   '/lists/$listId': typeof ListsListIdRoute
-  '/stores/$storeId': typeof StoresStoreIdRouteWithChildren
-  '/stores/$storeId/settings': typeof StoresStoreIdSettingsRoute
+  '/stores/$storeId': typeof StoresStoreIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -96,8 +88,7 @@ export interface FileRoutesById {
   '/settings': typeof SettingsRoute
   '/stores': typeof StoresRoute
   '/lists_/$listId': typeof ListsListIdRoute
-  '/stores_/$storeId': typeof StoresStoreIdRouteWithChildren
-  '/stores_/$storeId/settings': typeof StoresStoreIdSettingsRoute
+  '/stores_/$storeId': typeof StoresStoreIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -110,7 +101,6 @@ export interface FileRouteTypes {
     | '/stores'
     | '/lists/$listId'
     | '/stores/$storeId'
-    | '/stores/$storeId/settings'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -121,7 +111,6 @@ export interface FileRouteTypes {
     | '/stores'
     | '/lists/$listId'
     | '/stores/$storeId'
-    | '/stores/$storeId/settings'
   id:
     | '__root__'
     | '/'
@@ -132,7 +121,6 @@ export interface FileRouteTypes {
     | '/stores'
     | '/lists_/$listId'
     | '/stores_/$storeId'
-    | '/stores_/$storeId/settings'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -143,7 +131,7 @@ export interface RootRouteChildren {
   SettingsRoute: typeof SettingsRoute
   StoresRoute: typeof StoresRoute
   ListsListIdRoute: typeof ListsListIdRoute
-  StoresStoreIdRoute: typeof StoresStoreIdRouteWithChildren
+  StoresStoreIdRoute: typeof StoresStoreIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -204,27 +192,8 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ListsListIdRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/stores_/$storeId/settings': {
-      id: '/stores_/$storeId/settings'
-      path: '/settings'
-      fullPath: '/stores/$storeId/settings'
-      preLoaderRoute: typeof StoresStoreIdSettingsRouteImport
-      parentRoute: typeof StoresStoreIdRoute
-    }
   }
 }
-
-interface StoresStoreIdRouteChildren {
-  StoresStoreIdSettingsRoute: typeof StoresStoreIdSettingsRoute
-}
-
-const StoresStoreIdRouteChildren: StoresStoreIdRouteChildren = {
-  StoresStoreIdSettingsRoute: StoresStoreIdSettingsRoute,
-}
-
-const StoresStoreIdRouteWithChildren = StoresStoreIdRoute._addFileChildren(
-  StoresStoreIdRouteChildren,
-)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
@@ -234,7 +203,7 @@ const rootRouteChildren: RootRouteChildren = {
   SettingsRoute: SettingsRoute,
   StoresRoute: StoresRoute,
   ListsListIdRoute: ListsListIdRoute,
-  StoresStoreIdRoute: StoresStoreIdRouteWithChildren,
+  StoresStoreIdRoute: StoresStoreIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
