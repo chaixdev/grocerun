@@ -37,6 +37,7 @@ import {
     useCompleteList,
 } from "../hooks/useLists"
 import { useAddItem } from "../hooks/useAddItem"
+import { useCompleteAndCreateList } from "../hooks/useCompleteAndCreateList"
 import type {
     ListDetail,
     ListDetailItem,
@@ -61,6 +62,20 @@ export function ListEditor({ list }: ListEditorProps) {
     const startShoppingMut = useStartShopping()
     const cancelShoppingMut = useCancelShopping()
     const completeListMut = useCompleteList()
+    const completeAndCreate = useCompleteAndCreateList()
+
+    // Toggle: create new list from unchecked items on completion.
+    // Persisted to localStorage so preference sticks across sessions.
+    const CREATE_LIST_TOGGLE_KEY = "grocerun-pref-create-list-from-unchecked"
+    const [createListChecked, setCreateListChecked] = useState(() => {
+      try {
+        const stored = localStorage.getItem(CREATE_LIST_TOGGLE_KEY)
+        // Default to checked (on) if nothing stored.
+        return stored !== null ? stored === "true" : true
+      } catch {
+        return true
+      }
+    })
 
     // Refs for auto-scroll
     const itemRefs = useRef<Record<string, HTMLDivElement | null>>({})
@@ -298,15 +313,31 @@ export function ListEditor({ list }: ListEditorProps) {
     }
 
     const handleCompleteTrip = () => {
-        completeListMut.mutate(
-            { listId: list.id, storeId: list.store.id },
-            {
-                onSuccess: () => {
-                    toast.success("Trip completed!")
+        if (createListChecked && missingItems.length > 0) {
+            // Chained flow: complete → create → add unchecked items
+            completeAndCreate.execute(list.id, list.store.id, missingItems).then((result) => {
+                if (result.completeSucceeded) {
+                    // Toast and error handling already managed by the hook
+                    // and useCompleteList.onError. Navigate away — the list
+                    // is now COMPLETED and read-only.
                     router.navigate({ to: "/lists" })
-                },
-            }
-        )
+                }
+                // If completeSucceeded is false, the error toast was already
+                // shown by useCompleteList.onError. Stay on the list so the
+                // user can retry or resume shopping.
+            })
+        } else {
+            // Existing behaviour: just complete
+            completeListMut.mutate(
+                { listId: list.id, storeId: list.store.id },
+                {
+                    onSuccess: () => {
+                        toast.success("Trip completed!")
+                        router.navigate({ to: "/lists" })
+                    },
+                }
+            )
+        }
     }
 
     // Group items by section
@@ -509,7 +540,15 @@ export function ListEditor({ list }: ListEditorProps) {
                 onOpenChange={setIsSummaryOpen}
                 onConfirm={handleCompleteTrip}
                 missingItems={missingItems}
-                isSubmitting={completeListMut.isPending}
+                isSubmitting={completeListMut.isPending || completeAndCreate.isExecuting}
+                showCreateToggle
+                createToggleChecked={createListChecked}
+                onCreateToggleChange={(checked) => {
+                    setCreateListChecked(checked)
+                    try {
+                        localStorage.setItem(CREATE_LIST_TOGGLE_KEY, String(checked))
+                    } catch { /* storage unavailable — non-critical */ }
+                }}
             />
 
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>

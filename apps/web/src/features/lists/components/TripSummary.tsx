@@ -9,6 +9,7 @@ import {
     DialogTitle,
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
+import { Checkbox } from "@/components/ui/checkbox"
 import { ScrollArea } from "@/components/ui/scroll-area"
 
 interface TripSummaryProps {
@@ -22,6 +23,12 @@ interface TripSummaryProps {
         unit: string | null
     }[]
     isSubmitting: boolean
+    /** Show the "create new list" toggle (only when missing items exist) */
+    showCreateToggle?: boolean
+    /** Controlled state for the toggle */
+    createToggleChecked?: boolean
+    /** Called when the user flips the toggle */
+    onCreateToggleChange?: (checked: boolean) => void
 }
 
 export function TripSummary({
@@ -30,6 +37,9 @@ export function TripSummary({
     onConfirm,
     missingItems,
     isSubmitting,
+    showCreateToggle = false,
+    createToggleChecked = false,
+    onCreateToggleChange,
 }: TripSummaryProps) {
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
@@ -59,6 +69,25 @@ export function TripSummary({
                             ))}
                         </ul>
                     </ScrollArea>
+                )}
+
+                {showCreateToggle && missingItems.length > 0 && (
+                    <div className="flex items-center gap-3 rounded-lg border bg-muted/20 px-4 py-3">
+                        <Checkbox
+                            id="create-new-list-toggle"
+                            checked={createToggleChecked}
+                            onCheckedChange={(checked) =>
+                                onCreateToggleChange?.(Boolean(checked))
+                            }
+                        />
+                        <label
+                            htmlFor="create-new-list-toggle"
+                            className="text-sm text-muted-foreground cursor-pointer select-none"
+                        >
+                            Create new list from {missingItems.length} unchecked{" "}
+                            {missingItems.length === 1 ? "item" : "items"}
+                        </label>
+                    </div>
                 )}
 
                 <DialogFooter className="gap-2 sm:gap-0">

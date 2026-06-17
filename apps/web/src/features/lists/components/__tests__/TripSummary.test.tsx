@@ -94,4 +94,110 @@ describe('TripSummary', () => {
     render(<TripSummary {...defaultProps} open={false} />);
     expect(screen.queryByText('Trip Summary')).not.toBeInTheDocument();
   });
+
+  // ---- Toggle: "Create new list from unchecked items" ----
+
+  describe('create-new-list toggle', () => {
+    const missingItems = [
+      { id: '1', name: 'Milk', quantity: 2, unit: 'carton' as const },
+      { id: '2', name: 'Bread', quantity: 1, unit: null },
+    ];
+
+    it('shows toggle when showCreateToggle is true and missing items exist', () => {
+      render(
+        <TripSummary
+          {...defaultProps}
+          missingItems={missingItems}
+          showCreateToggle
+        />,
+      );
+
+      expect(
+        screen.getByText(/Create new list from 2 unchecked items/),
+      ).toBeInTheDocument();
+    });
+
+    it('hides toggle when showCreateToggle is false (default)', () => {
+      render(
+        <TripSummary {...defaultProps} missingItems={missingItems} />,
+      );
+
+      expect(
+        screen.queryByText(/Create new list from/),
+      ).not.toBeInTheDocument();
+    });
+
+    it('hides toggle when showCreateToggle is true but no missing items', () => {
+      render(
+        <TripSummary
+          {...defaultProps}
+          missingItems={[]}
+          showCreateToggle
+        />,
+      );
+
+      expect(
+        screen.queryByText(/Create new list from/),
+      ).not.toBeInTheDocument();
+    });
+
+    it('reflects checked state from createToggleChecked prop', () => {
+      render(
+        <TripSummary
+          {...defaultProps}
+          missingItems={missingItems}
+          showCreateToggle
+          createToggleChecked
+        />,
+      );
+
+      const checkbox = screen.getByRole('checkbox');
+      expect(checkbox).toBeChecked();
+    });
+
+    it('reflects unchecked state from createToggleChecked prop', () => {
+      render(
+        <TripSummary
+          {...defaultProps}
+          missingItems={missingItems}
+          showCreateToggle
+          createToggleChecked={false}
+        />,
+      );
+
+      const checkbox = screen.getByRole('checkbox');
+      expect(checkbox).not.toBeChecked();
+    });
+
+    it('calls onCreateToggleChange when checkbox is clicked', async () => {
+      const onChange = vi.fn();
+      render(
+        <TripSummary
+          {...defaultProps}
+          missingItems={missingItems}
+          showCreateToggle
+          createToggleChecked={false}
+          onCreateToggleChange={onChange}
+        />,
+      );
+
+      const user = userEvent.setup();
+      await user.click(screen.getByRole('checkbox'));
+      expect(onChange).toHaveBeenCalledWith(true);
+    });
+
+    it('uses singular "item" when only one unchecked item', () => {
+      render(
+        <TripSummary
+          {...defaultProps}
+          missingItems={[{ id: '1', name: 'Milk', quantity: 1, unit: null }]}
+          showCreateToggle
+        />,
+      );
+
+      expect(
+        screen.getByText(/Create new list from 1 unchecked item/),
+      ).toBeInTheDocument();
+    });
+  });
 });

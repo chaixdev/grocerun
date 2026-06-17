@@ -2,6 +2,9 @@ import { useMutation } from "@/core/lib/useMutation"
 import { useRxMutation } from "@/core/lib/useRxMutation"
 import { api } from "@/core/lib/api"
 import { resyncListItems, resyncLists } from "@/core/rxdb"
+import { getRxDb } from "@/core/rxdb"
+import type { ListDocType } from "@/core/rxdb"
+import { networkAwareErrorToast } from "@/core/lib/error-toast"
 import { toast } from "sonner"
 
 export { useAddItem } from "./useAddItem"
@@ -11,13 +14,20 @@ export { useAddItem } from "./useAddItem"
 export function useCreateList() {
   return useMutation({
     mutationFn: (data: { storeId: string; name?: string }) =>
-      api.post<{ id: string }>("/lists", data),
-    onSuccess: () => {
+      api.post<ListDocType>("/lists", data),
+    onSuccess: async (list) => {
+      // Insert directly into RxDB so the new list is immediately visible
+      // to local-first operations like useCompleteAndCreateList.addItem.
+      if (!list?.id) {
+        throw new Error("Server returned invalid list response — missing id")
+      }
+      const db = await getRxDb()
+      await db.lists.upsert(list)
       resyncLists()
       resyncListItems()
     },
-    onError: () => {
-      toast.error("Failed to create list")
+    onError: (error) => {
+      networkAwareErrorToast(error, "Failed to create list")
     },
   })
 }
@@ -91,8 +101,8 @@ export function useStartShopping() {
       resyncLists()
       resyncListItems()
     },
-    onError: () => {
-      toast.error("Failed to start shopping")
+    onError: (error) => {
+      networkAwareErrorToast(error, "Failed to start shopping")
     },
   })
 }
@@ -105,8 +115,8 @@ export function useCancelShopping() {
       resyncLists()
       resyncListItems()
     },
-    onError: () => {
-      toast.error("Failed to cancel shopping")
+    onError: (error) => {
+      networkAwareErrorToast(error, "Failed to cancel shopping")
     },
   })
 }
@@ -119,8 +129,8 @@ export function useCompleteList() {
       resyncLists()
       resyncListItems()
     },
-    onError: () => {
-      toast.error("Failed to complete trip")
+    onError: (error) => {
+      networkAwareErrorToast(error, "Failed to complete trip")
     },
   })
 }
