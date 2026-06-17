@@ -32,6 +32,9 @@ import {
     useDeleteHousehold,
 } from "../../hooks/useHouseholds"
 import { useLeaveHousehold } from "../../hooks/useInvitations"
+import {
+    deriveHouseholdPermissions
+} from "../../hooks/useHouseholdPermissions"
 
 interface InvitationManagerProps {
     userId: string
@@ -206,8 +209,10 @@ export function InvitationManager({ userId, households, invitationTimeoutMinutes
             <div className="space-y-4">
                 <h3 className="text-sm font-medium text-muted-foreground">Your Households</h3>
                 {households.map((household) => {
-                    const isOwner = household.ownerId === userId
-                    const memberCount = household._count.users
+                    const perms = deriveHouseholdPermissions(
+                        { ownerId: household.ownerId ?? '', memberCount: household._count.users },
+                        userId,
+                    )
 
                     return (
                         <Card key={household.id}>
@@ -216,18 +221,18 @@ export function InvitationManager({ userId, households, invitationTimeoutMinutes
                                     <div className="space-y-1">
                                         <div className="flex items-center gap-2">
                                             <CardTitle className="text-base">{household.name}</CardTitle>
-                                            {isOwner ? (
+                                            {perms.isOwner ? (
                                                 <Badge variant="default" className="text-[10px] px-1 py-0 h-5"><Shield className="w-3 h-3 mr-1" /> Owner</Badge>
                                             ) : (
                                                 <Badge variant="secondary" className="text-[10px] px-1 py-0 h-5"><User className="w-3 h-3 mr-1" /> Member</Badge>
                                             )}
                                         </div>
                                         <CardDescription className="text-xs">
-                                            ID: {household.id} &bull; {memberCount} member{memberCount !== 1 ? 's' : ''}
+                                            ID: {household.id} &bull; {household._count.users} member{household._count.users !== 1 ? 's' : ''}
                                         </CardDescription>
                                     </div>
                                     <div className="flex gap-2">
-                                        {isOwner && (
+                                        {perms.isOwner && (
                                             <Dialog open={editingHousehold?.id === household.id} onOpenChange={(open) => {
                                                 if (open) {
                                                     setEditingHousehold(household)
@@ -311,18 +316,7 @@ export function InvitationManager({ userId, households, invitationTimeoutMinutes
                                         </Dialog>
 
                                         {/* Leave/Delete Button */}
-                                        {isOwner ? (
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
-                                                disabled={memberCount > 1}
-                                                onClick={() => setHouseholdToDelete({ id: household.id, name: household.name, memberCount })}
-                                                title={memberCount > 1 ? "Cannot delete household with other members" : "Delete Household"}
-                                            >
-                                                <Trash2 className="h-4 w-4" />
-                                            </Button>
-                                        ) : (
+                                        {perms.canLeave ? (
                                             <Button
                                                 variant="ghost"
                                                 size="icon"
@@ -331,6 +325,27 @@ export function InvitationManager({ userId, households, invitationTimeoutMinutes
                                                 title="Leave Household"
                                             >
                                                 <LogOut className="h-4 w-4" />
+                                            </Button>
+                                        ) : perms.canDelete ? (
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                                onClick={() => setHouseholdToDelete({ id: household.id, name: household.name, memberCount: household._count.users })}
+                                                title="Delete Household"
+                                            >
+                                                <Trash2 className="h-4 w-4" />
+                                            </Button>
+                                        ) : (
+                                            /* Owner with other members — can't leave or delete, blocked on #9 */
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                className="h-8 w-8 text-muted-foreground"
+                                                disabled
+                                                title="Transfer ownership before leaving or deleting"
+                                            >
+                                                <Trash2 className="h-4 w-4" />
                                             </Button>
                                         )}
                                     </div>
