@@ -254,7 +254,9 @@ export function ListEditor({ list }: ListEditorProps) {
     // Auto-scroll logic: find next unchecked item in section order
     const autoScrollToNext = (checkedItemId: string) => {
         const itemsBySection: Record<string, ListDetailListItem[]> = {}
-        list.store.sections.forEach(s => itemsBySection[s.id] = [])
+        list.store.sections.forEach((s) => {
+            itemsBySection[s.id] = []
+        })
         itemsBySection["uncategorized"] = []
 
         list.items.forEach(item => {
@@ -264,7 +266,9 @@ export function ListEditor({ list }: ListEditorProps) {
         })
 
         const visualOrder: ListDetailListItem[] = []
-        list.store.sections.forEach(s => visualOrder.push(...(itemsBySection[s.id] || [])))
+        list.store.sections.forEach((s) => {
+            visualOrder.push(...(itemsBySection[s.id] || []))
+        })
         visualOrder.push(...(itemsBySection["uncategorized"] || []))
 
         const currentIndex = visualOrder.findIndex(i => i.id === checkedItemId)
@@ -598,7 +602,8 @@ export function ListEditor({ list }: ListEditorProps) {
                             id: editingItem.id,
                             name: editingItem.name,
                             sectionId: editingItem.sectionId,
-                            defaultUnit: editingItem.defaultUnit
+                            defaultUnit: editingItem.defaultUnit,
+                            note: editingItem.note,
                         }}
                         sections={list.store.sections}
                         listId={list.id}

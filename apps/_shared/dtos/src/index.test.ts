@@ -144,6 +144,10 @@ describe('UpdateItemSchema', () => {
     expect(result.sectionId).toBeUndefined();
   });
 
+  it('accepts an optional note', () => {
+    expectParseSuccess(UpdateItemSchema, { itemId: 'item-1', name: 'Updated', note: 'Buy lactose-free' });
+  });
+
   it('rejects missing itemId', () => {
     expectParseError(UpdateItemSchema, { name: 'Updated' });
   });

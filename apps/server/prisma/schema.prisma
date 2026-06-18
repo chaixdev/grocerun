@@ -90,6 +90,7 @@ model Item {
   purchaseCount Int        @default(0)
   lastPurchased DateTime?
   defaultUnit   String?
+  note          String?
   listItems     ListItem[]
 
   @@unique([storeId, name, deleted])

@@ -121,6 +121,7 @@ export function useAddItem(config?: AddItemConfig) {
           name: item.name,
           sectionId: item.sectionId ?? null,
           defaultUnit: item.defaultUnit ?? null,
+          note: item.note ?? null,
           purchaseCount: item.purchaseCount,
         },
       },

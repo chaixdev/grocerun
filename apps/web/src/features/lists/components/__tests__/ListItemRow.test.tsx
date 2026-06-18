@@ -5,7 +5,7 @@ import { ListItemRow } from '@/features/lists/components/ListItemRow';
 import { buildListItem } from '@/test/test-fixtures';
 
 describe('ListItemRow', () => {
-  const defaultItem = buildListItem({ id: 'li-1', item: { id: 'item-1', name: 'Milk', sectionId: null, defaultUnit: 'carton', purchaseCount: 5 } });
+  const defaultItem = buildListItem({ id: 'li-1', item: { id: 'item-1', name: 'Milk', sectionId: null, defaultUnit: 'carton', note: null, purchaseCount: 5 } });
 
   const defaultProps = {
     listItem: defaultItem,
@@ -85,6 +85,12 @@ describe('ListItemRow', () => {
       );
       const name = screen.getByTestId('item-name');
       expect(name.className).toContain('line-through');
+    });
+
+    it('shows comment icon only when item has a note', () => {
+      const notedItem = buildListItem({ item: { id: 'item-1', name: 'Milk', sectionId: null, defaultUnit: 'carton', note: 'Buy lactose-free', purchaseCount: 5 } });
+      render(<ListItemRow {...defaultProps} listItem={notedItem} />);
+      expect(screen.getByLabelText('Show comment for Milk')).toBeInTheDocument();
     });
 
     it('shows opacity and no click cursor when locked', () => {

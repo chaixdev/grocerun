@@ -74,6 +74,7 @@ export interface TestItem {
   name: string;
   sectionId: string | null;
   defaultUnit: string | null;
+  note: string | null;
   purchaseCount?: number;
 }
 
@@ -83,6 +84,7 @@ export function buildItem(overrides: Partial<TestItem> = {}): TestItem {
     name: 'Milk',
     sectionId: null,
     defaultUnit: null,
+    note: null,
     purchaseCount: 0,
     ...overrides,
   };

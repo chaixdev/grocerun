@@ -66,6 +66,7 @@ export type ItemDocType = {
   storeId: string
   sectionId?: string
   defaultUnit?: string
+  note?: string
   purchaseCount: number
   lastPurchased?: string // ISO-8601 — when this item was last purchased
   updatedAt: string // ISO-8601
@@ -93,6 +94,9 @@ export const itemSchema: RxJsonSchema<ItemDocType> = {
       maxLength: 30,
     },
     defaultUnit: {
+      type: 'string',
+    },
+    note: {
       type: 'string',
     },
     purchaseCount: {

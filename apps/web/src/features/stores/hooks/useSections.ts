@@ -19,7 +19,7 @@
 import { useRxQuery } from "@/core/lib/useRxQuery"
 import { useMutation } from '@/core/lib/useMutation'
 import { api } from '@/core/lib/api'
-import { resyncStores } from '@/core/rxdb'
+import { resyncSections } from '@/core/rxdb'
 import { toast } from 'sonner'
 
 // ----- Types -----
@@ -78,7 +78,7 @@ export function useCreateSection(storeId: string) {
     mutationFn: (data: { name: string; order?: number }) =>
       api.post<Section>('/sections', { ...data, storeId }),
     onSuccess: () => {
-      resyncStores()
+      resyncSections()
     },
     onError: () => {
       toast.error('Failed to create section')
@@ -91,7 +91,7 @@ export function useUpdateSection(_storeId: string) {
     mutationFn: ({ id, name }: { id: string; name: string }) =>
       api.patch(`/sections/${id}`, { name }),
     onSuccess: () => {
-      resyncStores()
+      resyncSections()
     },
     onError: () => {
       toast.error('Failed to update section')
@@ -103,7 +103,7 @@ export function useDeleteSection(_storeId: string) {
   return useMutation({
     mutationFn: (id: string) => api.delete(`/sections/${id}`),
     onSuccess: () => {
-      resyncStores()
+      resyncSections()
       toast.success('Section deleted')
     },
     onError: () => {
@@ -117,7 +117,7 @@ export function useReorderSections(storeId: string) {
     mutationFn: (orderedIds: string[]) =>
       api.post(`/sections/store/${storeId}/reorder`, { orderedIds }),
     onSuccess: () => {
-      resyncStores()
+      resyncSections()
     },
     onError: () => {
       toast.error('Failed to save order')
