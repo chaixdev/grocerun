@@ -20,8 +20,10 @@ export function getCachedAppUser(): AppAuthUser | null {
 }
 
 export async function hasAppAuth(): Promise<boolean> {
+  if (readCachedAuth() !== null) return true
+
   const oidc = await getOidc()
-  return oidc.isUserLoggedIn || readCachedAuth() !== null
+  return oidc.isUserLoggedIn
 }
 
 export async function getAppAccessToken(): Promise<string | null> {
