@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useEffect } from 'react'
 import { Outlet, createRootRoute, Link } from '@tanstack/react-router'
 import { Header } from '@/components/header'
 import { ThemeProvider } from '@/components/theme-provider'
@@ -117,23 +117,6 @@ function getOidcSpaAuthState(): string | null {
 function AuthenticatedShell() {
   const oidc = useOidc()
 
-  // If oidc-spa's session restoration failed (e.g. the preRedirectHook
-  // cleared the localStorage flag before a redirect that didn't complete
-  // on mobile), this backup flag gives us a second chance — but only if
-  // the token cache is also empty (otherwise the cached token is sufficient).
-  const [shouldRetry] = useState(() => {
-    if (oidc.isUserLoggedIn) return false
-    try {
-      // Don't retry if the user explicitly logged out
-      const oidcState = getOidcSpaAuthState()
-      if (oidcState?.includes('explicitly logged out')) return false
-      // Don't retry if we already have a valid cached token from the last session
-      if (getCachedAppUser()) return false
-      return consumeAuthFallbackFlag()
-    } catch { /* storage unavailable */ }
-    return false
-  })
-
   // Persist backup flag when successfully logged in
   useEffect(() => {
     if (oidc.isUserLoggedIn) {
@@ -143,6 +126,17 @@ function AuthenticatedShell() {
   }, [oidc.isUserLoggedIn])
 
   const cachedUser = !oidc.isUserLoggedIn ? getCachedAppUser() : null
+  const hasCachedUser = cachedUser !== null
+
+  useEffect(() => {
+    if (oidc.isUserLoggedIn || hasCachedUser) return
+    try {
+      const oidcState = getOidcSpaAuthState()
+      if (oidcState?.includes('explicitly logged out')) return
+      consumeAuthFallbackFlag()
+    } catch { /* storage unavailable */ }
+  }, [oidc.isUserLoggedIn, hasCachedUser])
+
   const user = oidc.isUserLoggedIn
     ? {
         name: oidc.decodedIdToken.name,
@@ -156,10 +150,6 @@ function AuthenticatedShell() {
           image: cachedUser.picture,
         }
     : undefined
-
-  if (shouldRetry) {
-    return <PageLoading />
-  }
 
   return (
     <>
