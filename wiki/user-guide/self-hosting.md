@@ -130,13 +130,54 @@ changes are applied without manual steps.
 ## Backup
 
 The SQLite database lives at `/app/data/prod.db` inside the container, backed
-by the `grocerun_data` volume. To back it up:
+by the `grocerun_data` volume. **Disaster-recovery backups are the operator's
+responsibility** — Grocerun does not ship an off-volume backup feature.
+
+### What the entrypoint backups are (and aren't)
+
+On every startup, before applying migrations, the entrypoint copies `prod.db`
+to `grocerun_<version>_<timestamp>.db` inside the same volume (md5-rotated,
+last 5 kept). These are a **migration safety net** — a way to undo a bad
+schema change — not disaster recovery. They live on the same volume as the
+live database, so a disk failure or accidental `docker volume rm` takes them
+down with it. Treat them as a convenience, not a backup strategy.
+
+### Safe ways to back up
+
+SQLite uses WAL journaling, so a raw file copy of a live database can capture
+a torn state — a backup that "restores" to a file that won't open. Two safe
+approaches:
+
+**Option A — stop, copy, start (simplest, ~5 s downtime):**
 
 ```bash
+docker stop grocerun
 docker cp grocerun:/app/data/prod.db ./backup-$(date +%Y%m%d).db
+docker start grocerun
 ```
 
-The entrypoint also creates automatic backups on startup (keeps the last 5).
+Fine for a household app. Most operators script this with cron and a
+healthcheck probe afterwards.
+
+**Option B — online backup via the SQLite backup API (no downtime):**
+
+```bash
+docker exec grocerun sqlite3 /app/data/prod.db ".backup '/tmp/backup.db'"
+docker cp grocerun:/tmp/backup.db ./backup-$(date +%Y%m%d).db
+docker exec grocerun rm /tmp/backup.db
+```
+
+The `.backup` command uses SQLite's backup API, which handles WAL/journaling
+correctly while the app continues to serve requests. Use this for scheduled
+snapshots against a live container.
+
+### What to back up
+
+Only `/app/data/prod.db` matters. The schema is reproducible via migrations,
+frontend assets are baked into the image, and the entrypoint's `grocerun_*.db`
+rotation files are redundant with your own backups. Store the copied file
+off-host (cloud storage, separate disk, offsite backup target) and verify a
+restore periodically — an untested backup is a hope, not a backup.
 
 ## Environment reference
 
@@ -167,4 +208,4 @@ trade-off for the current architecture — see
 
 ---
 
-**Last Updated:** June 15, 2026
+**Last Updated:** June 19, 2026
