@@ -18,6 +18,7 @@ export interface ListDetailItem {
   name: string
   sectionId: string | null
   defaultUnit: string | null
+  note: string | null
   purchaseCount?: number
 }
 
@@ -137,6 +138,7 @@ export function useListDetail(listId: string) {
                 name: doc.name,
                 sectionId: doc.sectionId ?? null,
                 defaultUnit: doc.defaultUnit ?? null,
+                note: doc.note ?? null,
                 purchaseCount: doc.purchaseCount,
               },
             ]),

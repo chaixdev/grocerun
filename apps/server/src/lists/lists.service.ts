@@ -30,6 +30,7 @@ export interface ListItemWithItem {
     purchaseCount: number;
     lastPurchased: Date | null;
     defaultUnit: string | null;
+    note: string | null;
   };
 }
 

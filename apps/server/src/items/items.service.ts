@@ -39,6 +39,7 @@ export class ItemsService {
         name: dto.name,
         sectionId: dto.sectionId || null,
         defaultUnit: dto.defaultUnit || null,
+        note: dto.note || null,
       },
     });
 

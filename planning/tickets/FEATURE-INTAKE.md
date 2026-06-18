@@ -289,3 +289,22 @@ lost in chat history without forcing premature planning.
 - **Raw request:** Drag an item from one section to another within the same store to reassign it. Currently section reassignment requires editing the item's properties — DnD would make this a single gesture. Emerged during #7 (item ordering) design discussion — section-ordered lists make section boundaries visually obvious, and dragging an item across a boundary to change its section is a natural UX.
 - **Context / notes:** Builds on #7's DnD infrastructure and ordered list display. Requires distinction between same-section reorder (update `Item.order`) and cross-section move (update `Item.sectionId` + `Item.order`). Edge case: where does the item land in the target section? At drop position or at end?
 - **Links:** #7
+
+### 2026-06-18 — Aggregate root sync boundaries: collapse 6 flat streams into 4 roots
+
+- **Status:** captured
+- **Category:** architecture
+- **Raw request:** The domain model is a tree — Household → Store → {Section, List, Item} — but the sync model is 6 flat independent streams. Every mutation hook must manually call the correct `resync*()` on success, and the wrong call is silently wrong (`resyncStores()` doesn't resync sections). This surfaced as a bug where creating a section from SectionForm called `resyncStores()` and the new section never appeared in the RxDB-backed list until page refresh.
+- **Context / notes:** Temporary fix applied (section hooks call `resyncSections` instead of `resyncStores`).
+
+  **Target architecture — 4 aggregate roots, separated by what needs to be synced together:**
+
+  | Aggregate | Contains | Sync | Rationale |
+  |---|---|---|---|
+  | **Household** | membership, ownership, invitation tokens | pull-only | rarely changes |
+  | **Store** | store details + sections (embedded) | pull-only | sections belong to stores; always loaded together |
+  | **List** | list metadata + listItems (embedded) | listItems push+pull | listItems wrap items; shop activity is the most volatile data |
+  | **Item** | standalone item catalog | push+pull | changes infrequently but referenced by list views via join |
+
+  **Key insight:** ListItems are a wrapper around Items. The listItem stores `itemId` + list-specific props (quantity, isChecked, purchasedQuantity). The list view joins listItems against Items to get name/section. Since Items are local-first (push+pull) and `useListDetail` subscribes to `db.items`, an item rename or section reassignment triggers a reactive recompute in all list views — no resync needed. This pattern already works; the remaining work is collapsing the server-authoritative streams.
+- **Links:** —

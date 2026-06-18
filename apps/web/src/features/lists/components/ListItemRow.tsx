@@ -8,7 +8,12 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { MoreHorizontal, Pencil, Trash2 } from "lucide-react"
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from "@/components/ui/popover"
+import { MessageCircle, MoreHorizontal, Pencil, Trash2 } from "lucide-react"
 import { QuantityStepper } from "./QuantityStepper"
 
 interface Item {
@@ -16,6 +21,7 @@ interface Item {
     name: string
     sectionId: string | null
     defaultUnit: string | null
+    note: string | null
     purchaseCount?: number
 }
 
@@ -66,6 +72,8 @@ export function ListItemRow({
     // "Shopping Mode" for UI purposes implies not planning mode and not read only
     const isShoppingMode = !isPlanningMode && !isReadOnly
     const isInteractionDisabled = isReadOnly || isLocked
+    const note = listItem.item.note?.trim()
+    const [isNoteOpen, setIsNoteOpen] = useState(false)
 
     // Optimistic checked state: flip immediately on tap without waiting for RxDB.
     const [optimisticChecked, setOptimisticChecked] = useState(listItem.isChecked)
@@ -93,6 +101,14 @@ export function ListItemRow({
     onToggleRef.current = onToggle
     const onUpdateQuantityRef = useRef(onUpdateQuantity)
     onUpdateQuantityRef.current = onUpdateQuantity
+
+    const toggleChecked = () => {
+        if (!isInteractionDisabled && !isPlanningMode) {
+            const next = !optimisticChecked
+            setOptimisticChecked(next)
+            onToggle(listItem.id, next, undefined)
+        }
+    }
 
     const flushQtyWrite = (qty: number, unit: string | undefined) => {
         pendingQtyRef.current = { qty, unit }
@@ -126,27 +142,29 @@ export function ListItemRow({
         <div
             ref={itemRef}
             data-testid={`list-item-row-${listItem.item.name.toLowerCase().replace(/\s+/g, '-')}`}
-            className={`group flex items-center gap-3 p-3 border-b last:border-0 transition-all duration-200 ${isPlanningMode || isInteractionDisabled ? "" : "hover:bg-muted/30 cursor-pointer"} ${optimisticChecked ? "opacity-50" : ""} ${isHighlighted ? "bg-primary/10" : ""} ${isLocked ? "opacity-70" : ""}`}
-            onClick={() => {
-                if (!isInteractionDisabled && !isPlanningMode) {
-                    const next = !optimisticChecked
-                    setOptimisticChecked(next)
-                    onToggle(listItem.id, next, undefined)
-                }
-            }}
+            className={`group relative flex items-center gap-3 p-3 border-b last:border-0 transition-all duration-200 ${isPlanningMode || isInteractionDisabled ? "" : "hover:bg-muted/30 cursor-pointer"} ${optimisticChecked ? "opacity-50" : ""} ${isHighlighted ? "bg-primary/10" : ""} ${isLocked ? "opacity-70" : ""}`}
         >
+            {!isInteractionDisabled && !isPlanningMode && (
+                <button
+                    type="button"
+                    aria-label={`${optimisticChecked ? "Uncheck" : "Check"} ${listItem.item.name}`}
+                    className="absolute inset-0 z-0"
+                    onClick={toggleChecked}
+                />
+            )}
+
             {/* 1. Checkbox */}
             {(!isPlanningMode || isReadOnly) && (
                 <Checkbox
                     checked={optimisticChecked}
-                    onCheckedChange={() => { }} // Handled by div click
+                    onCheckedChange={toggleChecked}
                     disabled={isInteractionDisabled}
-                    className="h-5 w-5 rounded-[4px] border-muted-foreground/30 data-[state=checked]:bg-primary data-[state=checked]:border-primary transition-all shrink-0"
+                    className="relative z-10 h-5 w-5 shrink-0 rounded-[4px] border-muted-foreground/30 transition-all data-[state=checked]:border-primary data-[state=checked]:bg-primary"
                 />
             )}
 
             {/* 2. Quantity Controls */}
-            <div className="flex items-center" onClick={(e) => e.stopPropagation()}>
+            <div className="relative z-10 flex items-center">
                 {isReadOnly ? (
                     <span className="text-xs font-semibold px-2 py-1 rounded-md bg-muted text-muted-foreground whitespace-nowrap border border-border/50">
                         {listItem.quantity}{listItem.unit && <span className="text-[10px] ml-0.5 uppercase tracking-wide">{listItem.unit}</span>}
@@ -175,7 +193,7 @@ export function ListItemRow({
             </div>
 
             {/* 3. Item Name */}
-            <div className="flex-1 min-w-0 flex flex-col justify-center">
+            <div className="relative z-10 flex-1 min-w-0 flex flex-col justify-center">
                 <span
                     data-testid="item-name"
                     className={`text-base font-medium truncate transition-colors ${optimisticChecked ? "line-through text-muted-foreground/70" : "text-foreground"}`}
@@ -184,9 +202,34 @@ export function ListItemRow({
                 </span>
             </div>
 
+            {note && (
+                <Popover open={isNoteOpen} onOpenChange={setIsNoteOpen}>
+                    <PopoverTrigger asChild>
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            aria-label={`Show comment for ${listItem.item.name}`}
+                            className="relative z-10 h-8 w-8 shrink-0 text-muted-foreground hover:text-foreground"
+                            onMouseEnter={() => setIsNoteOpen(true)}
+                            onMouseLeave={() => setIsNoteOpen(false)}
+                        >
+                            <MessageCircle className="h-4 w-4" />
+                        </Button>
+                    </PopoverTrigger>
+                    <PopoverContent
+                        align="end"
+                        className="w-64 whitespace-pre-wrap text-sm"
+                        onClick={() => setIsNoteOpen(false)}
+                    >
+                        {note}
+                    </PopoverContent>
+                </Popover>
+            )}
+
             {/* 4. Actions (Desktop: Hover, Mobile: Dropdown) */}
             {isPlanningMode && !isInteractionDisabled && (
-                <div onClick={(e) => e.stopPropagation()}>
+                <div className="relative z-10">
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                             <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground">

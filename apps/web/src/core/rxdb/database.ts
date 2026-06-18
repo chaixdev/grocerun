@@ -127,7 +127,7 @@ export type GrocerunDatabase = RxDatabase<GrocerunCollections>
 // ---------------------------------------------------------------------------
 
 let dbPromise: Promise<GrocerunDatabase> | null = null
-const RXDB_NAME = 'grocerun-v8'
+const RXDB_NAME = 'grocerun-v9'
 let sharedSyncStreamOpened = false
 let periodicResyncTimer: ReturnType<typeof setInterval> | null = null
 let visibilityListenerAdded = false

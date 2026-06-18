@@ -4,7 +4,7 @@
  * Pull: client caches all items for local display and search.
  * Push: ACCEPTED for item creation during active shopping (add-to-list).
  *       Duplicate (storeId, name) conflicts are canonicalised server-side.
- *       Item metadata updates (name, section, unit) go through REST.
+ *       Item metadata updates (name, section, unit, note) go through REST.
  */
 
 import { BadRequestException, ForbiddenException } from '@nestjs/common';
@@ -47,6 +47,7 @@ export async function pushItems(
     const { newDocumentState, assumedMasterState } = row;
     const id = newDocumentState.id as string;
     const storeId = newDocumentState.storeId as string;
+    const note = normalizeNote(newDocumentState.note);
 
     if (!storeId) {
       throw new BadRequestException(`Missing storeId in document ${id}`);
@@ -97,6 +98,7 @@ export async function pushItems(
           name: newDocumentState.name as string,
           sectionId: newDocumentState.sectionId as string | null,
           defaultUnit: newDocumentState.defaultUnit as string | null,
+          note,
           deleted: false,
           deletedAt: null,
           updatedAt,
@@ -119,6 +121,7 @@ export async function pushItems(
             name: newDocumentState.name as string,
             sectionId: newDocumentState.sectionId as string | null,
             defaultUnit: newDocumentState.defaultUnit as string | null,
+            note,
             deleted: false,
             deletedAt: null,
             updatedAt,
@@ -145,6 +148,7 @@ export async function pushItems(
             storeId,
             sectionId: newDocumentState.sectionId as string | null,
             defaultUnit: newDocumentState.defaultUnit as string | null,
+            note,
             updatedAt,
           },
         });
@@ -166,12 +170,17 @@ export async function pushItems(
   return conflicts;
 }
 
+function normalizeNote(value: unknown): string | null {
+  return typeof value === 'string' && value.trim() ? value.trim() : null;
+}
+
 function itemToSyncDoc(row: {
   id: string;
   name: string;
   storeId: string;
   sectionId: string | null;
   defaultUnit: string | null;
+  note: string | null;
   purchaseCount: number;
   lastPurchased: Date | null;
   updatedAt: Date;
@@ -183,6 +192,7 @@ function itemToSyncDoc(row: {
     storeId: row.storeId,
     ...(row.sectionId ? { sectionId: row.sectionId } : {}),
     ...(row.defaultUnit ? { defaultUnit: row.defaultUnit } : {}),
+    ...(row.note ? { note: row.note } : {}),
     purchaseCount: row.purchaseCount,
     ...(row.lastPurchased ? { lastPurchased: row.lastPurchased.toISOString() } : {}),
     updatedAt: row.updatedAt.toISOString(),

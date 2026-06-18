@@ -1,6 +1,7 @@
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
+import { Checkbox } from "@/components/ui/checkbox"
 import {
     Dialog,
     DialogContent,
@@ -29,6 +30,7 @@ interface Item {
     name: string
     sectionId: string | null
     defaultUnit: string | null
+    note: string | null
 }
 
 interface EditItemDialogProps {
@@ -44,8 +46,18 @@ export function EditItemDialog({ item, sections, listId, open, onOpenChange, onS
     const [name, setName] = useState(item.name)
     const [sectionId, setSectionId] = useState(item.sectionId || "uncategorized")
     const [defaultUnit, setDefaultUnit] = useState(item.defaultUnit || "")
+    const [commentEnabled, setCommentEnabled] = useState(Boolean(item.note?.trim()))
+    const [note, setNote] = useState(item.note || "")
 
     const updateItem = useUpdateItem()
+
+    useEffect(() => {
+        setName(item.name)
+        setSectionId(item.sectionId || "uncategorized")
+        setDefaultUnit(item.defaultUnit || "")
+        setCommentEnabled(Boolean(item.note?.trim()))
+        setNote(item.note || "")
+    }, [item])
 
     const handleSave = () => {
         if (!name.trim()) return
@@ -56,6 +68,7 @@ export function EditItemDialog({ item, sections, listId, open, onOpenChange, onS
                 name: name.trim(),
                 sectionId: sectionId === "uncategorized" ? undefined : sectionId,
                 defaultUnit: defaultUnit.trim() || undefined,
+                note: commentEnabled ? note.trim() : "",
                 listId,
             },
             {
@@ -106,6 +119,29 @@ export function EditItemDialog({ item, sections, listId, open, onOpenChange, onS
                             onChange={(e) => setDefaultUnit(e.target.value)}
                             placeholder="e.g., pcs, kg"
                         />
+                    </div>
+                    <div className="grid gap-3 rounded-lg border p-3">
+                        <label htmlFor="edit-comment-toggle" className="flex items-center gap-2 text-sm font-medium">
+                            <Checkbox
+                                id="edit-comment-toggle"
+                                checked={commentEnabled}
+                                onCheckedChange={(checked) => {
+                                    const enabled = checked === true
+                                    setCommentEnabled(enabled)
+                                    if (!enabled) setNote("")
+                                }}
+                            />
+                            Comment
+                        </label>
+                        {commentEnabled && (
+                            <textarea
+                                id="edit-note"
+                                value={note}
+                                onChange={(e) => setNote(e.target.value)}
+                                placeholder="Brand, allergy, or shopping reminder"
+                                className="border-input placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/50 min-h-24 w-full rounded-md border bg-transparent px-3 py-2 text-sm shadow-xs outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50"
+                            />
+                        )}
                     </div>
                 </div>
                 <DialogFooter>

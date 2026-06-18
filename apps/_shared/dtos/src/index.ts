@@ -12,6 +12,7 @@ export const UpdateItemSchema = z.object({
   name: z.string().min(1, "Name is required"),
   sectionId: z.string().optional(),
   defaultUnit: z.string().optional(),
+  note: z.string().optional(),
 });
 
 export type UpdateItemDto = z.infer<typeof UpdateItemSchema>;
