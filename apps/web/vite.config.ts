@@ -8,7 +8,7 @@ import path from 'node:path'
 export default defineConfig({
   plugins: [
     oidcSpa() as PluginOption,
-    TanStackRouterVite({ target: 'react', autoCodeSplitting: true }) as PluginOption,
+    TanStackRouterVite({ target: 'react', autoCodeSplitting: true, routeFileIgnorePattern: '__tests__' }) as PluginOption,
     react() as PluginOption,
     tailwindcss() as PluginOption,
     {
