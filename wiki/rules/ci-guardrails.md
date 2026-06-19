@@ -31,46 +31,64 @@ A PR that passes all gates and has approval can merge. No merge without green CI
 
 These rules enforce the standards in [`coding-standards.md`](./coding-standards.md)
 and [`production-quality.md`](./production-quality.md). They live in
-`eslint.config.mjs` (flat config). All are set to `"error"`.
+`eslint.config.mjs` (flat config).
 
-### 2.1 Type Safety
+### 2.1 Implemented Rules
 
-| Rule | Enforces |
-|------|----------|
-| `@typescript-eslint/no-explicit-any` | No `any` type (§1.4) |
-| `@typescript-eslint/strict-boolean-expressions` | No implicit truthiness checks |
-| `@typescript-eslint/no-unnecessary-condition` | Dead null checks |
-| `@typescript-eslint/prefer-optional-chain` | Optional chaining over `&&` chains (§1.1) |
-| `@typescript-eslint/prefer-nullish-coalescing` | `??` over `\|\|` (§1.1) |
+These rules are active in both `apps/web/eslint.config.mjs` and
+`apps/server/eslint.config.mjs`:
 
-### 2.2 Code Quality
+| Rule | Level | Enforces |
+|------|-------|----------|
+| `@typescript-eslint/no-explicit-any` | `error` | No `any` type (§1.4 coding-standards.md) |
+| `@typescript-eslint/no-unused-vars` | `error` | No dead code (args prefixed `_` exempt) |
+| `no-console` | `error` (server) / `warn` (web, allows `error`/`warn`) | `console.log` banned; server uses NestJS `Logger`, client uses `console.error`/`console.warn` for diagnostics |
+| `no-debugger` | `error` (via `js.configs.recommended`) | No `debugger` statements |
 
-| Rule | Enforces |
-|------|----------|
-| `no-console` | `console.log` banned in server (use `Logger`) and client (use toast/diagnostics) |
-| `no-debugger` | No `debugger` statements |
-| `@typescript-eslint/no-unused-vars` | No dead code (args prefixed with `_` are exempt) |
-| `@typescript-eslint/no-floating-promises` | Every promise must be awaited or `.catch()`'d (§2.3) |
-| `no-restricted-syntax` | Blocks `for...in`, `with`, labeled statements |
-| `unicorn/no-array-for-each` | Prefer `for...of` over `.forEach` (avoids N+1 inside callback — §1.1 production-quality.md) |
+### 2.2 Deferred Rules — Type-Aware Linting
 
-### 2.3 Security
+These rules require `parserOptions.project` (type-aware linting), which
+slows ESLint by 2-5x. They are deferred until the codebase grows or a
+regression justifies the cost. A codebase audit (2026-06-20) found **0
+instances** of the patterns these rules would catch.
 
-| Rule | Enforces |
-|------|----------|
-| `no-secrets/no-secrets` | No tokens, keys, or passwords in source |
-| `@typescript-eslint/no-implied-eval` | No `eval`, `Function()` constructor |
+| Rule | What It Catches | Audit Findings | Defer Reason |
+|------|----------------|----------------|--------------|
+| `@typescript-eslint/strict-boolean-expressions` | Implicit truthiness on `0`/`""`/`false` | ~40 truthy checks, most on nullable types — legitimate | Noisy, high false-positive rate |
+| `@typescript-eslint/no-unnecessary-condition` | Dead null checks | 0 found | No current value |
+| `@typescript-eslint/prefer-optional-chain` | `x && x.y` instead of `x?.y` | 0 found — codebase uses `?.` | No current value |
+| `@typescript-eslint/prefer-nullish-coalescing` | `\|\|` where `??` is correct | 0 found — all `\|\|` defaults are env vars/strings | No current value |
+| `@typescript-eslint/no-floating-promises` | Promises without `await`/`.catch()` | 0 found — all promises properly awaited | No current value |
 
-### 2.4 Import Boundaries
+**Revisit trigger:** When a bug reaches production that one of these rules
+would have caught, implement that specific rule.
 
-Enforced via `@nx/enforce-module-boundaries` or equivalent in `eslint.config.mjs`:
+### 2.3 Deferred Rules — Plugin Dependencies
 
-| Constraint | Enforces |
-|------------|----------|
-| `apps/web` → `apps/server` | Blocked — cross-app import (§1 monorepo-boundaries.md) |
-| `apps/server` → `apps/web` | Blocked — cross-app import |
-| `apps/*` → `apps/_shared/dtos` | Allowed |
-| Relative paths into `_shared/` | Blocked — must use `@grocerun/dto` |
+These rules require ESLint plugins not currently installed. A codebase
+audit (2026-06-20) found **0 instances** of the patterns they would catch.
+
+| Rule | Plugin | Audit Findings | Defer Reason |
+|------|--------|----------------|--------------|
+| `no-secrets/no-secrets` | `eslint-plugin-no-secrets` | 0 hardcoded secrets | No current value |
+| `@typescript-eslint/no-implied-eval` | type-aware (§2.2) | 0 `eval`/`Function()` calls | No current value |
+| `unicorn/no-array-for-each` | `eslint-plugin-unicorn` | 2 acceptable instances (cleanup arrays) | Low value, stylistic preference |
+| `no-restricted-syntax` (for...in) | built-in | 0 `for...in` loops | No current value |
+
+### 2.4 Import Boundaries — Manual Enforcement
+
+The `@nx/enforce-module-boundaries` rule requires Nx, but this project
+uses Turbo. Import boundaries are enforced by convention and code review
+until a Turbo-compatible lint solution is identified.
+
+A codebase audit (2026-06-20) found **0 violations**:
+
+| Constraint | Status |
+|------------|--------|
+| `apps/web` → `apps/server` | No violations found |
+| `apps/server` → `apps/web` | No violations found |
+| `apps/*` → `apps/_shared/dtos` | Properly uses `@grocerun/dto` alias |
+| Relative paths into `_shared/` | No violations found |
 
 ---
 
@@ -154,12 +172,13 @@ explicit decision that it can't be automated (with reason documented).
 
 1. CI pipeline must pass (TypeScript + lint + tests + build) before any merge
 2. ESLint `no-explicit-any` is `"error"` — no `any` without explicit disable comment
-3. Every PR includes the checklist from §3.1 — reviewers verify, not trust
-4. Pre-commit hooks block commits with ESLint warnings — `max-warnings 0`
-5. New rules added to `wiki/rules/` must include an enforcement mechanism
-6. Import boundary violations are caught by lint, not code review
-7. Console logging is banned in committed code — `no-console` is `"error"`
-8. No secrets in source — `no-secrets/no-secrets` blocks tokens and keys
+3. `no-console` is `"error"` on server (use NestJS `Logger`), `"warn"` on web
+   (allows `console.error`/`console.warn` for client-side diagnostics)
+4. Every PR includes the checklist from §3.1 — reviewers verify, not trust
+5. Pre-commit hooks block commits with ESLint warnings — `max-warnings 0`
+6. New rules added to `wiki/rules/` must include an enforcement mechanism
+7. Import boundary violations are caught by code review (§2.4)
+8. Deferred rules (§2.2, §2.3) are revisited when a regression justifies them
 9. Bundle size regression >10% posts a warning on the PR
 10. Pre-commit bypass (`--no-verify`) requires justification in commit message
 
@@ -172,4 +191,4 @@ explicit decision that it can't be automated (with reason documented).
 | [coding-standards.md](./coding-standards.md) | The standards these guards enforce |
 | [production-quality.md](./production-quality.md) | Performance, observability, reliability rules |
 | [testing-standards.md](./testing-standards.md) | Test requirements enforced in CI |
-| [monorepo-boundaries.md](./monorepo-boundaries.md) | Import rules enforced by lint |
+| [monorepo-boundaries.md](./monorepo-boundaries.md) | Import rules enforced by review |

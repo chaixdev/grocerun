@@ -22,7 +22,6 @@ export function useScreenWakeLock(enabled: boolean = true) {
                 setIsLocked(false)
                 setWakeLock(null)
             })
-            console.log("Wake Lock acquired")
         } catch (err: unknown) {
             const e = err instanceof Error ? err : new Error(String(err))
             console.error(`Wake Lock request failed: ${e.name}, ${e.message}`)
