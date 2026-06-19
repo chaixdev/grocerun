@@ -373,7 +373,7 @@ function startPullReplication<DocType, Checkpoint extends { id: string; updatedA
 
   registerPullStream(pullStream$)
 
-  replicateRxCollection<DocType, Checkpoint>({
+  const replicationState = replicateRxCollection<DocType, Checkpoint>({
     collection,
     replicationIdentifier,
     live: true,
@@ -413,6 +413,7 @@ function startPullReplication<DocType, Checkpoint extends { id: string; updatedA
         if (!res.ok) {
           if (res.status === 401) clearInvalidAppAuth()
           emitDiagnostic({ type: 'pull', collection: collectionName, status: res.status, docCount: 0, checkpoint: null, durationMs: Date.now() - t0, error: `HTTP ${res.status}`, at: t0 })
+          console.error(`[RxDB] pull failed: ${collectionName} HTTP ${res.status}`)
           throw new Error(`Sync pull failed: ${res.status}`)
         }
 
@@ -466,6 +467,10 @@ function startPullReplication<DocType, Checkpoint extends { id: string; updatedA
           },
         }
       : {}),
+  })
+
+  replicationState.error$.subscribe((err) => {
+    console.error(`[RxDB] replication error (${collectionName}):`, err)
   })
 }
 

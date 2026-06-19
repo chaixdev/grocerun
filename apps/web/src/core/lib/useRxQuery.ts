@@ -125,6 +125,7 @@ export function useRxQuery<T>(
             }
           } catch (err) {
             consecutiveErrorCount.current++
+            console.error(`[useRxQuery] subscription compute error (count=${consecutiveErrorCount.current}):`, err)
             if (consecutiveErrorCount.current >= SUBSCRIPTION_ERROR_THRESHOLD) {
               if (!cancelled) {
                 setError(err instanceof Error ? err : new Error(errorMsg ?? "Subscription error"))
@@ -148,6 +149,7 @@ export function useRxQuery<T>(
         await triggerUpdate()
       } catch (err) {
         if (!cancelled) {
+          console.error('[useRxQuery] setup/compute failed:', err)
           setError(
             err instanceof Error ? err : new Error(errorMsg ?? "Failed to load data"),
           )

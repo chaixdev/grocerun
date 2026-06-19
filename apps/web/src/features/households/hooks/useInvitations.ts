@@ -26,11 +26,18 @@ export interface InvitationDetails {
 // ----- Settings Households -----
 // Extended household type with ownerId and member count, used by settings page
 
+export interface HouseholdMemberSummary {
+  userId: string
+  name: string
+  image: string
+}
+
 export interface SettingsHousehold {
   id: string
   name: string
   ownerId: string | null
   _count: { users: number }
+  members: HouseholdMemberSummary[]
 }
 
 export function useSettingsHouseholds() {
@@ -44,6 +51,7 @@ export function useSettingsHouseholds() {
             name: doc.name,
             ownerId: doc.ownerId ?? null,
             _count: { users: doc.memberCount },
+            members: doc.members ?? [],
           }))
         }
         const sub = db.households.find().$.subscribe(() => void triggerUpdate())
