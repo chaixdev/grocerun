@@ -187,11 +187,18 @@ export const listItemSchema: RxJsonSchema<ListItemDocType> = {
 // Household
 // ---------------------------------------------------------------------------
 
+export type HouseholdMember = {
+  userId: string
+  name: string
+  image: string
+}
+
 export type HouseholdDocType = {
   id: string
   name: string
   ownerId: string
   memberCount: number
+  members: HouseholdMember[]
   updatedAt: string
 }
 
@@ -205,6 +212,18 @@ export const householdSchema: RxJsonSchema<HouseholdDocType> = {
     name: { type: 'string' },
     ownerId: { type: 'string', maxLength: 30 },
     memberCount: { type: 'number' },
+    members: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          userId: { type: 'string' },
+          name: { type: 'string' },
+          image: { type: 'string' },
+        },
+        required: ['userId', 'name', 'image'],
+      },
+    },
     updatedAt: { type: 'string', format: 'date-time', maxLength: 30 },
   },
   required: ['id', 'name', 'ownerId', 'memberCount', 'updatedAt'],

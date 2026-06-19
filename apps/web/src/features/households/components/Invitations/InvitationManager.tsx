@@ -3,7 +3,7 @@ import { useState } from "react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Copy, Check, Loader2, UserPlus, Plus, Pencil, Shield, User, LogOut, Trash2 } from "lucide-react"
+import { Copy, Check, Loader2, UserPlus, Plus, Pencil, Shield, User, LogOut, Trash2, ChevronDown, ChevronRight } from "lucide-react"
 import {
     Dialog,
     DialogContent,
@@ -15,11 +15,14 @@ import {
 } from "@/components/ui/dialog"
 import {
     Card,
+    CardContent,
     CardDescription,
     CardHeader,
     CardTitle,
 } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible"
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
 import {
     useCreateInvitation,
     useGetInvitationDetails,
@@ -63,6 +66,18 @@ export function InvitationManager({ userId, households, invitationTimeoutMinutes
 
     // Invite Dialog State
     const [activeInviteHouseholdId, setActiveInviteHouseholdId] = useState<string | null>(null)
+
+    // Expanded Household Cards
+    const [expandedHouseholds, setExpandedHouseholds] = useState<Set<string>>(new Set())
+
+    function toggleHousehold(id: string) {
+        setExpandedHouseholds(prev => {
+            const next = new Set(prev)
+            if (next.has(id)) next.delete(id)
+            else next.add(id)
+            return next
+        })
+    }
 
     // Mutations
     const createInvitation = useCreateInvitation()
@@ -216,22 +231,28 @@ export function InvitationManager({ userId, households, invitationTimeoutMinutes
 
                     return (
                         <Card key={household.id}>
-                            <CardHeader className="pb-2">
-                                <div className="flex justify-between items-start">
-                                    <div className="space-y-1">
-                                        <div className="flex items-center gap-2">
-                                            <CardTitle className="text-base">{household.name}</CardTitle>
-                                            {perms.isOwner ? (
-                                                <Badge variant="default" className="text-[10px] px-1 py-0 h-5"><Shield className="w-3 h-3 mr-1" /> Owner</Badge>
-                                            ) : (
-                                                <Badge variant="secondary" className="text-[10px] px-1 py-0 h-5"><User className="w-3 h-3 mr-1" /> Member</Badge>
-                                            )}
-                                        </div>
-                                        <CardDescription className="text-xs">
-                                            ID: {household.id} &bull; {household._count.users} member{household._count.users !== 1 ? 's' : ''}
-                                        </CardDescription>
-                                    </div>
-                                    <div className="flex gap-2">
+                            <Collapsible open={expandedHouseholds.has(household.id)} onOpenChange={() => toggleHousehold(household.id)}>
+                                <CardHeader className="pb-2">
+                                    <div className="flex justify-between items-start">
+                                        <CollapsibleTrigger asChild>
+                                            <button type="button" className="text-left space-y-1">
+                                                <div className="flex items-center gap-2">
+                                                    <CardTitle className="text-base">{household.name}</CardTitle>
+                                                    {perms.isOwner ? (
+                                                        <Badge variant="default" className="text-[10px] px-1 py-0 h-5"><Shield className="w-3 h-3 mr-1" /> Owner</Badge>
+                                                    ) : (
+                                                        <Badge variant="secondary" className="text-[10px] px-1 py-0 h-5"><User className="w-3 h-3 mr-1" /> Member</Badge>
+                                                    )}
+                                                    {expandedHouseholds.has(household.id)
+                                                        ? <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                                                        : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
+                                                </div>
+                                                <CardDescription className="text-xs">
+                                                    {household._count.users} member{household._count.users !== 1 ? 's' : ''}
+                                                </CardDescription>
+                                            </button>
+                                        </CollapsibleTrigger>
+                                        <div className="flex gap-2">
                                         {perms.isOwner && (
                                             <Dialog open={editingHousehold?.id === household.id} onOpenChange={(open) => {
                                                 if (open) {
@@ -350,7 +371,37 @@ export function InvitationManager({ userId, households, invitationTimeoutMinutes
                                         )}
                                     </div>
                                 </div>
-                            </CardHeader>
+                                </CardHeader>
+                                <CollapsibleContent>
+                                    <CardContent className="pt-0">
+                                        <div className="space-y-1">
+                                            {household.members.map((member) => {
+                                                const isOwner = member.userId === household.ownerId
+                                                const isCurrentUser = member.userId === userId
+                                                const displayName = member.name || member.userId.substring(0, 8)
+                                                const initial = (member.name || member.userId).charAt(0).toUpperCase()
+                                                return (
+                                                    <div key={member.userId} className="flex items-center gap-3 py-1.5">
+                                                        <Avatar className="h-8 w-8">
+                                                            {member.image && <AvatarImage src={member.image} />}
+                                                            <AvatarFallback className="text-xs">{initial}</AvatarFallback>
+                                                        </Avatar>
+                                                        <span className="text-sm flex-1">
+                                                            {displayName}
+                                                            {isCurrentUser && <span className="text-muted-foreground ml-1">(You)</span>}
+                                                        </span>
+                                                        {isOwner ? (
+                                                            <Badge variant="default" className="text-[10px] px-1 py-0 h-5"><Shield className="w-3 h-3 mr-1" /> Owner</Badge>
+                                                        ) : (
+                                                            <Badge variant="secondary" className="text-[10px] px-1 py-0 h-5"><User className="w-3 h-3 mr-1" /> Member</Badge>
+                                                        )}
+                                                    </div>
+                                                )
+                                            })}
+                                        </div>
+                                    </CardContent>
+                                </CollapsibleContent>
+                            </Collapsible>
                         </Card>
                     )
                 })}

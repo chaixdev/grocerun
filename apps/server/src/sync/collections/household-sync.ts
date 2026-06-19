@@ -28,10 +28,15 @@ export async function pullHouseholds(
       name: row.name as string,
       ...(row.ownerId ? { ownerId: row.ownerId as string } : {}),
       memberCount: (row as { _count?: { users?: number } })._count?.users ?? 0,
+      members: ((row as { users?: Array<{ id: string; name: string | null; image: string | null }> }).users ?? []).map(u => ({
+        userId: u.id,
+        name: u.name ?? '',
+        image: u.image ?? '',
+      })),
       updatedAt: (row.updatedAt as Date).toISOString(),
       _deleted: row.deleted as boolean,
     }),
     buildBaseFilter: async () => ({ users: { some: { id: userId } } }),
-    extra: { include: { _count: { select: { users: true } } } },
+    extra: { include: { _count: { select: { users: true } }, users: { select: { id: true, name: true, image: true } } } },
   });
 }
