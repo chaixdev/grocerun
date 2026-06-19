@@ -94,7 +94,8 @@ async function request<T>(
 
       const data = await retryRes.json()
       return schema ? schema.parse(data) : data as T
-    } catch {
+    } catch (err) {
+      if (err instanceof ApiError) throw err
       if (!getTestToken()) clearInvalidAppAuth()
       throw new ApiError('Session expired', 401)
     }
