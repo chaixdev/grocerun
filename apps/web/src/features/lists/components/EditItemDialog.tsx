@@ -1,5 +1,5 @@
 
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import {
@@ -51,13 +51,10 @@ export function EditItemDialog({ item, sections, listId, open, onOpenChange, onS
 
     const updateItem = useUpdateItem()
 
-    useEffect(() => {
-        setName(item.name)
-        setSectionId(item.sectionId || "uncategorized")
-        setDefaultUnit(item.defaultUnit || "")
-        setCommentEnabled(Boolean(item.note?.trim()))
-        setNote(item.note || "")
-    }, [item])
+    // No useEffect to sync form state from props — the parent passes
+    // key={editingItem.id} which remounts this component when switching
+    // items, re-running the useState initializers above. This prevents
+    // RxDB subscription re-renders from wiping in-progress edits.
 
     const handleSave = () => {
         if (!name.trim()) return

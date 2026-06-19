@@ -137,7 +137,7 @@ describe('ListItemRow', () => {
   // -------------------------------------------------------------------------
 
   describe('shopping mode interactions', () => {
-    it('clicking row in shopping mode toggles the item', () => {
+    it('clicking item name in shopping mode toggles the item', async () => {
       const onToggle = vi.fn();
       render(
         <ListItemRow
@@ -147,8 +147,15 @@ describe('ListItemRow', () => {
         />,
       );
 
-      // Row click should call onToggle — verify component renders
-      expect(screen.getByTestId('list-item-row-milk')).toBeInTheDocument();
+      const user = userEvent.setup();
+      // The item name div has pointer-events-none, so in the browser clicks
+      // pass through to the z-0 toggle button that covers the full row.
+      // jsdom doesn't simulate pointer-events pass-through, so we click the
+      // toggle button directly by its aria-label.
+      await user.click(screen.getByLabelText('Check Milk'));
+
+      expect(onToggle).toHaveBeenCalledTimes(1);
+      expect(onToggle).toHaveBeenCalledWith('li-1', true, undefined);
     });
 
     it('does not toggle when read-only', async () => {
