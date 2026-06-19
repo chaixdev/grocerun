@@ -58,9 +58,9 @@ function setupMocks() {
   const mockCreateList = { mutateAsync: vi.fn() }
   const mockAddItem = { mutateAsync: vi.fn() }
 
-  vi.mocked(useCompleteList).mockReturnValue(mockCompleteList as any)
-  vi.mocked(useCreateList).mockReturnValue(mockCreateList as any)
-  vi.mocked(useAddItem).mockReturnValue(mockAddItem as any)
+  vi.mocked(useCompleteList).mockReturnValue(mockCompleteList as unknown as ReturnType<typeof useCompleteList>)
+  vi.mocked(useCreateList).mockReturnValue(mockCreateList as unknown as ReturnType<typeof useCreateList>)
+  vi.mocked(useAddItem).mockReturnValue(mockAddItem as unknown as ReturnType<typeof useAddItem>)
 
   return { mockCompleteList, mockCreateList, mockAddItem }
 }
@@ -230,7 +230,7 @@ describe("useCompleteAndCreateList", () => {
     expect(result.current.isExecuting).toBe(false)
 
     // Start execution (the sync part triggers setIsExecuting(true))
-    let executePromise: Promise<any>
+    let executePromise: Promise<unknown>
     act(() => {
       executePromise = result.current.execute("list-1", "store-1", missingItems)
     })

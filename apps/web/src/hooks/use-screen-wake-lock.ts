@@ -23,8 +23,9 @@ export function useScreenWakeLock(enabled: boolean = true) {
                 setWakeLock(null)
             })
             console.log("Wake Lock acquired")
-        } catch (err: any) {
-            console.error(`Wake Lock request failed: ${err.name}, ${err.message}`)
+        } catch (err: unknown) {
+            const e = err instanceof Error ? err : new Error(String(err))
+            console.error(`Wake Lock request failed: ${e.name}, ${e.message}`)
             // Don't toast on error, might be noisy if frequent
         }
     }, [])
@@ -34,8 +35,9 @@ export function useScreenWakeLock(enabled: boolean = true) {
             try {
                 await wakeLock.release()
                 setWakeLock(null)
-            } catch (err: any) {
-                console.error(`Wake Lock release failed: ${err.name}, ${err.message}`)
+            } catch (err: unknown) {
+                const e = err instanceof Error ? err : new Error(String(err))
+                console.error(`Wake Lock release failed: ${e.name}, ${e.message}`)
             }
         }
     }, [wakeLock])
