@@ -99,6 +99,7 @@ if (import.meta.env.DEV) {
  * In dev-mode RxDB requires a schema validator wrapping the storage.
  * In production we skip validation for performance.
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- RxDB storage generics are untyped
 function getStorage(): RxStorage<any, any> {
   const base = getRxStorageDexie()
   if (import.meta.env.DEV) {
@@ -478,11 +479,16 @@ function getSyncStreamUrl(): string {
  *
  * Reconnects automatically after 5 s if the connection drops.
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- RxDB pull stream generics are untyped
 const sharedPullStreams = new Set<Subject<RxReplicationPullStreamItem<any, any>>>()
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- RxDB pull stream generics are untyped
+const RESYNC_SIGNAL = 'RESYNC' as RxReplicationPullStreamItem<any, any>
 
 function registerPullStream<DocType, Checkpoint>(
   subject: Subject<RxReplicationPullStreamItem<DocType, Checkpoint>>,
 ) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- RxDB pull stream generics are untyped
   sharedPullStreams.add(subject as Subject<RxReplicationPullStreamItem<any, any>>)
   if (!visibilityListenerAdded) {
     visibilityListenerAdded = true
@@ -490,7 +496,7 @@ function registerPullStream<DocType, Checkpoint>(
       if (document.visibilityState === 'visible') {
         emitDiagnostic({ type: 'resync', source: 'visibility', at: Date.now() })
         for (const stream of sharedPullStreams) {
-          stream.next('RESYNC' as RxReplicationPullStreamItem<any, any>)
+          stream.next(RESYNC_SIGNAL)
         }
       }
     })
@@ -504,7 +510,7 @@ function registerPullStream<DocType, Checkpoint>(
 function resyncAll() {
   emitDiagnostic({ type: 'resync', source: 'periodic', at: Date.now() })
   for (const stream of sharedPullStreams) {
-    stream.next('RESYNC' as RxReplicationPullStreamItem<any, any>)
+    stream.next(RESYNC_SIGNAL)
   }
 }
 
@@ -534,14 +540,14 @@ async function openSharedSyncStream(url: string, forceRefresh = false) {
   src.addEventListener('RESYNC', () => {
     emitDiagnostic({ type: 'resync', source: 'sse', at: Date.now() })
     for (const subject of sharedPullStreams) {
-      subject.next('RESYNC' as RxReplicationPullStreamItem<any, any>)
+      subject.next(RESYNC_SIGNAL)
     }
   })
 
   src.addEventListener('SYNC_CHANGED', () => {
     emitDiagnostic({ type: 'resync', source: 'sse', at: Date.now() })
     for (const subject of sharedPullStreams) {
-      subject.next('RESYNC' as RxReplicationPullStreamItem<any, any>)
+      subject.next(RESYNC_SIGNAL)
     }
   })
 
