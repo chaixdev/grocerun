@@ -13,6 +13,14 @@ export default tseslint.config(
     rules: {
       '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
       '@typescript-eslint/no-explicit-any': 'error',
+      'no-console': ['warn', { allow: ['error', 'warn'] }],
+    },
+  },
+  {
+    // Scripts are CLI tools — console.log is their output mechanism
+    files: ['scripts/**/*.ts'],
+    rules: {
+      'no-console': 'off',
     },
   },
 )

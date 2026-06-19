@@ -30,7 +30,7 @@ const oidcConfig = window.__GROCERUN_CONFIG__ ?? {
 };
 
 if (isTestMode) {
-  console.log('[grocerun] Test mode detected — bootstrapping OIDC with mock implementation')
+  console.warn('[grocerun] Test mode detected — bootstrapping OIDC with mock implementation')
 }
 bootstrapOidc(
   isTestMode
