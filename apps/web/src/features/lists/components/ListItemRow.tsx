@@ -192,8 +192,11 @@ export function ListItemRow({
                 )}
             </div>
 
-            {/* 3. Item Name */}
-            <div className="relative z-10 flex-1 min-w-0 flex flex-col justify-center">
+            {/* 3. Item Name — pointer-events-none so clicks pass through to the
+                z-0 toggle button in shopping mode (the name div is the largest
+                click target and must not absorb taps meant for toggling). The
+                z-0 button provides keyboard accessibility via aria-label. */}
+            <div className="relative z-10 flex-1 min-w-0 flex flex-col justify-center pointer-events-none">
                 <span
                     data-testid="item-name"
                     className={`text-base font-medium truncate transition-colors ${optimisticChecked ? "line-through text-muted-foreground/70" : "text-foreground"}`}

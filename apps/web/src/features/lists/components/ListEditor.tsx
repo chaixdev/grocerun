@@ -598,6 +598,7 @@ export function ListEditor({ list }: ListEditorProps) {
             {
                 editingItem && (
                     <EditItemDialog
+                        key={editingItem.id}
                         item={{
                             id: editingItem.id,
                             name: editingItem.name,
