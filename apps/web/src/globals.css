@@ -154,10 +154,6 @@
     color: hsl(var(--foreground));
   }
 
-  .touch-target {
-    min-height: 44px;
-    min-width: 44px;
-  }
 }
 
 @layer utilities {

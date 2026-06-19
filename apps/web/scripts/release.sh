@@ -71,7 +71,7 @@ git checkout -b "$branch_name"
 # 6. Commit 1: The Release Commit
 # updates package.json to new version (e.g., 1.0.1)
 log "Bumping version (${bump_type})..."
-npm version $bump_type --no-git-tag-version
+npm version "$bump_type" --no-git-tag-version
 
 release_version=$(npm pkg get version | tr -d '"')
 release_tag="v${release_version}"
