@@ -2,7 +2,7 @@ import { useRxQuery } from "@/core/lib/useRxQuery"
 import { useMutation } from "@/core/lib/useMutation"
 import { api } from "@/core/lib/api"
 import { resyncHouseholds, resyncStores } from "@/core/rxdb"
-import { removeHouseholdSubtreeFromLocalDb } from "@/core/rxdb/database"
+import { getRxDb, removeHouseholdSubtreeFromLocalDb } from "@/core/rxdb/database"
 import { toast } from "sonner"
 
 // ----- Types -----
@@ -96,6 +96,29 @@ export function useDeleteHousehold() {
     },
     onError: () => {
       toast.error("Failed to delete household")
+    },
+  })
+}
+
+export function useRemoveMember() {
+  return useMutation({
+    mutationFn: ({ householdId, memberUserId }: { householdId: string; memberUserId: string }) =>
+      api.delete(`/households/${householdId}/members/${memberUserId}`),
+    onSuccess: async (_data, { householdId, memberUserId }) => {
+      // Optimistic RxDB update: remove member from local household doc
+      const db = await getRxDb()
+      const doc = await db.households.findOne(householdId).exec()
+      if (doc) {
+        await doc.patch({
+          members: doc.members.filter((m) => m.userId !== memberUserId),
+          memberCount: doc.memberCount - 1,
+        })
+      }
+      resyncHouseholds()
+      toast.success("Member removed")
+    },
+    onError: () => {
+      toast.error("Failed to remove member")
     },
   })
 }

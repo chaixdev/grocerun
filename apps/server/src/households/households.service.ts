@@ -128,4 +128,45 @@ export class HouseholdsService {
 
     return { success: true };
   }
+
+  async removeMember(householdId: string, memberUserId: string, requestingUserId: string) {
+    const household = await this.prisma.household.findFirst({
+      where: { id: householdId, deleted: false },
+      select: { ownerId: true }
+    });
+
+    if (!household) {
+      throw new NotFoundException('Household not found');
+    }
+
+    // Only owner can remove members
+    if (household.ownerId !== requestingUserId) {
+      throw new ForbiddenException('Only the owner can remove members');
+    }
+
+    // Cannot remove yourself — use leave flow instead
+    if (memberUserId === requestingUserId) {
+      throw new BadRequestException('Cannot remove yourself. Use the leave flow instead.');
+    }
+
+    // Cannot remove the owner
+    if (memberUserId === household.ownerId) {
+      throw new BadRequestException('Cannot remove the owner. Transfer ownership first.');
+    }
+
+    await this.prisma.household.update({
+      where: { id: householdId },
+      data: {
+        updatedAt: new Date(),
+        users: { disconnect: { id: memberUserId } }
+      }
+    });
+
+    // Notify the removed user so they can clean up their local state
+    this.sseBroadcast.notifyHouseholdRemoved([memberUserId], householdId);
+
+    this.notify.byHousehold(householdId, ['household', 'store'], 'household-mutation');
+
+    return { success: true };
+  }
 }

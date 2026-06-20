@@ -33,6 +33,7 @@ import {
     useCreateHousehold,
     useRenameHousehold,
     useDeleteHousehold,
+    useRemoveMember,
 } from "../../hooks/useHouseholds"
 import { useLeaveHousehold } from "../../hooks/useInvitations"
 import {
@@ -64,6 +65,9 @@ export function InvitationManager({ userId, households, invitationTimeoutMinutes
     const [householdToLeave, setHouseholdToLeave] = useState<{ id: string, name: string } | null>(null)
     const [householdToDelete, setHouseholdToDelete] = useState<{ id: string, name: string, memberCount: number } | null>(null)
 
+    // Remove Member State
+    const [memberToRemove, setMemberToRemove] = useState<{ householdId: string, householdName: string, memberUserId: string, memberName: string } | null>(null)
+
     // Invite Dialog State
     const [activeInviteHouseholdId, setActiveInviteHouseholdId] = useState<string | null>(null)
 
@@ -87,6 +91,7 @@ export function InvitationManager({ userId, households, invitationTimeoutMinutes
     const renameHousehold = useRenameHousehold()
     const leaveHousehold = useLeaveHousehold()
     const deleteHousehold = useDeleteHousehold()
+    const removeMember = useRemoveMember()
 
     function handleGenerateInvite(householdId: string) {
         createInvitation.mutate(
@@ -171,6 +176,18 @@ export function InvitationManager({ userId, households, invitationTimeoutMinutes
         })
     }
 
+    function handleRemoveMember() {
+        if (!memberToRemove) return
+        removeMember.mutate(
+            { householdId: memberToRemove.householdId, memberUserId: memberToRemove.memberUserId },
+            {
+                onSuccess: () => {
+                    setMemberToRemove(null)
+                },
+            },
+        )
+    }
+
     function copyToClipboard() {
         if (inviteToken) {
             navigator.clipboard.writeText(inviteToken)
@@ -233,26 +250,21 @@ export function InvitationManager({ userId, households, invitationTimeoutMinutes
                         <Card key={household.id}>
                             <Collapsible open={expandedHouseholds.has(household.id)} onOpenChange={() => toggleHousehold(household.id)}>
                                 <CardHeader className="pb-2">
-                                    <div className="flex justify-between items-start">
-                                        <CollapsibleTrigger asChild>
-                                            <button type="button" className="text-left space-y-1">
-                                                <div className="flex items-center gap-2">
-                                                    <CardTitle className="text-base">{household.name}</CardTitle>
-                                                    {perms.isOwner ? (
-                                                        <Badge variant="default" className="text-[10px] px-1 py-0 h-5"><Shield className="w-3 h-3 mr-1" /> Owner</Badge>
-                                                    ) : (
-                                                        <Badge variant="secondary" className="text-[10px] px-1 py-0 h-5"><User className="w-3 h-3 mr-1" /> Member</Badge>
-                                                    )}
-                                                    {expandedHouseholds.has(household.id)
-                                                        ? <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                                                        : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
-                                                </div>
-                                                <CardDescription className="text-xs">
-                                                    {household._count.users} member{household._count.users !== 1 ? 's' : ''}
-                                                </CardDescription>
-                                            </button>
-                                        </CollapsibleTrigger>
-                                        <div className="flex gap-2">
+                                    <div className="flex justify-between items-center">
+                                        <div className="space-y-1">
+                                            <div className="flex items-center gap-2">
+                                                <CardTitle className="text-base">{household.name}</CardTitle>
+                                                {perms.isOwner ? (
+                                                    <Badge variant="default" className="text-[10px] px-1 py-0 h-5"><Shield className="w-3 h-3 mr-1" /> Owner</Badge>
+                                                ) : (
+                                                    <Badge variant="secondary" className="text-[10px] px-1 py-0 h-5"><User className="w-3 h-3 mr-1" /> Member</Badge>
+                                                )}
+                                            </div>
+                                            <CardDescription className="text-xs">
+                                                {household._count.users} member{household._count.users !== 1 ? 's' : ''}
+                                            </CardDescription>
+                                        </div>
+                                        <div className="flex items-center gap-2">
                                         {perms.isOwner && (
                                             <Dialog open={editingHousehold?.id === household.id} onOpenChange={(open) => {
                                                 if (open) {
@@ -369,6 +381,14 @@ export function InvitationManager({ userId, households, invitationTimeoutMinutes
                                                 <Trash2 className="h-4 w-4" />
                                             </Button>
                                         )}
+                                        <div className="h-6 w-px bg-border mx-1" />
+                                        <CollapsibleTrigger asChild>
+                                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                                                {expandedHouseholds.has(household.id)
+                                                    ? <ChevronDown className="h-4 w-4" />
+                                                    : <ChevronRight className="h-4 w-4" />}
+                                            </Button>
+                                        </CollapsibleTrigger>
                                     </div>
                                 </div>
                                 </CardHeader>
@@ -394,6 +414,22 @@ export function InvitationManager({ userId, households, invitationTimeoutMinutes
                                                             <Badge variant="default" className="text-[10px] px-1 py-0 h-5"><Shield className="w-3 h-3 mr-1" /> Owner</Badge>
                                                         ) : (
                                                             <Badge variant="secondary" className="text-[10px] px-1 py-0 h-5"><User className="w-3 h-3 mr-1" /> Member</Badge>
+                                                        )}
+                                                        {perms.isOwner && !isCurrentUser && !isOwner && (
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="icon"
+                                                                className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                                                onClick={() => setMemberToRemove({
+                                                                    householdId: household.id,
+                                                                    householdName: household.name,
+                                                                    memberUserId: member.userId,
+                                                                    memberName: displayName,
+                                                                })}
+                                                                title="Remove Member"
+                                                            >
+                                                                <Trash2 className="h-3.5 w-3.5" />
+                                                            </Button>
                                                         )}
                                                     </div>
                                                 )
@@ -461,6 +497,25 @@ export function InvitationManager({ userId, households, invitationTimeoutMinutes
                         <Button variant="destructive" onClick={handleDeleteHousehold} disabled={deleteHousehold.isPending || (householdToDelete?.memberCount ?? 0) > 1}>
                             {deleteHousehold.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                             Delete
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Remove Member Confirmation Dialog */}
+            <Dialog open={!!memberToRemove} onOpenChange={(open) => !open && setMemberToRemove(null)}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Remove Member</DialogTitle>
+                        <DialogDescription>
+                            Are you sure you want to remove <strong>{memberToRemove?.memberName}</strong> from <strong>{memberToRemove?.householdName}</strong>? They will need a new invitation to rejoin.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setMemberToRemove(null)}>Cancel</Button>
+                        <Button variant="destructive" onClick={handleRemoveMember} disabled={removeMember.isPending}>
+                            {removeMember.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                            Remove
                         </Button>
                     </DialogFooter>
                 </DialogContent>
