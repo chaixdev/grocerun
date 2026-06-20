@@ -46,4 +46,13 @@ export class HouseholdsController {
   ) {
     return this.householdsService.deleteHousehold(householdId, user.userId!);
   }
+
+  @Delete(':id/members/:memberUserId')
+  async removeMember(
+    @Param('id') householdId: string,
+    @Param('memberUserId') memberUserId: string,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.householdsService.removeMember(householdId, memberUserId, user.userId!);
+  }
 }

@@ -7,7 +7,7 @@ export { InvitationManager } from './components/Invitations'
 // Hooks
 export {
   useHouseholds, useCreateDefaultHousehold, useCreateHousehold,
-  useRenameHousehold, useDeleteHousehold,
+  useRenameHousehold, useDeleteHousehold, useRemoveMember,
 } from './hooks/useHouseholds'
 export type { Household } from './hooks/useHouseholds'
 export {
