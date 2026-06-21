@@ -46,7 +46,10 @@ async function createStore(name = 'Test Store'): Promise<string> {
   const res = await agent(app)
     .post('/stores')
     .send({ name, householdId: 'test-household-id' })
-    .expect(201);
+  if (res.status !== 201) {
+    console.error('[soft-delete] createStore failed', { status: res.status, body: res.body, name })
+  }
+  expect(res.status).toBe(201)
   return res.body.id;
 }
 
@@ -55,7 +58,10 @@ async function createSection(storeId: string, name = 'Dairy'): Promise<string> {
   const res = await agent(app)
     .post('/sections')
     .send({ name, storeId })
-    .expect(201);
+  if (res.status !== 201) {
+    console.error('[soft-delete] createSection failed', { status: res.status, body: res.body, storeId, name })
+  }
+  expect(res.status).toBe(201)
   return res.body.id;
 }
 

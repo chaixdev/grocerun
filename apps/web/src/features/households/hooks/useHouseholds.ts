@@ -105,14 +105,19 @@ export function useRemoveMember() {
     mutationFn: ({ householdId, memberUserId }: { householdId: string; memberUserId: string }) =>
       api.delete(`/households/${householdId}/members/${memberUserId}`),
     onSuccess: async (_data, { householdId, memberUserId }) => {
-      // Optimistic RxDB update: remove member from local household doc
-      const db = await getRxDb()
-      const doc = await db.households.findOne(householdId).exec()
-      if (doc) {
-        await doc.patch({
-          members: doc.members.filter((m) => m.userId !== memberUserId),
-          memberCount: doc.memberCount - 1,
-        })
+      try {
+        // Optimistic RxDB update: remove member from local household doc
+        const db = await getRxDb()
+        const doc = await db.households.findOne(householdId).exec()
+        if (doc) {
+          const filteredMembers = doc.members.filter((m) => m.userId !== memberUserId)
+          await doc.patch({
+            members: filteredMembers,
+            memberCount: filteredMembers.length,
+          })
+        }
+      } catch (err) {
+        console.error('Failed to update local household after member removal:', err)
       }
       resyncHouseholds()
       toast.success("Member removed")
