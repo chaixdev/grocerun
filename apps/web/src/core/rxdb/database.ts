@@ -14,7 +14,7 @@ import { createRxDatabase, RxDatabase, RxCollection, addRxPlugin, RxReplicationP
 import { RxDBDevModePlugin } from 'rxdb/plugins/dev-mode'
 import { wrappedValidateZSchemaStorage } from 'rxdb/plugins/validate-z-schema'
 import { getRxStorageDexie } from 'rxdb/plugins/storage-dexie'
-import { replicateRxCollection } from 'rxdb/plugins/replication'
+import { replicateRxCollection, RxReplicationState } from 'rxdb/plugins/replication'
 import { Subject } from 'rxjs'
 import { clearInvalidAppAuth, getAppAccessToken, refreshAppAccessToken } from '../auth/session'
 import { emitDiagnostic } from '../diagnostics/event-bus'
@@ -339,10 +339,12 @@ function startListItemReplication(collection: RxCollection<ListItemDocType>) {
   })
 }
 
+let householdReplicationState: RxReplicationState<HouseholdDocType, HouseholdCheckpoint> | null = null
+
 function startHouseholdReplication(collection: RxCollection<HouseholdDocType>) {
   const pullStream$ = new Subject<RxReplicationPullStreamItem<HouseholdDocType, HouseholdCheckpoint>>()
   householdPullStream$ = pullStream$
-  startPullReplication({
+  householdReplicationState = startPullReplication({
     collection,
     basePath: '/api/v1/sync/household',
     replicationIdentifier: 'grocerun-household-sync-v1',
@@ -472,6 +474,8 @@ function startPullReplication<DocType, Checkpoint extends { id: string; updatedA
   replicationState.error$.subscribe((err) => {
     console.error(`[RxDB] replication error (${collectionName}):`, err)
   })
+
+  return replicationState
 }
 
 function getSyncStreamUrl(): string {
@@ -499,10 +503,28 @@ function registerPullStream<DocType, Checkpoint>(
     visibilityListenerAdded = true
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'visible') {
+        // Tab regained visibility: reopen SSE if it was closed, and
+        // trigger an immediate resync to catch up on missed changes.
         emitDiagnostic({ type: 'resync', source: 'visibility', at: Date.now() })
         for (const stream of sharedPullStreams) {
           stream.next(RESYNC_SIGNAL)
         }
+        if (!sharedSyncStreamOpened) {
+          sharedSyncStreamOpened = true
+          void openSharedSyncStream(getSyncStreamUrl())
+        }
+      } else {
+        // Tab hidden: close SSE to free server resources. Mobile browsers
+        // will kill background connections anyway — closing proactively
+        // avoids stale connections and watchdog reconnect loops fighting
+        // the OS's background throttling.
+        if (sharedSyncEventSource) {
+          sharedSyncEventSource.close()
+          sharedSyncEventSource = null
+        }
+        sharedSyncStreamOpened = false
+        // Periodic resync keeps data fresh while SSE is down.
+        startPeriodicResync()
       }
     })
   }
@@ -542,7 +564,34 @@ async function openSharedSyncStream(url: string, forceRefresh = false) {
 
   emitDiagnostic({ type: 'sse', state: 'connecting', at: Date.now() })
 
+  // Watchdog: if no SSE message (including heartbeats) arrives within 20s,
+  // force-close and reconnect. The proxy may silently swallow the connection
+  // without triggering onerror.
+  let watchdog: ReturnType<typeof setTimeout> | null = null
+  function resetWatchdog() {
+    if (watchdog) clearTimeout(watchdog)
+    watchdog = setTimeout(() => {
+      console.warn('[RxDB] SSE watchdog: no message in 20s, forcing reconnect')
+      src.close()
+    }, 20_000)
+  }
+  function clearWatchdog() {
+    if (watchdog) {
+      clearTimeout(watchdog)
+      watchdog = null
+    }
+  }
+
+  src.addEventListener('open', () => {
+    resetWatchdog()
+  })
+
+  src.addEventListener('message', () => {
+    resetWatchdog()
+  })
+
   src.addEventListener('RESYNC', () => {
+    resetWatchdog()
     emitDiagnostic({ type: 'resync', source: 'sse', at: Date.now() })
     for (const subject of sharedPullStreams) {
       subject.next(RESYNC_SIGNAL)
@@ -550,6 +599,7 @@ async function openSharedSyncStream(url: string, forceRefresh = false) {
   })
 
   src.addEventListener('SYNC_CHANGED', () => {
+    resetWatchdog()
     emitDiagnostic({ type: 'resync', source: 'sse', at: Date.now() })
     for (const subject of sharedPullStreams) {
       subject.next(RESYNC_SIGNAL)
@@ -557,6 +607,7 @@ async function openSharedSyncStream(url: string, forceRefresh = false) {
   })
 
   src.addEventListener('HOUSEHOLD_REMOVED', (event) => {
+    resetWatchdog()
     try {
       const data = JSON.parse((event as MessageEvent).data) as { householdId?: string }
       if (data.householdId) {
@@ -574,6 +625,7 @@ async function openSharedSyncStream(url: string, forceRefresh = false) {
   }
 
   src.onerror = () => {
+    clearWatchdog()
     src.close()
     emitDiagnostic({ type: 'sse', state: 'error', at: Date.now() })
     if (sharedSyncEventSource === src) {
@@ -630,6 +682,12 @@ export async function removeHouseholdSubtreeFromLocalDb(householdId: string) {
   }
 
   // Always attempt household removal even if subtree removal had failures.
+  // Pause household replication first to prevent a concurrent pull from
+  // updating the doc between fetch and remove (CONFLICT on stale revision).
+  if (householdReplicationState) {
+    await householdReplicationState.awaitInSync()
+    await householdReplicationState.pause()
+  }
   try {
     const household = await db.households.findOne(householdId).exec()
     if (household && !household.deleted) {
@@ -637,5 +695,9 @@ export async function removeHouseholdSubtreeFromLocalDb(householdId: string) {
     }
   } catch (err) {
     console.error(`removeHouseholdSubtreeFromLocalDb: failed to remove household ${householdId}`, err)
+  } finally {
+    if (householdReplicationState) {
+      await householdReplicationState.start()
+    }
   }
 }
