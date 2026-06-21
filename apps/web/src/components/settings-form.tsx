@@ -224,8 +224,12 @@ export function SettingsForm({ user, households, invitationTimeoutMinutes }: Set
                                     size="sm"
                                     onClick={async () => {
                                         if (!confirm('This will delete all local data and re-sync from the server. Continue?')) return
-                                        await resetRxDb()
-                                        router.navigate({ to: "/lists", replace: true })
+                                        try {
+                                            await resetRxDb()
+                                            router.navigate({ to: "/lists", replace: true })
+                                        } catch (err) {
+                                            console.error('Reset failed:', err)
+                                        }
                                     }}
                                 >
                                     <RefreshCw className="mr-2 h-4 w-4" />

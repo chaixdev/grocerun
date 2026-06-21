@@ -568,10 +568,31 @@ async function openSharedSyncStream(url: string, forceRefresh = false) {
   // force-close and reconnect. The proxy may silently swallow the connection
   // without triggering onerror.
   let watchdog: ReturnType<typeof setTimeout> | null = null
+
+  /** Shared recovery: resets state flags, starts periodic fallback resync,
+   *  and schedules reconnection. Does NOT close the EventSource itself —
+   *  callers are responsible for closing. */
+  function recoverFromSseError() {
+    emitDiagnostic({ type: 'sse', state: 'error', at: Date.now() })
+    if (sharedSyncEventSource === src) {
+      sharedSyncEventSource = null
+    }
+    sharedSyncStreamOpened = false
+    // SSE down: start fallback periodic resync so clients don't go stale.
+    startPeriodicResync()
+    setTimeout(() => {
+      if (!sharedSyncStreamOpened) {
+        sharedSyncStreamOpened = true
+        void openSharedSyncStream(url)
+      }
+    }, 5_000)
+  }
+
   function resetWatchdog() {
     if (watchdog) clearTimeout(watchdog)
     watchdog = setTimeout(() => {
       console.warn('[RxDB] SSE watchdog: no message in 20s, forcing reconnect')
+      recoverFromSseError()
       src.close()
     }, 20_000)
   }
@@ -627,19 +648,7 @@ async function openSharedSyncStream(url: string, forceRefresh = false) {
   src.onerror = () => {
     clearWatchdog()
     src.close()
-    emitDiagnostic({ type: 'sse', state: 'error', at: Date.now() })
-    if (sharedSyncEventSource === src) {
-      sharedSyncEventSource = null
-    }
-    sharedSyncStreamOpened = false
-    // SSE down: start fallback periodic resync so clients don't go stale.
-    startPeriodicResync()
-    setTimeout(() => {
-      if (!sharedSyncStreamOpened) {
-        sharedSyncStreamOpened = true
-        void openSharedSyncStream(url)
-      }
-    }, 5_000)
+    recoverFromSseError()
   }
 }
 

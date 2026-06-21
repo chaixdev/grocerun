@@ -97,7 +97,7 @@ async function request<T>(
     } catch (err) {
       if (err instanceof ApiError) throw err
       if (!getTestToken()) clearInvalidAppAuth()
-      throw new ApiError('Session expired', 401)
+      throw err  // re-throw original to preserve actual error type/message
     }
   }
 

@@ -130,6 +130,12 @@ export const UpdateHouseholdSchema = z.object({
 
 export type UpdateHouseholdDto = z.infer<typeof UpdateHouseholdSchema>;
 
+export const RemoveMemberParamsSchema = z.object({
+  id: z.string().min(1, "Household ID is required"),
+  memberUserId: z.string().min(1, "Member user ID is required"),
+});
+export type RemoveMemberParamsDto = z.infer<typeof RemoveMemberParamsSchema>;
+
 // Invitations Domain
 export const CreateInvitationSchema = z.object({
   householdId: z.string().min(1, "Household ID is required"),

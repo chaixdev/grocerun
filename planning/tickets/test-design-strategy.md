@@ -491,7 +491,9 @@ export default defineConfig({
       threads: {
         singleThread: false,
       },
-    }
+    },
+  }),
+});
 ```
 
 ```typescript

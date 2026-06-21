@@ -10,8 +10,9 @@ Grocerun monorepo.
 ## Import Rules
 
 - **Apps must not import from each other.** `apps/web` never imports from
-  `apps/server`, and vice versa. This is enforced by the monorepo tooling
-  and must never be circumvented.
+  `apps/server`, and vice versa. This is enforced by convention and code
+  review; npm workspaces prevents cross-app package-level dependencies,
+  but TypeScript imports are not automatically blocked by tooling.
 - **Shared code lives in `apps/_shared/`.** Currently `apps/_shared/dtos/`
   — Zod schemas and inferred types consumed by both client and server.
 - **Cross-cutting server code in `shared/`:** `AccessService`,
@@ -61,8 +62,10 @@ or speculative lives in `planning/`. Never put speculative designs in
 
 - **Importing from another app directly.** Using relative imports like
   `../../server/src/...` from `apps/web/` violates the fundamental
-  boundary. The monorepo tooling enforces this, but it must not be
-  circumvented with symlinks, path aliases, or direct `node_modules`
+  boundary. While npm workspaces prevents packages from declaring each
+  other as dependencies, TypeScript import paths are not automatically
+  validated — code review is the enforcement mechanism. Boundaries must
+  not be circumvented with symlinks, path aliases, or direct `node_modules`
   hacks.
 - **Duplicating DTOs in client and server.** If a Zod schema or type
   is needed by both apps, it belongs in `apps/_shared/dtos/`. Copying

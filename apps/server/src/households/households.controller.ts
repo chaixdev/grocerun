@@ -2,7 +2,7 @@ import { Body, Controller, Delete, Get, Param, Patch, Post, UseGuards } from '@n
 import { HouseholdsService } from './households.service';
 import { AuthGuard, JwtPayload } from '../auth/auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
-import { CreateHouseholdDto, UpdateHouseholdDto } from './dto/household.dto';
+import { CreateHouseholdDto, UpdateHouseholdDto, RemoveMemberParamsDto } from './dto/household.dto';
 
 @Controller('households')
 @UseGuards(AuthGuard)
@@ -49,10 +49,9 @@ export class HouseholdsController {
 
   @Delete(':id/members/:memberUserId')
   async removeMember(
-    @Param('id') householdId: string,
-    @Param('memberUserId') memberUserId: string,
+    @Param() params: RemoveMemberParamsDto,
     @CurrentUser() user: JwtPayload,
   ) {
-    return this.householdsService.removeMember(householdId, memberUserId, user.userId!);
+    return this.householdsService.removeMember(params.id, params.memberUserId, user.userId!);
   }
 }

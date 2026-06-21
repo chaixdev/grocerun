@@ -56,7 +56,7 @@ export class HouseholdsService {
     }
 
     await this.prisma.household.update({
-      where: { id: householdId },
+      where: { id: householdId, deleted: false },
       data: {
         name: dto.name
       }
@@ -82,7 +82,7 @@ export class HouseholdsService {
     }
 
     await this.prisma.household.update({
-      where: { id: householdId },
+      where: { id: householdId, deleted: false },
       data: {
         updatedAt: new Date(),
         users: { disconnect: { id: userId } }
@@ -155,7 +155,7 @@ export class HouseholdsService {
     }
 
     await this.prisma.household.update({
-      where: { id: householdId },
+      where: { id: householdId, deleted: false },
       data: {
         updatedAt: new Date(),
         users: { disconnect: { id: memberUserId } }
