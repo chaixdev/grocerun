@@ -21,7 +21,7 @@ export function ListDetailsPage() {
 
     if (error || !list) {
         return (
-            <div className="container py-10 max-w-2xl mx-auto text-center">
+            <div className="mx-auto max-w-2xl px-3 py-10 text-center">
                 <p className="text-muted-foreground">List not found.</p>
                 <Button variant="ghost" asChild className="mt-4">
                     <Link to="/lists">Back to Lists</Link>
@@ -31,7 +31,7 @@ export function ListDetailsPage() {
     }
 
     return (
-        <div className="container py-10 space-y-8 max-w-2xl mx-auto">
+        <div className="mx-auto max-w-2xl px-3 py-10 space-y-8">
             <div className="flex items-center gap-4">
                 <Button variant="ghost" size="icon" asChild>
                     <Link to="/lists">

@@ -72,7 +72,7 @@ export function ListItemRow({
     // "Shopping Mode" for UI purposes implies not planning mode and not read only
     const isShoppingMode = !isPlanningMode && !isReadOnly
     const isInteractionDisabled = isReadOnly || isLocked
-    const note = listItem.item.note?.trim()
+    const noteText = listItem.item.note?.trim() ?? null
     const [isNoteOpen, setIsNoteOpen] = useState(false)
 
     // Optimistic checked state: flip immediately on tap without waiting for RxDB.
@@ -142,7 +142,7 @@ export function ListItemRow({
         <div
             ref={itemRef}
             data-testid={`list-item-row-${listItem.item.name.toLowerCase().replace(/\s+/g, '-')}`}
-            className={`group relative flex items-center gap-3 p-3 border-b last:border-0 transition-all duration-200 ${isPlanningMode || isInteractionDisabled ? "" : "hover:bg-muted/30 cursor-pointer"} ${optimisticChecked ? "opacity-50" : ""} ${isHighlighted ? "bg-primary/10" : ""} ${isLocked ? "opacity-70" : ""}`}
+            className={`group relative z-0 flex items-center gap-3 p-3 border-b last:border-0 transition-all duration-200 ${isPlanningMode || isInteractionDisabled ? "" : "hover:bg-muted/30 cursor-pointer"} ${optimisticChecked ? "opacity-50" : ""} ${isHighlighted ? "bg-primary/10" : ""} ${isLocked ? "opacity-70" : ""}`}
         >
             {!isInteractionDisabled && !isPlanningMode && (
                 <button
@@ -192,20 +192,27 @@ export function ListItemRow({
                 )}
             </div>
 
-            {/* 3. Item Name — pointer-events-none so clicks pass through to the
+            {/* 3. Item Name + Note — pointer-events-none so clicks pass through to the
                 z-0 toggle button in shopping mode (the name div is the largest
                 click target and must not absorb taps meant for toggling). The
                 z-0 button provides keyboard accessibility via aria-label. */}
-            <div className="relative z-10 flex-1 min-w-0 flex flex-col justify-center pointer-events-none">
+            <div className="relative z-10 flex-1 min-w-0 overflow-hidden flex items-center gap-1.5 pointer-events-none">
                 <span
                     data-testid="item-name"
-                    className={`text-base font-medium truncate transition-colors ${optimisticChecked ? "line-through text-muted-foreground/70" : "text-foreground"}`}
+                    className={`text-base font-medium shrink-0 max-w-full truncate transition-colors ${optimisticChecked ? "line-through text-muted-foreground/70" : "text-foreground"}`}
                 >
                     {listItem.item.name}
                 </span>
+                {noteText && (
+                    <span className="min-w-0 flex-1 text-xs text-muted-foreground/60 italic truncate">
+                        <span className="text-muted-foreground/40 text-sm leading-none" aria-hidden="true">&bull;&nbsp;</span>
+                        {noteText}
+                    </span>
+                )}
             </div>
 
-            {note && (
+            {/* 3b. Comment icon + popover (tappable, not pointer-events-none) */}
+            {noteText && (
                 <Popover open={isNoteOpen} onOpenChange={setIsNoteOpen}>
                     <PopoverTrigger asChild>
                         <Button
@@ -225,7 +232,7 @@ export function ListItemRow({
                         className="w-64 whitespace-pre-wrap text-sm"
                         onClick={() => setIsNoteOpen(false)}
                     >
-                        {note}
+                        {noteText}
                     </PopoverContent>
                 </Popover>
             )}
