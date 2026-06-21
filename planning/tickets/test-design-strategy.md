@@ -491,8 +491,9 @@ export default defineConfig({
       threads: {
         singleThread: false,
       },
-    },
-    Phase 3 Tests by Default**
+    }
+```
+
 ```typescript
 // Phase 3 tests are marked as .skip() until local-first implementation
 test.describe('Multi-device sync @tag:local-first @tag:phase3', () => {

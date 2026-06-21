@@ -47,6 +47,16 @@ export default defineConfig({
   server: {
     port: 3000,
     proxy: {
+      // SSE stream must be proxied separately to avoid response buffering.
+      // The default http-proxy behavior can buffer SSE responses, causing
+      // the browser's EventSource to timeout after ~30s without receiving
+      // heartbeats. Setting selfHandleResponse: false ensures the response
+      // is streamed directly to the client.
+      '/api/v1/sync/stream': {
+        target: 'http://localhost:3001',
+        changeOrigin: true,
+        selfHandleResponse: false,
+      },
       '/api/v1': {
         target: 'http://localhost:3001',
         changeOrigin: true,

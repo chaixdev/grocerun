@@ -3,7 +3,7 @@ import { useState } from "react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Copy, Check, Loader2, UserPlus, Plus, Pencil, Shield, User, LogOut, Trash2, ChevronDown, ChevronRight } from "lucide-react"
+import { Copy, Check, Loader2, UserPlus, UserMinus, Plus, Pencil, Shield, User, LogOut, Trash2, ChevronDown, ChevronRight } from "lucide-react"
 import {
     Dialog,
     DialogContent,
@@ -395,26 +395,34 @@ export function InvitationManager({ userId, households, invitationTimeoutMinutes
                                 <CollapsibleContent>
                                     <CardContent className="pt-0">
                                         <div className="space-y-1">
-                                            {household.members.map((member) => {
+                                            {[...household.members]
+                                                .sort((a, b) => {
+                                                    if (a.userId === household.ownerId) return -1
+                                                    if (b.userId === household.ownerId) return 1
+                                                    if (a.userId === userId) return -1
+                                                    if (b.userId === userId) return 1
+                                                    return a.name.localeCompare(b.name)
+                                                })
+                                                .map((member) => {
                                                 const isOwner = member.userId === household.ownerId
                                                 const isCurrentUser = member.userId === userId
                                                 const displayName = member.name || member.userId.substring(0, 8)
                                                 const initial = (member.name || member.userId).charAt(0).toUpperCase()
                                                 return (
                                                     <div key={member.userId} className="flex items-center gap-3 py-1.5">
-                                                        <Avatar className="h-8 w-8">
-                                                            {member.image && <AvatarImage src={member.image} />}
-                                                            <AvatarFallback className="text-xs">{initial}</AvatarFallback>
-                                                        </Avatar>
+                                                        <div className="relative">
+                                                            <Avatar className="h-8 w-8">
+                                                                {member.image && <AvatarImage src={member.image} />}
+                                                                <AvatarFallback className="text-xs">{initial}</AvatarFallback>
+                                                            </Avatar>
+                                                            {isOwner && (
+                                                                <Shield className="absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full bg-background p-0.5 text-primary" />
+                                                            )}
+                                                        </div>
                                                         <span className="text-sm flex-1">
                                                             {displayName}
                                                             {isCurrentUser && <span className="text-muted-foreground ml-1">(You)</span>}
                                                         </span>
-                                                        {isOwner ? (
-                                                            <Badge variant="default" className="text-[10px] px-1 py-0 h-5"><Shield className="w-3 h-3 mr-1" /> Owner</Badge>
-                                                        ) : (
-                                                            <Badge variant="secondary" className="text-[10px] px-1 py-0 h-5"><User className="w-3 h-3 mr-1" /> Member</Badge>
-                                                        )}
                                                         {perms.isOwner && !isCurrentUser && !isOwner && (
                                                             <Button
                                                                 variant="ghost"
@@ -428,7 +436,7 @@ export function InvitationManager({ userId, households, invitationTimeoutMinutes
                                                                 })}
                                                                 title="Remove Member"
                                                             >
-                                                                <Trash2 className="h-3.5 w-3.5" />
+                                                                <UserMinus className="h-3.5 w-3.5" />
                                                             </Button>
                                                         )}
                                                     </div>

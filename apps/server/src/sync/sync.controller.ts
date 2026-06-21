@@ -127,10 +127,10 @@ export class SyncController {
     // Register this connection for broadcast notifications.
     const unregister = this.sseBroadcast.register(userId, res);
 
-    // Heartbeat every 25s to keep the connection alive through proxies/load balancers
+    // Heartbeat every 15s to keep the connection alive through proxies/load balancers
     const heartbeat = setInterval(() => {
       res.write(': heartbeat\n\n');
-    }, 25000);
+    }, 15000);
 
     // Clean up when client disconnects
     res.on('close', () => {
