@@ -87,9 +87,10 @@ describe('ListItemRow', () => {
       expect(name.className).toContain('line-through');
     });
 
-    it('shows comment icon only when item has a note', () => {
+    it('shows note text inline and comment icon when item has a note', () => {
       const notedItem = buildListItem({ item: { id: 'item-1', name: 'Milk', sectionId: null, defaultUnit: 'carton', note: 'Buy lactose-free', purchaseCount: 5 } });
       render(<ListItemRow {...defaultProps} listItem={notedItem} />);
+      expect(screen.getByText('Buy lactose-free')).toBeInTheDocument();
       expect(screen.getByLabelText('Show comment for Milk')).toBeInTheDocument();
     });
 
