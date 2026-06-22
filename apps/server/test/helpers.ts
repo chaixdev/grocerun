@@ -110,7 +110,7 @@ export async function waitForAppReady(app: INestApplication, timeoutMs = 3000): 
     }
     await new Promise((r) => setTimeout(r, 100))
   }
-  // If we reach here, the app never became ready — let tests proceed and fail naturally
+  throw new Error(`App failed to become ready within ${timeoutMs}ms (health check never returned 200)`)
 }
 
 // ---------------------------------------------------------------------------
