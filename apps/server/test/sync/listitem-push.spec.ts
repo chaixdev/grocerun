@@ -24,6 +24,7 @@ import {
   db,
   seedBaseFixtures,
   clearDomainData,
+  waitForAppReady,
 } from '../helpers';
 
 let app: INestApplication;
@@ -34,6 +35,7 @@ let catalogItemId: string;
 
 beforeAll(async () => {
   app = await createTestApp();
+  await waitForAppReady(app);
 });
 
 afterAll(async () => {

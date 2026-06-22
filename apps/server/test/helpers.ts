@@ -89,6 +89,33 @@ export function db(app: INestApplication): PrismaService {
 }
 
 // ---------------------------------------------------------------------------
+// App readiness helper
+// ---------------------------------------------------------------------------
+
+/**
+ * Polls the health endpoint until the app responds, or times out.
+ * Mitigates intermittent auth/route failures when creating a fresh
+ * NestJS app against a SQLite database that may still be releasing
+ * locks from a previous test file's app.
+ */
+export async function waitForAppReady(app: INestApplication, timeoutMs = 3000): Promise<void> {
+  const deadline = Date.now() + timeoutMs
+  const token = makeTestToken()
+  while (Date.now() < deadline) {
+    try {
+      const res = await supertest(app.getHttpServer())
+        .get('/api/v1/health')
+        .set('Authorization', `Bearer ${token}`)
+      if (res.status === 200) return
+    } catch {
+      // App not ready yet — retry
+    }
+    await new Promise((r) => setTimeout(r, 100))
+  }
+  // If we reach here, the app never became ready — let tests proceed and fail naturally
+}
+
+// ---------------------------------------------------------------------------
 // Seed helpers
 // ---------------------------------------------------------------------------
 

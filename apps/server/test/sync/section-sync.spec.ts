@@ -6,6 +6,7 @@ import {
   db,
   seedBaseFixtures,
   clearDomainData,
+  waitForAppReady,
 } from '../helpers';
 import * as http from 'http';
 
@@ -29,6 +30,7 @@ let storeId: string;
 
 beforeAll(async () => {
   app = await createTestApp();
+  await waitForAppReady(app);
 });
 
 afterAll(async () => {
