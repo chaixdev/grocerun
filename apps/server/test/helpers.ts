@@ -100,12 +100,10 @@ export function db(app: INestApplication): PrismaService {
  */
 export async function waitForAppReady(app: INestApplication, timeoutMs = 3000): Promise<void> {
   const deadline = Date.now() + timeoutMs
-  const token = makeTestToken()
   while (Date.now() < deadline) {
     try {
       const res = await supertest(app.getHttpServer())
-        .get('/api/v1/health')
-        .set('Authorization', `Bearer ${token}`)
+        .get('/health')
       if (res.status === 200) return
     } catch {
       // App not ready yet — retry
