@@ -49,6 +49,7 @@ async function createStore(name = 'Test Store'): Promise<string> {
     .post('/stores')
     .send({ name, householdId: 'test-household-id' })
   if (res.status !== 201) {
+    // eslint-disable-next-line no-console
     console.error('[soft-delete] createStore failed', { status: res.status, body: res.body, name })
   }
   expect(res.status).toBe(201)
@@ -61,6 +62,7 @@ async function createSection(storeId: string, name = 'Dairy'): Promise<string> {
     .post('/sections')
     .send({ name, storeId })
   if (res.status !== 201) {
+    // eslint-disable-next-line no-console
     console.error('[soft-delete] createSection failed', { status: res.status, body: res.body, storeId, name })
   }
   expect(res.status).toBe(201)
