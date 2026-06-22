@@ -22,7 +22,21 @@ export function useCreateList() {
         throw new Error("Server returned invalid list response — missing id")
       }
       const db = await getRxDb()
-      await db.lists.upsert(list)
+      // Map the raw Prisma REST response to the RxDB ListDocType schema.
+      // The server's POST /lists returns a raw Prisma object that includes
+      // extra fields (deleted, deletedAt, createdAt) and nullable fields
+      // (assignedTo: null) that RxDB's Z-schema validator rejects. The sync
+      // endpoint (listToSyncDoc) performs this same transformation for
+      // replication — we mirror it here for direct REST mutations.
+      const doc: ListDocType = {
+        id: list.id,
+        name: list.name,
+        storeId: list.storeId,
+        status: list.status,
+        updatedAt: list.updatedAt,
+        ...(list.assignedTo ? { assignedTo: list.assignedTo } : {}),
+      }
+      await db.lists.upsert(doc)
       resyncLists()
       resyncListItems()
     },
