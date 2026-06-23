@@ -45,7 +45,9 @@ is `accounts.google.com`.
 [Authentik](https://goauthentik.io) is a self-hosted identity provider with
 full OIDC support. It uses standard PKCE — no client secret in the browser.
 
-1. Deploy Authentik (see [their installation guide](https://goauthentik.io/docs/install-stable)).
+1. Deploy Authentik (see [their installation guide](https://goauthentik.io/docs/install-stable),
+   or use the included `docker-compose.authentik.yml` for local testing — see
+   [Local Smoke Test with Authentik](#local-smoke-test-with-authentik) below).
 2. Create an **OIDC Application** in the Authentik admin panel.
 3. Set redirect URIs:
    - `http://localhost:3000/auth-callback` (for local testing)
@@ -250,6 +252,90 @@ endpoint — see [Auth Conventions](../rules/auth.md) for details.
 | Database errors | Ensure the `grocerun_data` volume is writable (uid 1001) |
 | Port conflict | Change the host port: `- "8080:3000"` |
 
+## Local Smoke Test with Authentik
+
+A `docker-compose.authentik.yml` file is included in the repository root for
+local smoke testing of the generic OIDC integration. It brings up Authentik
+(server, worker, PostgreSQL, Redis) on `localhost:9000`. Grocerun runs on
+the host via `npm run dev` — both the browser and the NestJS server reach
+Authentik at `localhost:9000`, avoiding Docker networking issues.
+
+### 1. Start Authentik
+
+```bash
+# Copy and configure the env file
+cp .env.authentik.example .env.authentik
+
+# Generate secrets (paste into .env.authentik)
+openssl rand -base64 36 | tr -d '\n'   # → PG_PASS
+openssl rand -base64 60 | tr -d '\n'   # → AUTHENTIK_SECRET_KEY
+
+# Start Authentik
+docker compose -f docker-compose.authentik.yml --env-file .env.authentik up -d
+```
+
+Wait for the server to be ready (~30 seconds on first start for migrations):
+
+```bash
+docker compose -f docker-compose.authentik.yml logs -f authentik-server
+# Wait for "Application startup complete"
+```
+
+### 2. Create the admin account
+
+Open `http://localhost:9000/if/flow/initial-setup/` and set the admin
+username and password.
+
+### 3. Create an OIDC application
+
+1. Log in to the Authentik admin panel at `http://localhost:9000`.
+2. Go to **Applications → Applications** and click **Create with Wizard**.
+3. Name it `grocerun`, slug `grocerun`.
+4. Choose **OIDC** as the provider type.
+5. Set the **Authorization Code** flow (use the default `default-provider-authorization-implicit-consent`).
+6. Set **Redirect URI** to `http://localhost:3000/auth-callback`.
+7. Set **Client Type** to **Confidential** (or **Public** — both work with PKCE).
+8. Save and note the **Client ID**.
+
+The **Issuer URI** will be `http://localhost:9000/application/o/grocerun/`.
+
+### 4. Configure Grocerun
+
+Update `apps/web/.env`:
+
+```bash
+VITE_OIDC_ISSUER_URI=http://localhost:9000/application/o/grocerun/
+VITE_OIDC_CLIENT_ID=<your-authentik-client-id>
+# No client secret needed — PKCE only
+```
+
+Update `apps/server/.env`:
+
+```bash
+OIDC_ISSUER_URI=http://localhost:9000/application/o/grocerun/
+OIDC_AUDIENCE=<your-authentik-client-id>
+OIDC_PROVIDER=authentik
+```
+
+### 5. Run and test
+
+```bash
+npm run dev
+```
+
+Open `http://localhost:3000`, click login, and you should be redirected to
+Authentik. After authenticating, you'll be redirected back to Grocerun with
+a valid session.
+
+### Tear down
+
+```bash
+docker compose -f docker-compose.authentik.yml --env-file .env.authentik down -v
+```
+
+The `-v` flag removes the volumes (database, Redis, media). Omit it to
+preserve the Authentik state between runs.
+
 ---
 
-**Last Updated:** June 19, 2026
+**Last Updated:** June 23, 2026
