@@ -15,10 +15,15 @@ One port, one container, one database.
 ## Prerequisites
 
 - Docker and Docker Compose installed
-- A Google Cloud project with an OAuth 2.0 client configured
+- An OIDC provider — pick one:
+  - **Google** (easiest, default): a Google Cloud project with an OAuth 2.0 client
+  - **Authentik** (recommended for privacy-conscious): self-hosted OIDC provider
+  - Any other OIDC-compliant provider (Keycloak, Zitadel, etc.)
 - (Optional) A domain name and reverse proxy for HTTPS
 
-## Step 1 — Google OAuth setup
+## Step 1 — OIDC provider setup
+
+### Option A — Google (default, quickest)
 
 1. Go to [Google Cloud Console → APIs & Services → Credentials](https://console.cloud.google.com/apis/credentials).
 2. Create an **OAuth 2.0 Client ID** of type **Web application**.
@@ -29,6 +34,31 @@ One port, one container, one database.
    - `http://localhost:3000/auth-callback` (for local testing)
    - `https://your-domain.com/auth-callback` (for production)
 5. Note the **Client ID** and **Client Secret**.
+
+Google is the only supported provider that requires a client secret in the
+browser. This is a Google-specific quirk (requires secret at token endpoint
+even with PKCE). The secret is only included in `config.js` when the issuer
+is `accounts.google.com`.
+
+### Option B — Authentik (recommended for privacy-conscious)
+
+[Authentik](https://goauthentik.io) is a self-hosted identity provider with
+full OIDC support. It uses standard PKCE — no client secret in the browser.
+
+1. Deploy Authentik (see [their installation guide](https://goauthentik.io/docs/install-stable)).
+2. Create an **OIDC Application** in the Authentik admin panel.
+3. Set redirect URIs:
+   - `http://localhost:3000/auth-callback` (for local testing)
+   - `https://your-domain.com/auth-callback` (for production)
+4. Note the **Client ID** (no client secret needed — PKCE only).
+5. Note the **Issuer URI** (e.g. `https://auth.your-domain.com/application/o/grocerun/`).
+
+### Option C — Other OIDC providers
+
+Any provider that exposes `.well-known/openid-configuration` and supports
+PKCE will work. Set `OIDC_ISSUER_URI` to the issuer URL and
+`OIDC_CLIENT_ID` to your client ID. No client secret is needed for
+standard providers.
 
 ## Step 2 — Create the Compose file
 
@@ -46,6 +76,7 @@ services:
       DATABASE_URL: file:/app/data/prod.db
       OIDC_CLIENT_ID: ${OIDC_CLIENT_ID}
       OIDC_CLIENT_SECRET: ${OIDC_CLIENT_SECRET}
+      OIDC_ISSUER_URI: ${OIDC_ISSUER_URI:-https://accounts.google.com}
       OIDC_AUDIENCE: ${OIDC_CLIENT_ID}
       HOSTNAME: 0.0.0.0
     volumes:
@@ -63,9 +94,17 @@ Create a `.env` file next to `docker-compose.yml`:
 # Optional: pin a specific version
 GROCERUN_VERSION=latest
 
-# Google OAuth (required)
+# OIDC provider (required)
+# For Google (default):
 OIDC_CLIENT_ID=your-google-client-id.apps.googleusercontent.com
 OIDC_CLIENT_SECRET=GOCSPX-your-google-client-secret
+OIDC_ISSUER_URI=https://accounts.google.com
+
+# For Authentik (or any other OIDC provider):
+# OIDC_CLIENT_ID=your-authentik-client-id
+# OIDC_CLIENT_SECRET=  # NOT needed for standard OIDC providers
+# OIDC_ISSUER_URI=https://auth.your-domain.com/application/o/grocerun/
+# OIDC_PROVIDER=authentik
 
 # Optional: invitation code expiry in minutes (default: 1440 = 24 hours)
 INVITATION_TIMEOUT_MINUTES=1440
@@ -183,26 +222,31 @@ restore periodically — an untested backup is a hope, not a backup.
 
 | Variable | Required | Default | Purpose |
 |---|---|---|---|
-| `OIDC_CLIENT_ID` | Yes | — | Google OAuth client ID |
-| `OIDC_CLIENT_SECRET` | Yes | — | Google OAuth client secret |
+| `OIDC_CLIENT_ID` | Yes | — | OIDC client ID (from your provider) |
+| `OIDC_ISSUER_URI` | No | `https://accounts.google.com` | OIDC issuer URL for JWKS discovery |
+| `OIDC_CLIENT_SECRET` | Google only | — | Client secret (only sent to browser when issuer is Google) |
+| `OIDC_PROVIDER` | No | `google` | Provider name for Account records (e.g. `authentik`) |
 | `OIDC_AUDIENCE` | Production | value of `OIDC_CLIENT_ID` | JWT audience validation |
 | `DATABASE_URL` | No | `file:/app/data/prod.db` | SQLite database path |
 | `GROCERUN_VERSION` | No | `latest` | Docker image tag |
 | `INVITATION_TIMEOUT_MINUTES` | No | `1440` | Invite code lifetime |
 | `HOSTNAME` | No | `0.0.0.0` | Bind address |
 
-Note: `OIDC_CLIENT_SECRET` is visible in the browser bundle because Grocerun is
-a public SPA (no BFF to proxy the token exchange). This is an accepted
-trade-off for the current architecture — see
-[Security and Auth](../architecture/security-and-auth.md) for details.
+Note: `OIDC_CLIENT_SECRET` is only included in the browser config when the
+issuer is Google (`accounts.google.com`). Standard OIDC providers (Authentik,
+Keycloak, etc.) use PKCE without a client secret — no secret reaches the
+browser. This is an accepted trade-off for Google's non-standard token
+endpoint — see [Auth Conventions](../rules/auth.md) for details.
 
 ## Troubleshooting
 
 | Problem | Check |
 |---|---|
 | App won't start | `docker compose logs grocerun` — look for migration errors |
-| Login fails | Verify `OIDC_CLIENT_ID` and `OIDC_CLIENT_SECRET` match Google Console |
-| Login redirects to wrong URL | Check authorised origins/redirects in Google Console |
+| Login fails | Verify `OIDC_CLIENT_ID` matches your provider config |
+| Login fails (Google) | Also verify `OIDC_CLIENT_SECRET` is set correctly |
+| Login fails (Authentik/other) | Verify `OIDC_ISSUER_URI` is correct and reachable |
+| Login redirects to wrong URL | Check authorised origins/redirects in your provider config |
 | Database errors | Ensure the `grocerun_data` volume is writable (uid 1001) |
 | Port conflict | Change the host port: `- "8080:3000"` |
 

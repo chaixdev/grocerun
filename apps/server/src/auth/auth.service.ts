@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 
-export interface GoogleUserPayload {
-    sub: string;        // Google OIDC subject
+export interface OidcUserPayload {
+    sub: string;        // OIDC subject
     email?: string;
     email_verified?: boolean;
     name?: string;
@@ -14,19 +14,25 @@ export class AuthService {
     constructor(private readonly prisma: PrismaService) {}
 
     /**
-     * Maps a Google OIDC identity to our internal DB user ID.
+     * Maps an OIDC identity to our internal DB user ID.
+     *
+     * The provider name is read from OIDC_PROVIDER (defaults to 'google'
+     * for backward compatibility).  Set OIDC_PROVIDER to match your IdP
+     * (e.g. 'authentik', 'microsoft') so Account records are scoped correctly.
      *
      * Strategy (in order):
-     *  1. Find Account by (provider='google', providerAccountId=googleSub) → return userId
+     *  1. Find Account by (provider, providerAccountId=sub) → return userId
      *  2. Find User by email → link Account to existing user → return userId
      *  3. Create new User + Account → return new userId
      */
-    async resolveGoogleUser(payload: GoogleUserPayload): Promise<string> {
+    async resolveOidcUser(payload: OidcUserPayload): Promise<string> {
+        const provider = process.env.OIDC_PROVIDER || 'google';
+
         // 1. Known account
         const account = await this.prisma.account.findUnique({
             where: {
                 provider_providerAccountId: {
-                    provider: 'google',
+                    provider,
                     providerAccountId: payload.sub,
                 },
             },
@@ -47,7 +53,7 @@ export class AuthService {
                     data: {
                         userId: user.id,
                         type: 'oidc',
-                        provider: 'google',
+                        provider,
                         providerAccountId: payload.sub,
                     },
                 });
@@ -64,7 +70,7 @@ export class AuthService {
                 accounts: {
                     create: {
                         type: 'oidc',
-                        provider: 'google',
+                        provider,
                         providerAccountId: payload.sub,
                     },
                 },

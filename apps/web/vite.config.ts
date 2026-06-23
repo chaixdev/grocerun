@@ -29,9 +29,16 @@ export default defineConfig({
           const env = loadEnv('development', process.cwd(), 'VITE_')
           res.setHeader('Content-Type', 'application/javascript')
           res.setHeader('Cache-Control', 'no-cache')
+          const issuerUri = env.VITE_OIDC_ISSUER_URI ?? 'https://accounts.google.com'
+          const isGoogle = issuerUri.includes('accounts.google.com')
+          const clientSecret = env.VITE_OIDC_CLIENT_SECRET ?? process.env.VITE_OIDC_CLIENT_SECRET ?? ''
+          if (clientSecret && !isGoogle) {
+            console.warn('[vite] VITE_OIDC_CLIENT_SECRET is set but issuer is not Google — secret will NOT be served to browser.')
+          }
           const config = {
             clientId: env.VITE_OIDC_CLIENT_ID ?? process.env.VITE_OIDC_CLIENT_ID ?? '',
-            clientSecret: env.VITE_OIDC_CLIENT_SECRET ?? process.env.VITE_OIDC_CLIENT_SECRET ?? '',
+            issuerUri,
+            ...(isGoogle && clientSecret ? { clientSecret } : {}),
           }
           res.end(`window.__GROCERUN_CONFIG__ = ${JSON.stringify(config)};`)
         })

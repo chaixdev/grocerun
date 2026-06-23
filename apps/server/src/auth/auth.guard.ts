@@ -19,7 +19,7 @@ declare module 'express' {
 }
 
 export interface JwtPayload {
-    sub: string;       // Google OIDC subject — matches frontend decodedIdToken.sub
+    sub: string;       // OIDC subject — matches frontend decodedIdToken.sub
     userId?: string;   // Internal DB user ID — for access control queries
     email?: string;
     name?: string;
@@ -73,8 +73,8 @@ export class AuthGuard implements CanActivate {
             throw new UnauthorizedException('Invalid or expired token');
         }
 
-        // Map Google OIDC sub → internal DB user ID
-        const dbUserId = await this.authService.resolveGoogleUser(decodedAccessToken);
+        // Map OIDC sub → internal DB user ID
+        const dbUserId = await this.authService.resolveOidcUser(decodedAccessToken);
 
         request.user = {
             sub: decodedAccessToken.sub,

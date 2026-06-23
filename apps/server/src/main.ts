@@ -7,7 +7,8 @@ import { bootstrapAuth } from './auth/oidc-server';
 const logger = new Logger('Bootstrap');
 
 async function bootstrap() {
-    // Bootstrap OIDC auth — fetches provider metadata and JWKS endpoint
+    // Bootstrap OIDC auth — fetches provider metadata and JWKS endpoint.
+    // Defaults to Google for backward compat; set OIDC_ISSUER_URI for any other IdP.
     const oidcIssuer = process.env.OIDC_ISSUER_URI || 'https://accounts.google.com';
     const oidcAudience = process.env.OIDC_AUDIENCE;
 
@@ -15,7 +16,7 @@ async function bootstrap() {
         if (process.env.NODE_ENV === 'production') {
             throw new Error('OIDC_AUDIENCE environment variable is required in production');
         }
-        logger.warn('OIDC_AUDIENCE not set — audience validation is disabled. Set to your Google client ID.');
+        logger.warn('OIDC_AUDIENCE not set — audience validation is disabled. Set to your OIDC client ID.');
     }
 
     await bootstrapAuth({

@@ -19,7 +19,8 @@ declare global {
   interface Window {
     __GROCERUN_CONFIG__?: {
       clientId: string;
-      clientSecret: string;
+      clientSecret?: string;
+      issuerUri?: string;
     };
   }
 }
@@ -27,7 +28,15 @@ declare global {
 const oidcConfig = window.__GROCERUN_CONFIG__ ?? {
   clientId: import.meta.env.VITE_OIDC_CLIENT_ID,
   clientSecret: import.meta.env.VITE_OIDC_CLIENT_SECRET,
+  issuerUri: import.meta.env.VITE_OIDC_ISSUER_URI,
 };
+
+const ISSUER_URI = oidcConfig.issuerUri || 'https://accounts.google.com';
+const isGoogle = ISSUER_URI.includes('accounts.google.com');
+
+if (oidcConfig.clientSecret && !isGoogle) {
+  console.warn('[grocerun] clientSecret is set but issuer is not Google — secret will be ignored. Standard OIDC providers use PKCE without a client secret.')
+}
 
 if (isTestMode) {
   console.warn('[grocerun] Test mode detected — bootstrapping OIDC with mock implementation')
@@ -46,10 +55,12 @@ bootstrapOidc(
       }
     : {
         implementation: "real",
-        issuerUri: "https://accounts.google.com",
+        issuerUri: ISSUER_URI,
         clientId: oidcConfig.clientId,
-        __unsafe_clientSecret: oidcConfig.clientSecret,
-        __unsafe_useIdTokenAsAccessToken: true,
+        ...(isGoogle && oidcConfig.clientSecret
+          ? { __unsafe_clientSecret: oidcConfig.clientSecret }
+          : {}),
+        ...(isGoogle ? { __unsafe_useIdTokenAsAccessToken: true } : {}),
         sessionRestorationMethod: "full page redirect",
         BASE_URL: import.meta.env.BASE_URL,
         scopes: ["profile", "email"],
@@ -101,8 +112,6 @@ function TestShell() {
     </>
   )
 }
-
-const ISSUER_URI = 'https://accounts.google.com'
 
 function getOidcSpaAuthState(): string | null {
   try {
