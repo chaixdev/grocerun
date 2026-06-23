@@ -299,9 +299,28 @@ username and password.
 5. Set the **Authorization Code** flow (use the default `default-provider-authorization-implicit-consent`).
 6. Set **Redirect URI** to `http://localhost:3000/`.
 7. Set **Client Type** to **Confidential** (or **Public** — both work with PKCE).
-8. Save and note the **Client ID**.
+8. **Do not set an encryption key** — leave it empty (see pitfalls below).
+9. Save and note the **Client ID**.
 
 The **Issuer URI** will be `http://localhost:9000/application/o/grocerun/`.
+
+> **Critical: Do not set an ID token encryption key.** Authentik supports
+> JWE-encrypted ID tokens (`RSA-OAEP-256` + `A256CBC-HS512`), but `oidc-spa`
+> expects plain JWTs (`header.payload.signature`). If an encryption key is
+> set, the token endpoint returns JWE tokens (`header.encrypted_key.iv.
+> ciphertext.tag` — 5 parts) instead of JWTs (3 parts), and `oidc-spa` fails
+> with `Invalid token specified: invalid json for part #2`. The signing
+> algorithm (RS256) is fine — only the encryption layer must be disabled.
+
+> **Redirect URI must be set.** Without a redirect URI, Authentik blocks CORS
+> on the `.well-known/openid-configuration` endpoint with a 200 status and no
+> `Access-Control-Allow-Origin` header. The browser sees "Cross-Origin Request
+> Blocked" and `oidc-spa` cannot initialise.
+
+> **Redirect URI format.** `oidc-spa` uses the app's `BASE_URL` as the
+> redirect URI — there is no separate `/auth-callback` path. In dev this is
+> `http://localhost:3000/` (with trailing slash), in production
+> `https://your-domain.com/`.
 
 ### 4. Configure Grocerun
 
