@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { Outlet, createRootRoute, Link } from '@tanstack/react-router'
 import { Header } from '@/components/header'
 import { ThemeProvider } from '@/components/theme-provider'
@@ -10,6 +10,7 @@ import { ErrorComponent } from '@/components/error-boundary'
 import { bootstrapOidc, useOidc, OidcInitializationGate } from '@/core/auth/oidc'
 import { getCachedAppUser, persistLiveOidcSession } from '@/core/auth/session'
 import { consumeAuthFallbackFlag, markAuthFallbackAvailable } from '@/core/auth/token-cache'
+import { api } from '@/core/lib/api'
 
 const TEST_TOKEN_KEY = '__grocerun_test_token__'
 const isTestMode = typeof window !== 'undefined'
@@ -126,6 +127,20 @@ function getOidcSpaAuthState(): string | null {
 function AuthenticatedShell() {
   const oidc = useOidc()
 
+  // Fetch DB user profile for avatar/name — prefers DB values over OIDC
+  // token claims so that profile edits (e.g. updated avatar URL) are
+  // reflected in the app bar.  Falls back to OIDC claims while loading
+  // or if the API call fails.
+  const [dbUser, setDbUser] = useState<{ name: string | null; image: string | null } | undefined>()
+  useEffect(() => {
+    if (!oidc.isUserLoggedIn) return
+    let cancelled = false
+    api.get<{ name: string | null; image: string | null }>('/users/me')
+      .then((u) => { if (!cancelled) setDbUser(u) })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [oidc.isUserLoggedIn])
+
   // Persist backup flag when successfully logged in
   useEffect(() => {
     if (oidc.isUserLoggedIn) {
@@ -148,9 +163,9 @@ function AuthenticatedShell() {
 
   const user = oidc.isUserLoggedIn
     ? {
-        name: oidc.decodedIdToken.name,
+        name: dbUser?.name || oidc.decodedIdToken.name,
         email: oidc.decodedIdToken.email,
-        image: oidc.decodedIdToken.picture,
+        image: dbUser?.image || oidc.decodedIdToken.picture,
       }
     : cachedUser
       ? {
