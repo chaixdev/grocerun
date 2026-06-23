@@ -31,8 +31,8 @@ One port, one container, one database.
    - `http://localhost:3000` (for local testing)
    - `https://your-domain.com` (for production)
 4. Add authorised redirect URIs:
-   - `http://localhost:3000/auth-callback` (for local testing)
-   - `https://your-domain.com/auth-callback` (for production)
+   - `http://localhost:3000/` (for local testing)
+   - `https://your-domain.com/` (for production)
 5. Note the **Client ID** and **Client Secret**.
 
 Google is the only supported provider that requires a client secret in the
@@ -50,10 +50,14 @@ full OIDC support. It uses standard PKCE — no client secret in the browser.
    [Local Smoke Test with Authentik](#local-smoke-test-with-authentik) below).
 2. Create an **OIDC Application** in the Authentik admin panel.
 3. Set redirect URIs:
-   - `http://localhost:3000/auth-callback` (for local testing)
-   - `https://your-domain.com/auth-callback` (for production)
+   - `http://localhost:3000/` (for local testing)
+   - `https://your-domain.com/` (for production)
 4. Note the **Client ID** (no client secret needed — PKCE only).
 5. Note the **Issuer URI** (e.g. `https://auth.your-domain.com/application/o/grocerun/`).
+
+> **Note on redirect URIs:** `oidc-spa` uses the app's base URL as the
+> redirect URI — there is no separate `/auth-callback` path. In dev this is
+> `http://localhost:3000/`, in production `https://your-domain.com/`.
 
 ### Option C — Other OIDC providers
 
@@ -293,7 +297,7 @@ username and password.
 3. Name it `grocerun`, slug `grocerun`.
 4. Choose **OIDC** as the provider type.
 5. Set the **Authorization Code** flow (use the default `default-provider-authorization-implicit-consent`).
-6. Set **Redirect URI** to `http://localhost:3000/auth-callback`.
+6. Set **Redirect URI** to `http://localhost:3000/`.
 7. Set **Client Type** to **Confidential** (or **Public** — both work with PKCE).
 8. Save and note the **Client ID**.
 
