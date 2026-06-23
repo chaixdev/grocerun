@@ -8,6 +8,7 @@ import { DiagnosticsGate } from '@/components/diagnostics-gate'
 import { PageLoading } from '@/components/ui/page-loading'
 import { ErrorComponent } from '@/components/error-boundary'
 import { bootstrapOidc, useOidc, OidcInitializationGate } from '@/core/auth/oidc'
+import { resolveOidcConfig } from '@/core/auth/oidc-config'
 import { getCachedAppUser, persistLiveOidcSession } from '@/core/auth/session'
 import { consumeAuthFallbackFlag, markAuthFallbackAvailable } from '@/core/auth/token-cache'
 import { api } from '@/core/lib/api'
@@ -32,8 +33,7 @@ const oidcConfig = window.__GROCERUN_CONFIG__ ?? {
   issuerUri: import.meta.env.VITE_OIDC_ISSUER_URI,
 };
 
-const ISSUER_URI = oidcConfig.issuerUri || 'https://accounts.google.com';
-const isGoogle = ISSUER_URI.includes('accounts.google.com');
+const { issuerUri: ISSUER_URI, isGoogle, bootstrapConfig } = resolveOidcConfig(oidcConfig, {});
 
 if (oidcConfig.clientSecret && !isGoogle) {
   console.warn('[grocerun] clientSecret is set but issuer is not Google — secret will be ignored. Standard OIDC providers use PKCE without a client secret.')
@@ -55,13 +55,7 @@ bootstrapOidc(
         },
       }
     : {
-        implementation: "real",
-        issuerUri: ISSUER_URI,
-        clientId: oidcConfig.clientId,
-        ...(isGoogle && oidcConfig.clientSecret
-          ? { __unsafe_clientSecret: oidcConfig.clientSecret }
-          : {}),
-        ...(isGoogle ? { __unsafe_useIdTokenAsAccessToken: true } : {}),
+        ...bootstrapConfig,
         sessionRestorationMethod: "full page redirect",
         BASE_URL: import.meta.env.BASE_URL,
         scopes: ["profile", "email"],
@@ -137,7 +131,7 @@ function AuthenticatedShell() {
     let cancelled = false
     api.get<{ name: string | null; image: string | null }>('/users/me')
       .then((u) => { if (!cancelled) setDbUser(u) })
-      .catch(() => {})
+      .catch((err) => { if (!cancelled) console.error('[grocerun] Failed to load DB user for app bar:', err) })
     return () => { cancelled = true }
   }, [oidc.isUserLoggedIn])
 

@@ -30,7 +30,7 @@ export default defineConfig({
           res.setHeader('Content-Type', 'application/javascript')
           res.setHeader('Cache-Control', 'no-cache')
           const issuerUri = env.VITE_OIDC_ISSUER_URI ?? 'https://accounts.google.com'
-          const isGoogle = issuerUri.includes('accounts.google.com')
+          const isGoogle = (() => { try { return new URL(issuerUri).hostname === 'accounts.google.com' } catch { return false } })()
           const clientSecret = env.VITE_OIDC_CLIENT_SECRET ?? process.env.VITE_OIDC_CLIENT_SECRET ?? ''
           if (clientSecret && !isGoogle) {
             console.warn('[vite] VITE_OIDC_CLIENT_SECRET is set but issuer is not Google — secret will NOT be served to browser.')

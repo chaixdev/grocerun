@@ -1,57 +1,27 @@
 import { describe, expect, it } from 'vitest';
+import { resolveOidcConfig, isGoogleIssuer } from '../oidc-config';
 
-interface RawConfig {
-  clientId?: string;
-  clientSecret?: string;
-  issuerUri?: string;
-}
+describe('isGoogleIssuer', () => {
+  it('returns true for the real Google issuer', () => {
+    expect(isGoogleIssuer('https://accounts.google.com')).toBe(true);
+  });
 
-interface EnvConfig {
-  VITE_OIDC_CLIENT_ID?: string;
-  VITE_OIDC_CLIENT_SECRET?: string;
-  VITE_OIDC_ISSUER_URI?: string;
-}
+  it('returns false for a spoofed domain with Google as prefix', () => {
+    expect(isGoogleIssuer('https://accounts.google.com.evil.tld')).toBe(false);
+  });
 
-interface BootstrapConfig {
-  implementation: string;
-  issuerUri: string;
-  clientId: string | undefined;
-  __unsafe_clientSecret?: string;
-  __unsafe_useIdTokenAsAccessToken?: boolean;
-}
+  it('returns false for a spoofed domain with Google as substring', () => {
+    expect(isGoogleIssuer('https://fake-accounts.google.com')).toBe(false);
+  });
 
-interface ResolvedOidcConfig {
-  issuerUri: string;
-  isGoogle: boolean;
-  clientId: string | undefined;
-  bootstrapConfig: BootstrapConfig;
-}
+  it('returns false for Authentik', () => {
+    expect(isGoogleIssuer('http://localhost:9000/application/o/grocerun/')).toBe(false);
+  });
 
-function resolveOidcConfig(
-  rawConfig: RawConfig | undefined,
-  envConfig: EnvConfig,
-): ResolvedOidcConfig {
-  const merged = rawConfig ?? {
-    clientId: envConfig.VITE_OIDC_CLIENT_ID,
-    clientSecret: envConfig.VITE_OIDC_CLIENT_SECRET,
-    issuerUri: envConfig.VITE_OIDC_ISSUER_URI,
-  };
-
-  const issuerUri = merged.issuerUri || 'https://accounts.google.com';
-  const isGoogle = issuerUri.includes('accounts.google.com');
-
-  const bootstrapConfig: BootstrapConfig = {
-    implementation: 'real',
-    issuerUri,
-    clientId: merged.clientId,
-    ...(isGoogle && merged.clientSecret
-      ? { __unsafe_clientSecret: merged.clientSecret }
-      : {}),
-    ...(isGoogle ? { __unsafe_useIdTokenAsAccessToken: true } : {}),
-  };
-
-  return { issuerUri, isGoogle, clientId: merged.clientId, bootstrapConfig };
-}
+  it('returns false for an invalid URL', () => {
+    expect(isGoogleIssuer('not-a-url')).toBe(false);
+  });
+});
 
 describe('resolveOidcConfig', () => {
   it('Google issuer includes unsafe options', () => {
@@ -183,6 +153,21 @@ describe('resolveOidcConfig', () => {
     );
 
     expect(result.issuerUri).toBe('http://localhost:8080/realms/myrealm');
+    expect(result.isGoogle).toBe(false);
+    expect(result.bootstrapConfig.__unsafe_clientSecret).toBeUndefined();
+    expect(result.bootstrapConfig.__unsafe_useIdTokenAsAccessToken).toBeUndefined();
+  });
+
+  it('Spoofed Google domain does not unlock unsafe options', () => {
+    const result = resolveOidcConfig(
+      {
+        clientId: 'my-client',
+        clientSecret: 'my-secret',
+        issuerUri: 'https://accounts.google.com.evil.tld',
+      },
+      {},
+    );
+
     expect(result.isGoogle).toBe(false);
     expect(result.bootstrapConfig.__unsafe_clientSecret).toBeUndefined();
     expect(result.bootstrapConfig.__unsafe_useIdTokenAsAccessToken).toBeUndefined();

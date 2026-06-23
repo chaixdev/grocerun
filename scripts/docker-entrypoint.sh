@@ -95,7 +95,7 @@ const fs = require('node:fs');
 
 const configPath = '/app/apps/web/dist/config.js';
 const issuerUri = process.env.OIDC_ISSUER_URI || 'https://accounts.google.com';
-const isGoogle = issuerUri.includes('accounts.google.com');
+const isGoogle = (() => { try { return new URL(issuerUri).hostname === 'accounts.google.com'; } catch { return false; } })();
 const clientSecret =
   process.env.OIDC_CLIENT_SECRET ||
   process.env.VITE_OIDC_PUBLIC_VALUE ||

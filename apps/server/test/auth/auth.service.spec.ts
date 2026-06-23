@@ -13,7 +13,7 @@ describe('AuthService.resolveOidcUser', () => {
   let authService: AuthService;
   let mockAccountFindUnique: ReturnType<typeof vi.fn>;
   let mockUserFindUnique: ReturnType<typeof vi.fn>;
-  let mockAccountCreate: ReturnType<typeof vi.fn>;
+  let mockAccountUpsert: ReturnType<typeof vi.fn>;
   let mockUserCreate: ReturnType<typeof vi.fn>;
 
   // Capture the original so we can restore it after each test that
@@ -27,13 +27,13 @@ describe('AuthService.resolveOidcUser', () => {
 
     mockAccountFindUnique = vi.fn();
     mockUserFindUnique = vi.fn();
-    mockAccountCreate = vi.fn();
+    mockAccountUpsert = vi.fn();
     mockUserCreate = vi.fn();
 
     const mockPrisma = {
       account: {
         findUnique: mockAccountFindUnique,
-        create: mockAccountCreate,
+        upsert: mockAccountUpsert,
       },
       user: {
         findUnique: mockUserFindUnique,
@@ -45,7 +45,11 @@ describe('AuthService.resolveOidcUser', () => {
   });
 
   afterEach(() => {
-    process.env.OIDC_PROVIDER = OIDC_PROVIDER_BAK;
+    if (OIDC_PROVIDER_BAK === undefined) {
+      delete process.env.OIDC_PROVIDER;
+    } else {
+      process.env.OIDC_PROVIDER = OIDC_PROVIDER_BAK;
+    }
   });
 
   // -----------------------------------------------------------------------
@@ -72,7 +76,7 @@ describe('AuthService.resolveOidcUser', () => {
       });
       // No further queries/creations for a known account
       expect(mockUserFindUnique).not.toHaveBeenCalled();
-      expect(mockAccountCreate).not.toHaveBeenCalled();
+      expect(mockAccountUpsert).not.toHaveBeenCalled();
       expect(mockUserCreate).not.toHaveBeenCalled();
     });
 
@@ -86,7 +90,7 @@ describe('AuthService.resolveOidcUser', () => {
       expect(result).toBe('another-user-id');
       expect(mockAccountFindUnique).toHaveBeenCalledTimes(1);
       expect(mockUserFindUnique).not.toHaveBeenCalled();
-      expect(mockAccountCreate).not.toHaveBeenCalled();
+      expect(mockAccountUpsert).not.toHaveBeenCalled();
       expect(mockUserCreate).not.toHaveBeenCalled();
     });
   });
@@ -98,7 +102,7 @@ describe('AuthService.resolveOidcUser', () => {
     it('links Account to existing User when email_verified is true', async () => {
       mockAccountFindUnique.mockResolvedValue(null);
       mockUserFindUnique.mockResolvedValue({ id: 'email-user-id' });
-      mockAccountCreate.mockResolvedValue({});
+      mockAccountUpsert.mockResolvedValue({});
 
       const result = await authService.resolveOidcUser({
         sub: 'oidc-sub-3',
@@ -111,36 +115,42 @@ describe('AuthService.resolveOidcUser', () => {
         where: { email: 'existing@test.com' },
         select: { id: true },
       });
-      expect(mockAccountCreate).toHaveBeenCalledWith({
-        data: {
+      expect(mockAccountUpsert).toHaveBeenCalledWith({
+        where: {
+          provider_providerAccountId: {
+            provider: 'google',
+            providerAccountId: 'oidc-sub-3',
+          },
+        },
+        create: {
           userId: 'email-user-id',
           type: 'oidc',
           provider: 'google',
           providerAccountId: 'oidc-sub-3',
+        },
+        update: {
+          userId: 'email-user-id',
         },
       });
       // No standalone user creation
       expect(mockUserCreate).not.toHaveBeenCalled();
     });
 
-    it('links Account when email_verified is undefined (treated as !false)', async () => {
+    it('does NOT link when email_verified is undefined (requires explicit true)', async () => {
       mockAccountFindUnique.mockResolvedValue(null);
-      mockUserFindUnique.mockResolvedValue({ id: 'email-user-id-2' });
-      mockAccountCreate.mockResolvedValue({});
+      const newUserId = 'new-user-unverified-undefined';
+      mockUserCreate.mockResolvedValue({ id: newUserId });
 
       const result = await authService.resolveOidcUser({
         sub: 'oidc-sub-4',
         email: 'existing2@test.com',
-        // email_verified is intentionally omitted — should still link
+        // email_verified is intentionally omitted — should NOT link
       });
 
-      expect(result).toBe('email-user-id-2');
-      expect(mockUserFindUnique).toHaveBeenCalledWith({
-        where: { email: 'existing2@test.com' },
-        select: { id: true },
-      });
-      expect(mockAccountCreate).toHaveBeenCalled();
-      expect(mockUserCreate).not.toHaveBeenCalled();
+      expect(result).toBe(newUserId);
+      // Email lookup is skipped because email_verified is not explicitly true
+      expect(mockUserFindUnique).not.toHaveBeenCalled();
+      expect(mockUserCreate).toHaveBeenCalled();
     });
   });
 
@@ -160,7 +170,7 @@ describe('AuthService.resolveOidcUser', () => {
       });
 
       expect(result).toBe(newUserId);
-      // The guard `payload.email_verified !== false` prevents this branch
+      // The guard `payload.email_verified === true` prevents this branch
       expect(mockUserFindUnique).not.toHaveBeenCalled();
       expect(mockUserCreate).toHaveBeenCalled();
     });
@@ -230,7 +240,7 @@ describe('AuthService.resolveOidcUser', () => {
         select: { id: true },
       });
       // Account is created via nested create, not standalone call
-      expect(mockAccountCreate).not.toHaveBeenCalled();
+      expect(mockAccountUpsert).not.toHaveBeenCalled();
     });
 
     it('sets null for missing email field', async () => {
@@ -317,7 +327,7 @@ describe('AuthService.resolveOidcUser', () => {
       process.env.OIDC_PROVIDER = 'authentik';
       mockAccountFindUnique.mockResolvedValue(null);
       mockUserFindUnique.mockResolvedValue({ id: 'authentik-email-user' });
-      mockAccountCreate.mockResolvedValue({});
+      mockAccountUpsert.mockResolvedValue({});
 
       const result = await authService.resolveOidcUser({
         sub: 'authentik-sub-2',
@@ -326,12 +336,21 @@ describe('AuthService.resolveOidcUser', () => {
       });
 
       expect(result).toBe('authentik-email-user');
-      expect(mockAccountCreate).toHaveBeenCalledWith({
-        data: {
+      expect(mockAccountUpsert).toHaveBeenCalledWith({
+        where: {
+          provider_providerAccountId: {
+            provider: 'authentik',
+            providerAccountId: 'authentik-sub-2',
+          },
+        },
+        create: {
           userId: 'authentik-email-user',
           type: 'oidc',
           provider: 'authentik',
           providerAccountId: 'authentik-sub-2',
+        },
+        update: {
+          userId: 'authentik-email-user',
         },
       });
     });
