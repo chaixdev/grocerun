@@ -41,20 +41,33 @@ export class AuthService {
         if (account) return account.userId;
 
         // 2. Existing user by email — link the account
-        // Only link when the email is verified (prevents account takeover
-        // via unverified email claims from a misconfigured provider).
-        if (payload.email && payload.email_verified !== false) {
+        // Only link when the email is explicitly verified (prevents account
+        // takeover via unverified email claims from a misconfigured provider).
+        if (payload.email && payload.email_verified === true) {
             const user = await this.prisma.user.findUnique({
                 where: { email: payload.email },
                 select: { id: true },
             });
             if (user) {
-                await this.prisma.account.create({
-                    data: {
+                // Use upsert to handle concurrent login races — two requests
+                // for the same OIDC subject can both reach this point. The
+                // unique (provider, providerAccountId) constraint would throw
+                // on the second create; upsert makes it idempotent.
+                await this.prisma.account.upsert({
+                    where: {
+                        provider_providerAccountId: {
+                            provider,
+                            providerAccountId: payload.sub,
+                        },
+                    },
+                    create: {
                         userId: user.id,
                         type: 'oidc',
                         provider,
                         providerAccountId: payload.sub,
+                    },
+                    update: {
+                        userId: user.id,
                     },
                 });
                 return user.id;
