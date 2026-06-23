@@ -94,17 +94,32 @@ node <<'NODE'
 const fs = require('node:fs');
 
 const configPath = '/app/apps/web/dist/config.js';
+const issuerUri = process.env.OIDC_ISSUER_URI || 'https://accounts.google.com';
+const isGoogle = issuerUri.includes('accounts.google.com');
+const clientSecret =
+  process.env.OIDC_CLIENT_SECRET ||
+  process.env.VITE_OIDC_PUBLIC_VALUE ||
+  process.env.VITE_OIDC_CLIENT_SECRET ||
+  '';
+
+// Google is the only known OIDC provider that requires a client secret
+// even with PKCE. Standard providers (Authentik, Keycloak, etc.) use
+// PKCE without a secret — including it in the browser bundle would be
+// a security leak for those providers.
 const config = {
   clientId: process.env.OIDC_CLIENT_ID || process.env.VITE_OIDC_CLIENT_ID || '',
-  clientSecret:
-    process.env.OIDC_CLIENT_SECRET ||
-    process.env.VITE_OIDC_PUBLIC_VALUE ||
-    process.env.VITE_OIDC_CLIENT_SECRET ||
-    '',
+  issuerUri,
+  ...(isGoogle && clientSecret ? { clientSecret } : {}),
 };
 
 if (process.env.NODE_ENV === 'production' && !config.clientId) {
   console.warn('[init] WARNING: OIDC_CLIENT_ID is not set — frontend OIDC will fail.');
+}
+
+if (clientSecret && !isGoogle) {
+  console.warn('[init] WARNING: OIDC_CLIENT_SECRET is set but issuer is not Google.');
+  console.warn('[init]   Standard OIDC providers use PKCE without a client secret.');
+  console.warn('[init]   The secret will NOT be included in the browser config.');
 }
 
 fs.writeFileSync(

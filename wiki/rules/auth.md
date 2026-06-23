@@ -2,13 +2,20 @@
 
 **Status:** Established  
 **Category:** Security / Auth  
-**Context:** Grocerun Google OIDC-only auth with JWT Bearer tokens. No multi-provider, no password flows. Tokens validated via Google JWKS on the server and stored in memory on the client (with localStorage fallback for session restoration).
+**Context:** Grocerun supports any OIDC provider via `oidc-spa`. Google is the default (backward compat) but is the exception, not the model — it requires a client secret in the browser and uses the ID token as the access token. Standard OIDC providers (Authentik, Keycloak, etc.) use PKCE without secrets. Tokens validated via provider JWKS on the server and stored in memory on the client (with localStorage fallback for session restoration).
 
 ## 1. Identity Provider
 
-- Google OIDC via `oidc-spa` only. No multi-provider support.
+- Any OIDC-compliant provider via `oidc-spa`. Google is the default for
+  backward compatibility; set `OIDC_ISSUER_URI` to use another provider.
+- Recommended self-hosted provider: [Authentik](https://goauthentik.io) —
+  privacy-conscious, full OIDC discovery, PKCE without secrets.
 - No username/password or email/password flows. OIDC is the sole auth
   mechanism.
+- **Google is the exception:** it requires `__unsafe_clientSecret` (even
+  with PKCE) and `__unsafe_useIdTokenAsAccessToken` (opaque access tokens).
+  These options are only injected when `issuerUri` includes
+  `accounts.google.com`. Standard providers omit both.
 
 ## 2. Backend (NestJS)
 
@@ -24,7 +31,8 @@ Google OIDC → ID Token → /api/token → JWT Access Token → Bearer header
 - `@CurrentUser()` decorator extracts the authenticated user from the
   request context.
 - JWKS validation: the server validates the token signature against
-  Google's public keys.
+  the provider's public keys (discovered via `OIDC_ISSUER_URI`'s
+  `.well-known/openid-configuration`).
 - Token generation: `/api/token` endpoint exchanges OIDC ID token for
   a JWT access token.
 
@@ -55,7 +63,9 @@ Google OIDC → ID Token → /api/token → JWT Access Token → Bearer header
 - Session restoration: `oidc-spa` `sessionRestorationMethod: "full page redirect"`
   + localStorage token-cache fallback with 60s freshness skew and 30s
   logout re-seed block.
-- `OIDC_CLIENT_SECRET` in browser bundle — accepted trade-off (H7).
+- `OIDC_CLIENT_SECRET` in browser bundle — Google-only trade-off (H7).
+  Only included when issuer is Google; standard OIDC providers use PKCE
+  without secrets.
 
 ## 4. Route Guards
 
@@ -111,10 +121,12 @@ fallback* with a 60-second freshness skew (`AUTH_CACHE_EXPIRY_SKEW_MS`,
 extend TTLs, remove the skew, or promote the cache to primary storage.
 
 ### Hardcoding OIDC Secrets
-The `VITE_OIDC_CLIENT_SECRET` is bundled into the browser at build time
-(`vite.config.ts` line 34). This is an accepted trade-off (H7) for a
-public SPA with no backend-for-frontend layer. Do not add additional
-secrets or API keys that would also leak; route all privileged
+The `OIDC_CLIENT_SECRET` is only included in the browser config when the
+issuer is Google (`accounts.google.com`). This is an accepted trade-off
+(H7) because Google requires a client secret at the token endpoint even
+with PKCE. For standard OIDC providers (Authentik, Keycloak, etc.) the
+secret is never sent to the browser — PKCE alone is used. Do not add
+additional secrets or API keys that would also leak; route all privileged
 operations through the NestJS backend, which holds server-side secrets.
 
 ## 7. Reference Implementation
@@ -156,8 +168,8 @@ operations through the NestJS backend, which holds server-side secrets.
 
 ### Server Auth Service
 *   **AuthService:** `apps/server/src/auth/auth.service.ts`
-    *   `resolveGoogleUser()`: Lines 24-75
-    *   `GoogleUserPayload` interface: Lines 4-10
+    *   `resolveOidcUser()`: Lines 24-75
+    *   `OidcUserPayload` interface: Lines 4-10
 
 ### Server Decorators
 *   **@CurrentUser():** `apps/server/src/auth/current-user.decorator.ts`
