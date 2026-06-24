@@ -124,4 +124,4 @@ ID. Consider separate OAuth apps for staging eventually.
 
 - [DevOps Philosophy](./devops-philosophy.md)
 - [CI Workflow](../../.github/workflows/docker-build.yml)
-- [Deploy Script](../../deploy-staging.sh)
+- [Deploy Script](../../scripts/deploy-staging.sh)

@@ -43,7 +43,7 @@ Playwright test
 npm run e2e:run -w e2e
 
 # Equivalent direct script invocation
-./run-e2e.sh
+./scripts/run-e2e.sh
 
 # Pass Playwright args after --
 npm run e2e:run -w e2e -- --grep "Shopping mode"
