@@ -218,8 +218,8 @@ With a rewrite, discovering RxDB issues means **starting over**.
 
 ## References
 
-- [Project Status](../planning/PROJECT-STATUS.md) - Phase tracking
-- [Phase 2 Migration Plan](../planning/phase-2-api-proxy.md)
+- [Project Status](../../planning/tickets/PROJECT-STATUS.md) - Phase tracking
+- [Phase 2 Migration Plan](../../planning/tickets/phase-2-api-proxy.md)
 - [RxDB Documentation](https://rxdb.info/) - Target architecture
 - [Incrementalism vs Revolution in Software](https://www.joelonsoftware.com/2000/04/06/things-you-should-never-do-part-i/)
 

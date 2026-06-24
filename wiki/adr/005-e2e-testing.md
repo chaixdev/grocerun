@@ -445,7 +445,7 @@ jobs:
 ## References
 
 - **[Testing Tool Evaluation](../planning/testing-tool-evaluation.md)** - Comprehensive analysis of why Playwright beats Cypress for local-first
-- [Test Scenarios](../planning/test-scenarios.md) - Detailed test case specifications (79 scenarios)
+- [Test Scenarios](../../planning/tickets/test-scenarios.md) - Detailed test case specifications (79 scenarios)
 - [Playwright Documentation](https://playwright.dev/docs/intro)
 - [Vitest Documentation](https://vitest.dev/guide/)
 - [RxDB Testing Guide](https://rxdb.info/testing.html)
