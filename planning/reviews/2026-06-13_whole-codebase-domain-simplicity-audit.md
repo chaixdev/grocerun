@@ -726,7 +726,7 @@ References:
 - `apps/web/package.json:35-48`
 - `package.json:3-5`
 - `package.json:24-29`
-- `wiki/development/devops-philosophy.md:82-120`
+- `wiki/deployment/devops-philosophy.md:82-120`
 - `planning/archive/e2e-testing-2026-01/e2e-testing-setup.md:237-287`
 
 Docs still reference Next.js/NextAuth/PostgreSQL-era assumptions in places, while current code is Vite + TanStack Router + oidc-spa 10 + Prisma 7.5 + SQLite.
