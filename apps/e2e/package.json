@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "test": "echo '⚠️  Run npm run dev first, then: npm run e2e:run' && exit 0",
-    "e2e:run": "../../run-e2e.sh",
+    "e2e:run": "../../scripts/run-e2e.sh",
     "test:ui": "playwright test --ui",
     "test:debug": "playwright test --debug",
     "codegen": "playwright codegen",
