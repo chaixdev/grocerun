@@ -45,19 +45,24 @@ design patterns.
 Developer guides and workflow documentation.
 
 - [Agentic Workflow](development/agentic-workflow.md) — AI-assisted development process
-- [DevOps Philosophy](development/devops-philosophy.md) — Deployment and quality practices
 - [Development Index](development/README.md) — Scope rules for this folder
 
 Historical E2E planning and analysis artifacts live under
 `planning/archive/e2e-testing-2026-01/`. The active E2E harness guide is
 [`apps/e2e/README.md`](../apps/e2e/README.md).
 
+### `wiki/deployment/`
+Deployment and operational documentation for self-hosters and ops.
+
+- [Deployment Model](deployment/deployment-model.md) — Image tags, CI, staging/production flow
+- [DevOps Philosophy](deployment/devops-philosophy.md) — Deployment and quality practices
+- [Self-Hosting Guide](deployment/self-hosting.md) — Deploy on your own server
+
 ### `wiki/user-guide/`
-User-facing documentation for app users and self-hosters.
+User-facing documentation for app users.
 
 - [User Guide Index](user-guide/README.md)
 - [App Feature Tour](user-guide/app-features.md) — How to use Grocerun
-- [Self-Hosting Guide](user-guide/self-hosting.md) — Deploy on your own server
 
 ---
 

@@ -46,7 +46,7 @@ is `accounts.google.com`.
 full OIDC support. It uses standard PKCE — no client secret in the browser.
 
 1. Deploy Authentik (see [their installation guide](https://goauthentik.io/docs/install-stable),
-   or use the included `docker-compose.authentik.yml` for local testing — see
+   or use the included `deploy/docker-compose.authentik.yml` for local testing — see
    [Local Smoke Test with Authentik](#local-smoke-test-with-authentik) below).
 2. Create an **OIDC Application** in the Authentik admin panel.
 3. Set redirect URIs:
@@ -258,7 +258,7 @@ endpoint — see [Auth Conventions](../rules/auth.md) for details.
 
 ## Local Smoke Test with Authentik
 
-A `docker-compose.authentik.yml` file is included in the repository root for
+A `docker-compose.authentik.yml` file is included in the `deploy/` directory for
 local smoke testing of the generic OIDC integration. It brings up Authentik
 (server, worker, PostgreSQL, Redis) on `localhost:9000`. Grocerun runs on
 the host via `npm run dev` — both the browser and the NestJS server reach
@@ -268,20 +268,20 @@ Authentik at `localhost:9000`, avoiding Docker networking issues.
 
 ```bash
 # Copy and configure the env file
-cp .env.authentik.example .env.authentik
+cp deploy/.env.authentik.example .env.authentik
 
 # Generate secrets (paste into .env.authentik)
 openssl rand -base64 36 | tr -d '\n'   # → PG_PASS
 openssl rand -base64 60 | tr -d '\n'   # → AUTHENTIK_SECRET_KEY
 
 # Start Authentik
-docker compose -f docker-compose.authentik.yml --env-file .env.authentik up -d
+docker compose -f deploy/docker-compose.authentik.yml --env-file .env.authentik up -d
 ```
 
 Wait for the server to be ready (~30 seconds on first start for migrations):
 
 ```bash
-docker compose -f docker-compose.authentik.yml logs -f authentik-server
+docker compose -f deploy/docker-compose.authentik.yml logs -f authentik-server
 # Wait for "Application startup complete"
 ```
 
@@ -353,7 +353,7 @@ a valid session.
 ### Tear down
 
 ```bash
-docker compose -f docker-compose.authentik.yml --env-file .env.authentik down -v
+docker compose -f deploy/docker-compose.authentik.yml --env-file .env.authentik down -v
 ```
 
 The `-v` flag removes the volumes (database, Redis, media). Omit it to

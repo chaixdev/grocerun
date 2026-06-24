@@ -9,7 +9,7 @@
 #   2. Edit .env.authentik — generate secrets (see instructions inside)
 #   3. docker compose -f docker-compose.authentik.yml --env-file .env.authentik up -d
 #   4. Open http://localhost:9000/if/flow/initial-setup/ to create the admin account
-#   5. Create an OIDC application in Authentik (see wiki/user-guide/self-hosting.md)
+#   5. Create an OIDC application in Authentik (see wiki/deployment/self-hosting.md)
 #   6. Update apps/web/.env and apps/server/.env with the Authentik issuer URI + client ID
 #   7. npm run dev
 #
