@@ -269,7 +269,7 @@ For each domain:
 - ❌ **Flag management**: Must remember to flip flags (mitigated by checklist)
 
 ### Mitigation Strategies
-1. **Checklist**: [PHASE-2-MIGRATION.md](../planning/PHASE-2-MIGRATION.md) tracks all 37 actions
+1. **Checklist**: [PHASE-2-MIGRATION.md](../../planning/tickets/PHASE-2-MIGRATION.md) tracks all 37 actions
 2. **Convention**: Domain-level flags (8 total) not per-action flags (would be 37)
 3. **Documentation**: Flag usage pattern documented in ADR (this file)
 
@@ -298,8 +298,8 @@ For each domain:
 
 ## References
 
-- [Phase 2 Migration Checklist](../planning/PHASE-2-MIGRATION.md) - Tracking document
-- [Phase 2 API Proxy Plan](../planning/phase-2-api-proxy.md) - Overall strategy
+- [Phase 2 Migration Checklist](../../planning/tickets/PHASE-2-MIGRATION.md) - Tracking document
+- [Phase 2 API Proxy Plan](../../planning/tickets/phase-2-api-proxy.md) - Overall strategy
 - [ADR 001: Simple REST + Zod](001-phase2-api-approach.md) - API approach
 
 ---

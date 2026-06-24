@@ -300,7 +300,7 @@ RxDB sync → Get session token → NestJS API
 - [NextAuth JWT Documentation](https://next-auth.js.org/configuration/options#jwt)
 - [NestJS Guards](https://docs.nestjs.com/guards)
 - [JWT Best Practices](https://tools.ietf.org/html/rfc8725)
-- [Phase 2 Migration Plan](../planning/phase-2-api-proxy.md)
+- [Phase 2 Migration Plan](../../planning/tickets/phase-2-api-proxy.md)
 
 ---
 

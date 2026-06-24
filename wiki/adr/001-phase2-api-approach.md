@@ -162,10 +162,10 @@ No major API redesign required, just endpoint additions.
 
 ## References
 
-- [Phase 2 Migration Plan](../planning/phase-2-api-proxy.md)
-- [Phase 2 Migration Checklist](../planning/PHASE-2-MIGRATION.md)
+- [Phase 2 Migration Plan](../../planning/tickets/phase-2-api-proxy.md)
+- [Phase 2 Migration Checklist](../../planning/tickets/PHASE-2-MIGRATION.md)
 - [RxDB Replication Protocols](https://rxdb.info/replication.html)
-- [Project Status](../planning/PROJECT-STATUS.md)
+- [Project Status](../../planning/tickets/PROJECT-STATUS.md)
 
 ---
 
