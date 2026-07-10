@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { AccessService } from '../shared/access.service';
-import { NotificationService } from '../shared/notification.service';
+import { SseSyncBroadcastService } from '../shared/sse-sync-broadcast.service';
 import { CreateStoreDto, UpdateStoreDto } from './dto/store.dto';
 import { cascadeSoftDeleteStore } from '../shared/cascade-soft-delete';
 
@@ -10,7 +10,7 @@ export class StoresService {
   constructor(
     private prisma: PrismaService,
     private access: AccessService,
-    private notify: NotificationService,
+    private sseSyncBroadcast: SseSyncBroadcastService,
   ) {}
 
   async getStores(householdId: string | undefined, userId: string) {
@@ -63,7 +63,7 @@ export class StoresService {
       },
     });
 
-    this.notify.byHousehold(dto.householdId, ['store', 'section'], 'store-mutation');
+    this.sseSyncBroadcast.byHousehold(dto.householdId, ['store', 'section'], 'store-mutation');
 
     return store;
   }
@@ -81,7 +81,7 @@ export class StoresService {
     });
 
     const store = await this.prisma.store.findUnique({ where: { id: storeId }, select: { householdId: true } });
-    if (store) this.notify.byHousehold(store.householdId, ['store', 'section'], 'store-mutation');
+    if (store) this.sseSyncBroadcast.byHousehold(store.householdId, ['store', 'section'], 'store-mutation');
 
     return { success: true };
   }
@@ -96,7 +96,7 @@ export class StoresService {
     });
 
     const store = await this.prisma.store.findUnique({ where: { id: storeId }, select: { householdId: true } });
-    if (store) this.notify.byHousehold(store.householdId, ['store', 'section'], 'store-mutation');
+    if (store) this.sseSyncBroadcast.byHousehold(store.householdId, ['store', 'section'], 'store-mutation');
 
     return { success: true };
   }

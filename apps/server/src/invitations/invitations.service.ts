@@ -1,6 +1,6 @@
 import { Injectable, ForbiddenException, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
-import { NotificationService } from '../shared/notification.service';
+import { SseSyncBroadcastService } from '../shared/sse-sync-broadcast.service';
 import { randomInt } from 'crypto';
 import { CreateInvitationDto, JoinHouseholdDto, RevokeInvitationDto } from './dto/invitation.dto';
 
@@ -19,7 +19,7 @@ function generateToken(): string {
 export class InvitationsService {
   constructor(
     private prisma: PrismaService,
-    private notify: NotificationService,
+    private sseSyncBroadcast: SseSyncBroadcastService,
   ) {}
 
   async createInvitation(dto: CreateInvitationDto, userId: string) {
@@ -111,7 +111,7 @@ export class InvitationsService {
       })
     ]);
 
-    this.notify.byHousehold(invitation.householdId, ['household'], 'invitation-mutation');
+    this.sseSyncBroadcast.byHousehold(invitation.householdId, ['household'], 'invitation-mutation');
 
     return { householdName: invitation.household.name };
   }
