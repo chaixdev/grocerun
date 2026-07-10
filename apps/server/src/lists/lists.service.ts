@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException, BadRequestException, ConflictException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { AccessService } from '../shared/access.service';
-import { NotificationService } from '../shared/notification.service';
+import { SseSyncBroadcastService } from '../shared/sse-sync-broadcast.service';
 import { CreateListDto } from './dto/create-list.dto';
 import { AddItemDto } from './dto/add-item.dto';
 import { ToggleItemDto, UpdateQuantityDto } from './dto/manage-items.dto';
@@ -39,7 +39,7 @@ export class ListsService {
   constructor(
     private prisma: PrismaService,
     private access: AccessService,
-    private notify: NotificationService,
+    private sseSyncBroadcast: SseSyncBroadcastService,
   ) {}
 
   async createList(dto: CreateListDto, userId: string) {
@@ -65,7 +65,7 @@ export class ListsService {
       },
     });
 
-    this.notify.byStore(dto.storeId, ['list', 'listItem'], 'list-mutation');
+    this.sseSyncBroadcast.byStore(dto.storeId, ['list', 'listItem'], 'list-mutation');
 
     return list;
   }
@@ -234,7 +234,7 @@ export class ListsService {
       });
     });
 
-    this.notify.byStore(list.storeId, ['list', 'listItem'], 'list-mutation');
+    this.sseSyncBroadcast.byStore(list.storeId, ['list', 'listItem'], 'list-mutation');
     return listItem;
   }
 
@@ -278,7 +278,7 @@ export class ListsService {
       }
     });
 
-    this.notify.byStore(listItem.list.storeId, ['list', 'listItem'], 'list-mutation');
+    this.sseSyncBroadcast.byStore(listItem.list.storeId, ['list', 'listItem'], 'list-mutation');
 
     return { success: true };
   }
@@ -310,7 +310,7 @@ export class ListsService {
       }
     });
 
-    this.notify.byStore(listItem.list.storeId, ['list', 'listItem'], 'list-mutation');
+    this.sseSyncBroadcast.byStore(listItem.list.storeId, ['list', 'listItem'], 'list-mutation');
 
     return { success: true };
   }
@@ -337,7 +337,7 @@ export class ListsService {
       data: { deleted: true, deletedAt: new Date() }
     });
 
-    this.notify.byStore(listItem.list.storeId, ['list', 'listItem'], 'list-mutation');
+    this.sseSyncBroadcast.byStore(listItem.list.storeId, ['list', 'listItem'], 'list-mutation');
 
     return { success: true };
   }
@@ -384,7 +384,7 @@ export class ListsService {
       }
     });
 
-    this.notify.byStore(list.storeId, ['list', 'listItem'], 'list-mutation');
+    this.sseSyncBroadcast.byStore(list.storeId, ['list', 'listItem'], 'list-mutation');
 
     return { success: true };
   }
@@ -412,7 +412,7 @@ export class ListsService {
       data: { status: 'SHOPPING', assignedTo: assignedToId }
     });
 
-    this.notify.byStore(list.storeId, ['list', 'listItem'], 'list-mutation');
+    this.sseSyncBroadcast.byStore(list.storeId, ['list', 'listItem'], 'list-mutation');
 
     return { success: true };
   }
@@ -439,7 +439,7 @@ export class ListsService {
       data: { status: 'PLANNING', assignedTo: null }
     });
 
-    this.notify.byStore(list.storeId, ['list', 'listItem'], 'list-mutation');
+    this.sseSyncBroadcast.byStore(list.storeId, ['list', 'listItem'], 'list-mutation');
 
     return { success: true };
   }}

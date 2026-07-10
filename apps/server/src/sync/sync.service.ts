@@ -28,6 +28,9 @@ const MAX_BATCH_SIZE = 500;
 
 @Injectable()
 export class SyncService {
+  /** Per-request memo cache for access queries, cleared at the start of each pull/push. */
+  private accessCache = new Map<string, Promise<string[]>>();
+
   constructor(private prisma: PrismaService) {}
 
   private get deps(): SyncDeps {
@@ -35,8 +38,20 @@ export class SyncService {
       prisma: this.prisma,
       getAccessibleStoreIds: (userId) => this.getAccessibleStoreIds(userId),
       getAccessibleHouseholdIds: (userId) => this.getAccessibleHouseholdIds(userId),
-      getAccessibleStoreIdsForSync: (userId) => this.getAccessibleStoreIdsForSync(userId),
-      getAccessibleHouseholdIdsForSync: (userId) => this.getAccessibleHouseholdIdsForSync(userId),
+      getAccessibleStoreIdsForSync: (userId) => {
+        const key = `storeIdsForSync:${userId}`;
+        if (!this.accessCache.has(key)) {
+          this.accessCache.set(key, this.getAccessibleStoreIdsForSync(userId));
+        }
+        return this.accessCache.get(key)!;
+      },
+      getAccessibleHouseholdIdsForSync: (userId) => {
+        const key = `householdIdsForSync:${userId}`;
+        if (!this.accessCache.has(key)) {
+          this.accessCache.set(key, this.getAccessibleHouseholdIdsForSync(userId));
+        }
+        return this.accessCache.get(key)!;
+      },
       verifyStoreAccess: (storeId, userId) => this.verifyStoreAccess(storeId, userId),
       verifyHouseholdAccess: (householdId, userId) => this.verifyHouseholdAccess(householdId, userId),
     };
@@ -52,6 +67,7 @@ export class SyncService {
     batchSize: number,
     userId: string,
   ): Promise<PullResponse> {
+    this.accessCache.clear();
     this.assertCollection(collection);
     const limit = Math.min(batchSize || DEFAULT_BATCH_SIZE, MAX_BATCH_SIZE);
 
@@ -81,6 +97,7 @@ export class SyncService {
     userId: string,
     shoppingLockId?: string,
   ): Promise<PushResponse> {
+    this.accessCache.clear();
     this.assertCollection(collection);
 
     if (!Array.isArray(rows) || rows.length === 0) {
