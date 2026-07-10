@@ -1,7 +1,7 @@
 import { Injectable, ForbiddenException, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { SseBroadcastService } from '../sync/sse-broadcast.service';
-import { NotificationService } from '../shared/notification.service';
+import { SseSyncBroadcastService } from '../shared/sse-sync-broadcast.service';
 import { CreateHouseholdDto, UpdateHouseholdDto } from './dto/household.dto';
 import { cascadeSoftDeleteHousehold } from '../shared/cascade-soft-delete';
 
@@ -10,7 +10,7 @@ export class HouseholdsService {
   constructor(
     private prisma: PrismaService,
     private sseBroadcast: SseBroadcastService,
-    private notify: NotificationService,
+    private sseSyncBroadcast: SseSyncBroadcastService,
   ) {}
 
   async getHouseholds(userId: string) {
@@ -35,7 +35,7 @@ export class HouseholdsService {
       },
     });
 
-    this.notify.byHousehold(household.id, ['household', 'store'], 'household-mutation');
+    this.sseSyncBroadcast.byHousehold(household.id, ['household', 'store'], 'household-mutation');
 
     return household;
   }
@@ -62,7 +62,7 @@ export class HouseholdsService {
       }
     });
 
-    this.notify.byHousehold(householdId, ['household', 'store'], 'household-mutation');
+    this.sseSyncBroadcast.byHousehold(householdId, ['household', 'store'], 'household-mutation');
 
     return { success: true };
   }
@@ -91,7 +91,7 @@ export class HouseholdsService {
 
     this.sseBroadcast.notifyHouseholdRemoved([userId], householdId);
 
-    this.notify.byHousehold(householdId, ['household', 'store'], 'household-mutation');
+    this.sseSyncBroadcast.byHousehold(householdId, ['household', 'store'], 'household-mutation');
 
     return { success: true };
   }
@@ -124,7 +124,7 @@ export class HouseholdsService {
 
     this.sseBroadcast.notifyHouseholdRemoved([userId], householdId);
 
-    this.notify.byHousehold(householdId, ['household', 'store'], 'household-mutation');
+    this.sseSyncBroadcast.byHousehold(householdId, ['household', 'store'], 'household-mutation');
 
     return { success: true };
   }
@@ -165,7 +165,7 @@ export class HouseholdsService {
     // Notify the removed user so they can clean up their local state
     this.sseBroadcast.notifyHouseholdRemoved([memberUserId], householdId);
 
-    this.notify.byHousehold(householdId, ['household', 'store'], 'household-mutation');
+    this.sseSyncBroadcast.byHousehold(householdId, ['household', 'store'], 'household-mutation');
 
     return { success: true };
   }

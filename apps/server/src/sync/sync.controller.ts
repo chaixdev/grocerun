@@ -76,6 +76,7 @@ export class SyncController {
       this.sseBroadcast.notifyChanged(
         memberIds.length > 0 ? memberIds : [user.userId!],
         { collections: [collection], reason: `${collection}.push` },
+        user.userId!,
       );
     }
 

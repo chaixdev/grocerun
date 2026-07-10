@@ -3,8 +3,8 @@ import { PrismaService } from '../prisma.service';
 import { SseBroadcastService } from '../sync/sse-broadcast.service';
 
 @Injectable()
-export class NotificationService {
-  private readonly logger = new Logger(NotificationService.name);
+export class SseSyncBroadcastService {
+  private readonly logger = new Logger(SseSyncBroadcastService.name);
 
   constructor(
     private prisma: PrismaService,
