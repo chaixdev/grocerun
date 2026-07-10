@@ -373,7 +373,7 @@ function startPullReplication<DocType, Checkpoint extends { id: string; updatedA
   const { collection, basePath, replicationIdentifier, pullStream$, enablePush = false } = args
   const collectionName = basePath.split('/').pop() ?? basePath
 
-  registerPullStream(pullStream$)
+  registerPullStream(collectionName, pullStream$)
 
   const replicationState = replicateRxCollection<DocType, Checkpoint>({
     collection,
@@ -489,16 +489,17 @@ function getSyncStreamUrl(): string {
  * Reconnects automatically after 5 s if the connection drops.
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- RxDB pull stream generics are untyped
-const sharedPullStreams = new Set<Subject<RxReplicationPullStreamItem<any, any>>>()
+const sharedPullStreams = new Map<string, Subject<RxReplicationPullStreamItem<any, any>>>()
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- RxDB pull stream generics are untyped
 const RESYNC_SIGNAL = 'RESYNC' as RxReplicationPullStreamItem<any, any>
 
 function registerPullStream<DocType, Checkpoint>(
+  collectionName: string,
   subject: Subject<RxReplicationPullStreamItem<DocType, Checkpoint>>,
 ) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- RxDB pull stream generics are untyped
-  sharedPullStreams.add(subject as Subject<RxReplicationPullStreamItem<any, any>>)
+  sharedPullStreams.set(collectionName, subject as Subject<RxReplicationPullStreamItem<any, any>>)
   if (!visibilityListenerAdded) {
     visibilityListenerAdded = true
     document.addEventListener('visibilitychange', () => {
@@ -506,8 +507,8 @@ function registerPullStream<DocType, Checkpoint>(
         // Tab regained visibility: reopen SSE if it was closed, and
         // trigger an immediate resync to catch up on missed changes.
         emitDiagnostic({ type: 'resync', source: 'visibility', at: Date.now() })
-        for (const stream of sharedPullStreams) {
-          stream.next(RESYNC_SIGNAL)
+        for (const subject of sharedPullStreams.values()) {
+          subject.next(RESYNC_SIGNAL)
         }
         if (!sharedSyncStreamOpened) {
           sharedSyncStreamOpened = true
@@ -536,8 +537,8 @@ function registerPullStream<DocType, Checkpoint>(
 
 function resyncAll() {
   emitDiagnostic({ type: 'resync', source: 'periodic', at: Date.now() })
-  for (const stream of sharedPullStreams) {
-    stream.next(RESYNC_SIGNAL)
+  for (const subject of sharedPullStreams.values()) {
+    subject.next(RESYNC_SIGNAL)
   }
 }
 
@@ -614,16 +615,39 @@ async function openSharedSyncStream(url: string, forceRefresh = false) {
   src.addEventListener('RESYNC', () => {
     resetWatchdog()
     emitDiagnostic({ type: 'resync', source: 'sse', at: Date.now() })
-    for (const subject of sharedPullStreams) {
+    for (const subject of sharedPullStreams.values()) {
       subject.next(RESYNC_SIGNAL)
     }
   })
 
-  src.addEventListener('SYNC_CHANGED', () => {
+  src.addEventListener('SYNC_CHANGED', (event) => {
     resetWatchdog()
     emitDiagnostic({ type: 'resync', source: 'sse', at: Date.now() })
-    for (const subject of sharedPullStreams) {
-      subject.next(RESYNC_SIGNAL)
+
+    // Parse the collections array from the event payload.
+    // Only resync the collections the server indicates changed.
+    let collections: string[] | undefined
+    try {
+      const raw = JSON.parse((event as MessageEvent).data)
+      if (raw && typeof raw === 'object' && Array.isArray(raw.collections)) {
+        collections = raw.collections.filter((c: unknown): c is string => typeof c === 'string')
+      }
+    } catch {
+      // Malformed payload — fall through to broadcast to all
+    }
+
+    if (collections && collections.length > 0) {
+      const collectionSet = new Set(collections)
+      for (const [name, subject] of sharedPullStreams) {
+        if (collectionSet.has(name)) {
+          subject.next(RESYNC_SIGNAL)
+        }
+      }
+    } else {
+      // Defensive fallback: if we can't parse collections, broadcast to all.
+      for (const subject of sharedPullStreams.values()) {
+        subject.next(RESYNC_SIGNAL)
+      }
     }
   })
 

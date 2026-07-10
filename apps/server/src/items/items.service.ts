@@ -4,7 +4,7 @@ import { SearchItemsSchema, GetTopItemsSchema } from '@grocerun/dto';
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { AccessService } from '../shared/access.service';
-import { NotificationService } from '../shared/notification.service';
+import { SseSyncBroadcastService } from '../shared/sse-sync-broadcast.service';
 import { UpdateItemDto } from './dto/update-item.dto';
 
 type SearchItemsParams = z.infer<typeof SearchItemsSchema>;
@@ -16,7 +16,7 @@ export class ItemsService {
   constructor(
     private prisma: PrismaService,
     private access: AccessService,
-    private notify: NotificationService,
+    private sseSyncBroadcast: SseSyncBroadcastService,
   ) {}
 
   async updateItem(itemId: string, dto: UpdateItemDto, userId: string) {
@@ -45,7 +45,7 @@ export class ItemsService {
 
     // 3. Notify other household members via SSE (fire-and-forget —
     //    failure must never block the REST response).
-    this.notify.byStore(item.storeId, ['item'], 'item-updated');
+    this.sseSyncBroadcast.byStore(item.storeId, ['item'], 'item-updated');
 
     return { status: 'UPDATED' };
   }

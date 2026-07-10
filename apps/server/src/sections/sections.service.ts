@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { AccessService } from '../shared/access.service';
-import { NotificationService } from '../shared/notification.service';
+import { SseSyncBroadcastService } from '../shared/sse-sync-broadcast.service';
 import { CreateSectionDto, UpdateSectionDto, ReorderSectionsDto } from './dto/section.dto';
 
 @Injectable()
@@ -9,7 +9,7 @@ export class SectionsService {
   constructor(
     private prisma: PrismaService,
     private access: AccessService,
-    private notify: NotificationService,
+    private sseSyncBroadcast: SseSyncBroadcastService,
   ) {}
 
   async getSections(storeId: string, userId: string) {
@@ -56,7 +56,7 @@ export class SectionsService {
       },
     });
 
-    this.notify.byStore(dto.storeId, ['section'], 'section-mutation');
+    this.sseSyncBroadcast.byStore(dto.storeId, ['section'], 'section-mutation');
 
     return section;
   }
@@ -77,7 +77,7 @@ export class SectionsService {
       data: { name: dto.name },
     });
 
-    this.notify.byStore(section.storeId, ['section'], 'section-mutation');
+    this.sseSyncBroadcast.byStore(section.storeId, ['section'], 'section-mutation');
 
     return { success: true };
   }
@@ -108,7 +108,7 @@ export class SectionsService {
       });
     });
 
-    this.notify.byStore(section.storeId, ['section'], 'section-mutation');
+    this.sseSyncBroadcast.byStore(section.storeId, ['section'], 'section-mutation');
 
     return { success: true };
   }
@@ -138,7 +138,7 @@ export class SectionsService {
       )
     );
 
-    this.notify.byStore(storeId, ['section'], 'section-mutation');
+    this.sseSyncBroadcast.byStore(storeId, ['section'], 'section-mutation');
 
     return { success: true };
   }

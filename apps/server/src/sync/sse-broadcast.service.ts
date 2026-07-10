@@ -37,9 +37,10 @@ export class SseBroadcastService {
     };
   }
 
-  notifyChanged(userIds: string[], payload: { collections: string[]; reason: string }) {
+  notifyChanged(userIds: string[], payload: { collections: string[]; reason: string }, excludeUserId?: string) {
     const data = JSON.stringify(payload);
     for (const userId of userIds) {
+      if (excludeUserId && userId === excludeUserId) continue;
       const set = this.connections.get(userId);
       if (!set) continue;
       for (const res of set) {
