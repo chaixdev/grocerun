@@ -9,7 +9,7 @@ if (existsSync(envFilePath)) {
   process.loadEnvFile(envFilePath);
 }
 
-const envSchema = z
+export const envSchema = z
   .object({
     NODE_ENV: z.enum(['dev', 'test', 'prod']).default('dev'),
     PORT: z.coerce.number().int().positive().default(3001),
@@ -27,7 +27,7 @@ const envSchema = z
     OIDC_AUDIENCE: z.string().min(1).optional(),
     // Provider name used for Account records (e.g. 'google', 'authentik')
     OIDC_PROVIDER: z.string().min(1).default('google'),
-    // Database driver seam (declared now; driver logic lands in GROCERUN-53)
+    // Database driver seam (declared now; no driver selection logic yet)
     DB_DRIVER: z.enum(['sqlite', 'postgres']).default('sqlite'),
     // Storage driver seam (declared now; no logic yet)
     STORAGE_DRIVER: z.enum(['local', 's3']).default('local'),
@@ -44,16 +44,19 @@ const envSchema = z
     }
   });
 
-const parsed = envSchema.safeParse(process.env);
-
-if (!parsed.success) {
-  const details = parsed.error.issues
+export function formatEnvIssues(error: z.ZodError): string {
+  return error.issues
     .map((issue) => {
       const field = issue.path.join('.');
       return `  - ${field}: ${issue.message}`;
     })
     .join('\n');
-  throw new Error(`Invalid environment configuration:\n${details}`);
+}
+
+const parsed = envSchema.safeParse(process.env);
+
+if (!parsed.success) {
+  throw new Error(`Invalid environment configuration:\n${formatEnvIssues(parsed.error)}`);
 }
 
 export const env = parsed.data;
