@@ -64,3 +64,7 @@ playwright/.cache/
 *.log
 .opencode/pilot-audit.log.*
 job-logs.txt
+
+# opencode pilot harness state
+.opencode/pilot-banner.txt
+.opencode/pilot-state.json
