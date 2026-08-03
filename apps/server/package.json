@@ -16,7 +16,7 @@
     "@grocerun/dto": "*",
     "@nestjs/common": "^11.1.26",
     "@nestjs/core": "^11.1.26",
-    "@nestjs/platform-express": "^11.1.26",
+    "@nestjs/platform-express": "^11.1.28",
     "@nestjs/serve-static": "^5.0.5",
     "@prisma/adapter-better-sqlite3": "^7.5.0",
     "@prisma/client": "^7.5.0",
