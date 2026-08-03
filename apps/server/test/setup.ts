@@ -1,5 +1,5 @@
 import * as path from 'path';
-import * as dotenv from 'dotenv';
+import { existsSync } from 'fs';
 import { execSync } from 'child_process';
 
 /**
@@ -14,8 +14,13 @@ import { execSync } from 'child_process';
  */
 export async function setup() {
   // 1. Load test env vars into the current process.
+  //    process.loadEnvFile does not override already-set variables, so CI
+  //    variables still win. Vitest also injects .env.test into workers
+  //    directly; this globalSetup load covers the migrate command below.
   const envPath = path.resolve(__dirname, '../.env.test');
-  dotenv.config({ path: envPath });
+  if (existsSync(envPath)) {
+    process.loadEnvFile(envPath);
+  }
 
   // 2. Ensure DATABASE_URL is set (CI may not have .env.test).
   //    SQLite is a file-based DB — CI can use it without any services.

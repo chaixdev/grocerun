@@ -1,4 +1,5 @@
 import { Controller, Get } from '@nestjs/common';
+import { env } from '../config';
 
 @Controller('health')
 export class HealthController {
@@ -8,7 +9,7 @@ export class HealthController {
       status: 'ok',
       timestamp: new Date().toISOString(),
       service: 'grocerun-api',
-      version: process.env.APP_VERSION ?? 'dev',
+      version: env.APP_VERSION,
     };
   }
 }

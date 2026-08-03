@@ -3,21 +3,15 @@ import { AppModule } from './app.module';
 import { Logger, RequestMethod } from '@nestjs/common';
 import { ZodValidationPipe } from 'nestjs-zod';
 import { bootstrapAuth } from './auth/oidc-server';
+import { env } from './config';
 
 const logger = new Logger('Bootstrap');
 
 async function bootstrap() {
     // Bootstrap OIDC auth — fetches provider metadata and JWKS endpoint.
     // Defaults to Google for backward compat; set OIDC_ISSUER_URI for any other IdP.
-    const oidcIssuer = process.env.OIDC_ISSUER_URI || 'https://accounts.google.com';
-    const oidcAudience = process.env.OIDC_AUDIENCE;
-
-    if (!oidcAudience) {
-        if (process.env.NODE_ENV === 'production') {
-            throw new Error('OIDC_AUDIENCE environment variable is required in production');
-        }
-        logger.warn('OIDC_AUDIENCE not set — audience validation is disabled. Set to your OIDC client ID.');
-    }
+    const oidcIssuer = env.OIDC_ISSUER_URI;
+    const oidcAudience = env.OIDC_AUDIENCE;
 
     await bootstrapAuth({
         implementation: 'real',
@@ -33,7 +27,7 @@ async function bootstrap() {
 
     // Enable CORS with specific origin
     app.enableCors({
-        origin: process.env.WEB_URL || 'http://localhost:3000',
+        origin: env.WEB_URL,
         credentials: true,
     });
 
@@ -51,7 +45,7 @@ async function bootstrap() {
         next();
     });
 
-    const port = Number(process.env.PORT ?? 3001);
+    const port = env.PORT;
     await app.listen(port);
     logger.log(`Application is running on: ${await app.getUrl()}`);
 }

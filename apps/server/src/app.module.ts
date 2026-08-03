@@ -1,8 +1,8 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule as NestConfigModule } from '@nestjs/config';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { existsSync } from 'fs';
 import { join } from 'path';
+import { env } from './config';
 import { ItemsModule } from './items/items.module';
 import { HealthModule } from './health/health.module';
 import { UsersModule } from './users/users.module';
@@ -16,7 +16,7 @@ import { ListsModule } from './lists/lists.module';
 import { SyncModule } from './sync/sync.module';
 import { SharedModule } from './shared/shared.module';
 
-const spaDistPath = process.env.SPA_DIST_DIR ?? [
+const spaDistPath = env.SPA_DIST_DIR ?? [
   // Source layout: apps/server/src -> apps/web/dist
   join(__dirname, '..', '..', 'web', 'dist'),
   // Compiled layout: apps/server/dist/src -> apps/web/dist
@@ -25,7 +25,6 @@ const spaDistPath = process.env.SPA_DIST_DIR ?? [
 
 @Module({
   imports: [
-    NestConfigModule.forRoot({ isGlobal: true }),
     // Serve the Vite-built SPA in production
     ServeStaticModule.forRoot({
       rootPath: spaDistPath,

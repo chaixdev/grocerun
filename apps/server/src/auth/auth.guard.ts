@@ -9,6 +9,7 @@ import { Request } from 'express';
 import * as jwt from 'jsonwebtoken';
 import { validateAndDecodeAccessToken } from './oidc-server';
 import { AuthService } from './auth.service';
+import { env } from '../config';
 
 import 'express';
 
@@ -49,7 +50,7 @@ export class AuthGuard implements CanActivate {
         // the guard in tests, we detect test tokens here and handle them with
         // local JWT verification — no Google JWKS call, no DB access needed
         // (the test user is seeded with a known ID by seedBaseFixtures).
-        if (process.env.NODE_ENV === 'test') {
+        if (env.NODE_ENV === 'test') {
             try {
                 const payload = jwt.verify(token, TEST_SECRET) as JwtPayload;
                 if (payload.sub) {

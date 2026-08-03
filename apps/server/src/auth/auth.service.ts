@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
+import { env } from '../config';
 
 export interface OidcUserPayload {
     sub: string;        // OIDC subject
@@ -16,17 +17,17 @@ export class AuthService {
     /**
      * Maps an OIDC identity to our internal DB user ID.
      *
-     * The provider name is read from OIDC_PROVIDER (defaults to 'google'
-     * for backward compatibility).  Set OIDC_PROVIDER to match your IdP
-     * (e.g. 'authentik', 'microsoft') so Account records are scoped correctly.
+     * The provider name is read from the validated config (OIDC_PROVIDER,
+     * defaults to 'google' for backward compatibility).  Set OIDC_PROVIDER
+     * to match your IdP (e.g. 'authentik', 'microsoft') so Account records
+     * are scoped correctly.
      *
      * Strategy (in order):
      *  1. Find Account by (provider, providerAccountId=sub) → return userId
      *  2. Find User by email → link Account to existing user → return userId
      *  3. Create new User + Account → return new userId
      */
-    async resolveOidcUser(payload: OidcUserPayload): Promise<string> {
-        const provider = process.env.OIDC_PROVIDER || 'google';
+    async resolveOidcUser(payload: OidcUserPayload, provider: string = env.OIDC_PROVIDER): Promise<string> {
 
         // 1. Known account
         const account = await this.prisma.account.findUnique({

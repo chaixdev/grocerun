@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { AuthService } from '../../src/auth/auth.service';
 import { PrismaService } from '../../src/prisma.service';
 
@@ -16,15 +16,12 @@ describe('AuthService.resolveOidcUser', () => {
   let mockAccountUpsert: ReturnType<typeof vi.fn>;
   let mockUserCreate: ReturnType<typeof vi.fn>;
 
-  // Capture the original so we can restore it after each test that
-  // modifies OIDC_PROVIDER.
-  const OIDC_PROVIDER_BAK = process.env.OIDC_PROVIDER;
+  // Provider is now an explicit parameter of resolveOidcUser (defaulting to
+  // the validated config's OIDC_PROVIDER). Tests omit it to use the default
+  // 'google', or pass a provider explicitly (group 5) — no process.env
+  // mutation required.
 
   beforeEach(() => {
-    // Start each test with OIDC_PROVIDER unset so the default 'google' is used,
-    // unless a specific test (group 5) overrides it.
-    delete process.env.OIDC_PROVIDER;
-
     mockAccountFindUnique = vi.fn();
     mockUserFindUnique = vi.fn();
     mockAccountUpsert = vi.fn();
@@ -42,14 +39,6 @@ describe('AuthService.resolveOidcUser', () => {
     } as unknown as PrismaService;
 
     authService = new AuthService(mockPrisma);
-  });
-
-  afterEach(() => {
-    if (OIDC_PROVIDER_BAK === undefined) {
-      delete process.env.OIDC_PROVIDER;
-    } else {
-      process.env.OIDC_PROVIDER = OIDC_PROVIDER_BAK;
-    }
   });
 
   // -----------------------------------------------------------------------
@@ -300,16 +289,18 @@ describe('AuthService.resolveOidcUser', () => {
   });
 
   // -----------------------------------------------------------------------
-  // 5. Provider from env var (3 tests)
+  // 5. Explicit provider (3 tests)
   // -----------------------------------------------------------------------
-  describe('5. Provider from env var', () => {
-    it('uses env provider when looking up existing Account', async () => {
-      process.env.OIDC_PROVIDER = 'authentik';
+  describe('5. Explicit provider', () => {
+    it('uses the explicit provider when looking up existing Account', async () => {
       mockAccountFindUnique.mockResolvedValue({ userId: 'authentik-user' });
 
-      const result = await authService.resolveOidcUser({
-        sub: 'authentik-sub-1',
-      });
+      const result = await authService.resolveOidcUser(
+        {
+          sub: 'authentik-sub-1',
+        },
+        'authentik',
+      );
 
       expect(result).toBe('authentik-user');
       expect(mockAccountFindUnique).toHaveBeenCalledWith({
@@ -323,17 +314,19 @@ describe('AuthService.resolveOidcUser', () => {
       });
     });
 
-    it('uses env provider when linking Account to existing User by email', async () => {
-      process.env.OIDC_PROVIDER = 'authentik';
+    it('uses the explicit provider when linking Account to existing User by email', async () => {
       mockAccountFindUnique.mockResolvedValue(null);
       mockUserFindUnique.mockResolvedValue({ id: 'authentik-email-user' });
       mockAccountUpsert.mockResolvedValue({});
 
-      const result = await authService.resolveOidcUser({
-        sub: 'authentik-sub-2',
-        email: 'auth@test.com',
-        email_verified: true,
-      });
+      const result = await authService.resolveOidcUser(
+        {
+          sub: 'authentik-sub-2',
+          email: 'auth@test.com',
+          email_verified: true,
+        },
+        'authentik',
+      );
 
       expect(result).toBe('authentik-email-user');
       expect(mockAccountUpsert).toHaveBeenCalledWith({
@@ -355,17 +348,19 @@ describe('AuthService.resolveOidcUser', () => {
       });
     });
 
-    it('uses env provider when creating a brand new User+Account', async () => {
-      process.env.OIDC_PROVIDER = 'authentik';
+    it('uses the explicit provider when creating a brand new User+Account', async () => {
       mockAccountFindUnique.mockResolvedValue(null);
       mockUserFindUnique.mockResolvedValue(null);
       const newUserId = 'authentik-new-user';
       mockUserCreate.mockResolvedValue({ id: newUserId });
 
-      const result = await authService.resolveOidcUser({
-        sub: 'authentik-sub-3',
-        email: 'new-auth@test.com',
-      });
+      const result = await authService.resolveOidcUser(
+        {
+          sub: 'authentik-sub-3',
+          email: 'new-auth@test.com',
+        },
+        'authentik',
+      );
 
       expect(result).toBe(newUserId);
       expect(mockUserCreate).toHaveBeenCalledWith({
