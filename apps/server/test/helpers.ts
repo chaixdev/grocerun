@@ -12,11 +12,18 @@ import { PrismaService } from '../src/prisma.service';
 
 export const TEST_USER_ID = 'test-user-id';
 export const TEST_USER_EMAIL = 'test@grocerun.test';
+export const TEST_USER_ID_2 = 'test-user-2-id';
+export const TEST_USER_EMAIL_2 = 'test2@grocerun.test';
 const TEST_SECRET = 'grocerun-test-secret-do-not-use-in-production';
 
-export function makeTestToken(): string {
+export interface TestIdentity {
+  userId: string;
+  email: string;
+}
+
+export function makeTestToken(identity: TestIdentity = { userId: TEST_USER_ID, email: TEST_USER_EMAIL }): string {
   return jwt.sign(
-    { sub: TEST_USER_ID, email: TEST_USER_EMAIL },
+    { sub: identity.userId, email: identity.email },
     TEST_SECRET,
     { expiresIn: '1h' },
   );
@@ -62,6 +69,26 @@ export async function createTestApp(): Promise<INestApplication> {
  */
 export function agent(app: INestApplication) {
   const token = makeTestToken();
+  const apiUrl = (url: string) => url.startsWith('/api/v1') ? url : `/api/v1${url}`;
+
+  return {
+    get: (url: string) =>
+      supertest(app.getHttpServer()).get(apiUrl(url)).set('Authorization', `Bearer ${token}`),
+    post: (url: string) =>
+      supertest(app.getHttpServer()).post(apiUrl(url)).set('Authorization', `Bearer ${token}`),
+    patch: (url: string) =>
+      supertest(app.getHttpServer()).patch(apiUrl(url)).set('Authorization', `Bearer ${token}`),
+    delete: (url: string) =>
+      supertest(app.getHttpServer()).delete(apiUrl(url)).set('Authorization', `Bearer ${token}`),
+  };
+}
+
+/**
+ * Returns a supertest agent authenticated as the given identity.
+ * Use this to exercise multi-member collaboration within a single household.
+ */
+export function agentAs(app: INestApplication, identity: TestIdentity) {
+  const token = makeTestToken(identity);
   const apiUrl = (url: string) => url.startsWith('/api/v1') ? url : `/api/v1${url}`;
 
   return {
@@ -155,6 +182,30 @@ export async function seedBaseFixtures(prisma: PrismaService): Promise<{
   });
 
   return { userId: user.id, householdId: household.id };
+}
+
+/**
+ * Seeds a second user connected to the same household as {@link seedBaseFixtures}.
+ * Pair with `seedBaseFixtures` for two-member household scenarios.
+ * Idempotent — safe to call in beforeEach.
+ */
+export async function seedSecondMember(prisma: PrismaService): Promise<{ userId: string }> {
+  await prisma.user.upsert({
+    where: { id: TEST_USER_ID_2 },
+    update: {},
+    create: {
+      id: TEST_USER_ID_2,
+      email: TEST_USER_EMAIL_2,
+      name: 'Test User Two',
+    },
+  });
+
+  await prisma.household.update({
+    where: { id: 'test-household-id' },
+    data: { users: { connect: { id: TEST_USER_ID_2 } } },
+  });
+
+  return { userId: TEST_USER_ID_2 };
 }
 
 /**

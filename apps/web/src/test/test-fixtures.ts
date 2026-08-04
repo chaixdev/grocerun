@@ -15,7 +15,6 @@ export interface TestList {
   name: string;
   storeId: string;
   status: 'PLANNING' | 'SHOPPING' | 'COMPLETED';
-  assignedTo: string | null;
   updatedAt: string;
 }
 
@@ -25,7 +24,6 @@ export function buildList(overrides: Partial<TestList> = {}): TestList {
     name: 'Shopping List',
     storeId: 'store-1',
     status: 'PLANNING',
-    assignedTo: null,
     updatedAt: new Date().toISOString(),
     ...overrides,
   };

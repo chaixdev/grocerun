@@ -132,7 +132,7 @@ export class ListsService {
     return list;
   }
 
-  async addItemToList(dto: AddItemDto, userId: string, assignedToId: string): Promise<ListItemWithItem> {
+  async addItemToList(dto: AddItemDto, userId: string): Promise<ListItemWithItem> {
     const { listId, name, sectionId, quantity = 1, unit } = dto;
 
     const list = await this.prisma.list.findFirst({
@@ -143,7 +143,10 @@ export class ListsService {
     }
 
     await this.access.verifyStoreAccess(list.storeId, userId);
-    this.access.assertShoppingLock(list, assignedToId);
+
+    if (list.status === 'COMPLETED') {
+      throw new BadRequestException('List is completed');
+    }
 
     // Run the entire add-item flow inside a transaction to eliminate TOCTOU
     // races between the existence checks and the create/restore operations.
@@ -239,7 +242,7 @@ export class ListsService {
     return listItem;
   }
 
-  async toggleListItem(dto: ToggleItemDto, userId: string, assignedToId: string) {
+  async toggleListItem(dto: ToggleItemDto, userId: string) {
     const { listItemId, isChecked, purchasedQuantity } = dto;
 
     const listItem = await this.prisma.listItem.findFirst({
@@ -251,12 +254,11 @@ export class ListsService {
       throw new NotFoundException('Item not found');
     }
 
+    await this.access.verifyStoreAccess(listItem.list.storeId, userId);
+
     if (listItem.list.status === 'COMPLETED') {
       throw new BadRequestException('List is completed');
     }
-
-    await this.access.verifyStoreAccess(listItem.list.storeId, userId);
-    this.access.assertShoppingLock(listItem.list, assignedToId ?? userId);
 
     // Business logic: determine final purchasedQuantity
     let finalPurchasedQuantity: number | null | undefined = purchasedQuantity;
@@ -284,7 +286,7 @@ export class ListsService {
     return { success: true };
   }
 
-  async updateListItemQuantity(dto: UpdateQuantityDto, userId: string, assignedToId: string) {
+  async updateListItemQuantity(dto: UpdateQuantityDto, userId: string) {
     const { listItemId, quantity, unit } = dto;
 
     const listItem = await this.prisma.listItem.findFirst({
@@ -296,12 +298,11 @@ export class ListsService {
       throw new NotFoundException('Item not found');
     }
 
+    await this.access.verifyStoreAccess(listItem.list.storeId, userId);
+
     if (listItem.list.status === 'COMPLETED') {
       throw new BadRequestException('List is completed');
     }
-
-    await this.access.verifyStoreAccess(listItem.list.storeId, userId);
-    this.access.assertShoppingLock(listItem.list, assignedToId ?? userId);
 
     await this.prisma.listItem.update({
       where: { id: listItemId },
@@ -316,7 +317,7 @@ export class ListsService {
     return { success: true };
   }
 
-  async removeItemFromList(listItemId: string, userId: string, assignedToId: string) {
+  async removeItemFromList(listItemId: string, userId: string) {
     const listItem = await this.prisma.listItem.findFirst({
       where: { id: listItemId, deleted: false },
       include: { list: true }
@@ -326,12 +327,11 @@ export class ListsService {
       throw new NotFoundException('Item not found');
     }
 
+    await this.access.verifyStoreAccess(listItem.list.storeId, userId);
+
     if (listItem.list.status === 'COMPLETED') {
       throw new BadRequestException('List is completed');
     }
-
-    await this.access.verifyStoreAccess(listItem.list.storeId, userId);
-    this.access.assertShoppingLock(listItem.list, assignedToId ?? userId);
 
     await this.prisma.listItem.update({
       where: { id: listItemId },
@@ -343,7 +343,7 @@ export class ListsService {
     return { success: true };
   }
 
-  async completeList(listId: string, userId: string, assignedToId: string) {
+  async completeList(listId: string, userId: string) {
     const list = await this.prisma.list.findFirst({
       where: { id: listId, deleted: false },
       include: {
@@ -357,19 +357,18 @@ export class ListsService {
       throw new NotFoundException('List not found');
     }
 
+    await this.access.verifyStoreAccess(list.storeId, userId);
+
     if (list.status === 'COMPLETED') {
       throw new BadRequestException('List is already completed');
     }
-
-    await this.access.verifyStoreAccess(list.storeId, userId);
-    this.access.assertShoppingLock(list, assignedToId, 'Only the shopping lock holder can complete this list');
 
     // Update list status and item stats in a transaction
     await this.prisma.$transaction(async (tx) => {
       // 1. Mark list as completed
       await tx.list.update({
         where: { id: listId },
-        data: { status: 'COMPLETED', assignedTo: null }
+        data: { status: 'COMPLETED' }
       });
 
       // 2. Update catalog stats for checked items
@@ -390,7 +389,7 @@ export class ListsService {
     return { success: true };
   }
 
-  async startShopping(listId: string, userId: string, assignedToId: string) {
+  async startShopping(listId: string, userId: string) {
     const list = await this.prisma.list.findFirst({
       where: { id: listId, deleted: false },
     });
@@ -401,16 +400,21 @@ export class ListsService {
 
     await this.access.verifyStoreAccess(list.storeId, userId);
 
+    if (list.status === 'SHOPPING') {
+      return { success: true };
+    }
+
+    if (list.status === 'COMPLETED') {
+      throw new BadRequestException('List is completed');
+    }
+
     if (list.status !== 'PLANNING') {
-      if (list.status === 'SHOPPING' && list.assignedTo && list.assignedTo !== assignedToId) {
-        throw new ConflictException('List is already being shopped by another household member');
-      }
       throw new BadRequestException('List must be in PLANNING state to start shopping');
     }
 
     await this.prisma.list.update({
       where: { id: listId },
-      data: { status: 'SHOPPING', assignedTo: assignedToId }
+      data: { status: 'SHOPPING' }
     });
 
     this.sseSyncBroadcast.byStore(list.storeId, SYNC_CHANGE.list, 'list-mutation');
@@ -418,7 +422,7 @@ export class ListsService {
     return { success: true };
   }
 
-  async cancelShopping(listId: string, userId: string, assignedToId: string) {
+  async cancelShopping(listId: string, userId: string) {
     const list = await this.prisma.list.findFirst({
       where: { id: listId, deleted: false },
     });
@@ -433,11 +437,9 @@ export class ListsService {
       throw new BadRequestException('List must be in SHOPPING state to cancel');
     }
 
-    this.access.assertShoppingLock(list, assignedToId, 'Only the shopping lock holder can cancel shopping');
-
     await this.prisma.list.update({
       where: { id: listId },
-      data: { status: 'PLANNING', assignedTo: null }
+      data: { status: 'PLANNING' }
     });
 
     this.sseSyncBroadcast.byStore(list.storeId, SYNC_CHANGE.list, 'list-mutation');

@@ -126,13 +126,12 @@ export type ListDocType = {
   name: string
   storeId: string
   status: "PLANNING" | "SHOPPING" | "COMPLETED"
-  assignedTo?: string
   updatedAt: string
 }
 
 export const listSchema: RxJsonSchema<ListDocType> = {
   title: 'list schema',
-  version: 0,
+  version: 1,
   primaryKey: 'id',
   type: 'object',
   properties: {
@@ -140,7 +139,6 @@ export const listSchema: RxJsonSchema<ListDocType> = {
     name: { type: 'string' },
     storeId: { type: 'string', maxLength: 30 },
     status: { type: 'string', enum: ['PLANNING', 'SHOPPING', 'COMPLETED'], maxLength: 20 },
-    assignedTo: { type: 'string', maxLength: 30 },
     updatedAt: { type: 'string', format: 'date-time', maxLength: 30 },
   },
   required: ['id', 'name', 'storeId', 'status', 'updatedAt'],

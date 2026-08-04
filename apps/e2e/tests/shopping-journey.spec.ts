@@ -51,6 +51,7 @@ async function seedShoppingList(
 
 test.describe('Shopping mode', () => {
   let testToken: string;
+  let secondTestToken: string;
   let storeId: string;
   let sectionId: string;
 
@@ -58,6 +59,7 @@ test.describe('Shopping mode', () => {
   test.beforeEach(async ({ page }) => {
     const auth = await seedPlaywrightFixtures('http://localhost:3001');
     testToken = auth.token;
+    secondTestToken = auth.secondUser.token;
     storeId = auth.storeId;
     sectionId = auth.sectionId;
 
@@ -90,14 +92,12 @@ test.describe('Shopping mode', () => {
 
     // Check "Milk" — click the row; debounced toggle
     await page.getByTestId('list-item-row-milk').click();
-    await page.waitForTimeout(400);
-
-    await expect(page.getByRole('button', { name: 'Finish (1/3)' }))
-      .toBeVisible({ timeout: 5000 });
-    // Verify checkbox is checked (state attribute on the role="checkbox" button)
     await expect(
       page.getByTestId('list-item-row-milk').getByRole('checkbox'),
     ).toBeChecked({ timeout: 5000 });
+
+    await expect(page.getByRole('button', { name: 'Finish (1/3)' }))
+      .toBeVisible({ timeout: 5000 });
   });
 
   test('Finish opens trip summary and Complete Trip finalises', async ({ page }) => {
@@ -109,9 +109,17 @@ test.describe('Shopping mode', () => {
 
     // Check all items
     await page.getByTestId('list-item-row-milk').click();
-    await page.waitForTimeout(400);
+    await expect(
+      page.getByTestId('list-item-row-milk').getByRole('checkbox'),
+    ).toBeChecked({ timeout: 5000 });
+    await expect(page.getByRole('button', { name: 'Finish (1/2)' }))
+      .toBeVisible({ timeout: 5000 });
     await page.getByTestId('list-item-row-bread').click();
-    await page.waitForTimeout(400);
+    await expect(
+      page.getByTestId('list-item-row-bread').getByRole('checkbox'),
+    ).toBeChecked({ timeout: 5000 });
+    await expect(page.getByRole('button', { name: 'Finish (2/2)' }))
+      .toBeVisible({ timeout: 5000 });
 
     await page.getByRole('button', { name: 'Finish (2/2)' }).click();
     await expect(page.getByRole('dialog', { name: 'Trip Summary' }))
@@ -132,7 +140,11 @@ test.describe('Shopping mode', () => {
 
     // Check only one of three
     await page.getByTestId('list-item-row-milk').click();
-    await page.waitForTimeout(400);
+    await expect(
+      page.getByTestId('list-item-row-milk').getByRole('checkbox'),
+    ).toBeChecked({ timeout: 5000 });
+    await expect(page.getByRole('button', { name: 'Finish (1/3)' }))
+      .toBeVisible({ timeout: 5000 });
 
     await page.getByRole('button', { name: 'Finish (1/3)' }).click();
     await expect(page.getByRole('dialog', { name: 'Trip Summary' }))
@@ -170,5 +182,60 @@ test.describe('Shopping mode', () => {
       .toBeVisible({ timeout: 5000 });
     await expect(page.getByText('Shopping Cancelled'))
       .toBeVisible({ timeout: 5000 });
+  });
+
+  test('household members can collaboratively shop and cancel an active list', async ({ browser }) => {
+    const { listId } = await seedShoppingList(testToken, storeId, sectionId, ['Milk']);
+    const contextA = await browser.newContext();
+
+    try {
+      const contextB = await browser.newContext();
+
+      try {
+        await contextA.addInitScript((token: string) => {
+          sessionStorage.setItem('__grocerun_test_token__', token);
+        }, testToken);
+        await contextB.addInitScript((token: string) => {
+          sessionStorage.setItem('__grocerun_test_token__', token);
+        }, secondTestToken);
+
+        const pageA = await contextA.newPage();
+        const pageB = await contextB.newPage();
+
+        await pageA.goto(`/lists/${listId}`);
+        await pageA.getByRole('button', { name: 'Go Shopping' }).click();
+        await expect(pageA.getByRole('button', { name: 'Finish (0/1)' }))
+          .toBeVisible({ timeout: 10000 });
+
+        await pageB.goto(`/lists/${listId}`);
+        const finishButtonB = pageB.getByRole('button', { name: 'Finish (0/1)' });
+        await expect(finishButtonB).toBeVisible({ timeout: 10000 });
+        await expect(finishButtonB).toBeEnabled();
+        await expect(pageB.getByRole('button', { name: 'Cancel Shopping' })).toBeEnabled();
+
+        await pageB.getByTestId('list-item-row-milk').click();
+        await expect(
+          pageB.getByTestId('list-item-row-milk').getByRole('checkbox'),
+        ).toBeChecked({ timeout: 5000 });
+        await expect(pageB.getByRole('button', { name: 'Finish (1/1)' }))
+          .toBeVisible({ timeout: 5000 });
+
+        await expect(
+          pageA.getByTestId('list-item-row-milk').getByRole('checkbox'),
+        ).toBeChecked({ timeout: 10000 });
+        await expect(pageA.getByRole('button', { name: 'Finish (1/1)' }))
+          .toBeVisible({ timeout: 10000 });
+
+        await pageB.getByRole('button', { name: 'Cancel Shopping' }).click();
+        await expect(pageB.getByRole('button', { name: 'Go Shopping' }))
+          .toBeVisible({ timeout: 5000 });
+        await expect(pageA.getByRole('button', { name: 'Go Shopping' }))
+          .toBeVisible({ timeout: 10000 });
+      } finally {
+        await contextB.close();
+      }
+    } finally {
+      await contextA.close();
+    }
   });
 });

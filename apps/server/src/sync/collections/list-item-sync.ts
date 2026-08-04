@@ -5,18 +5,15 @@
  * Push: ACCEPTED. Local-first writes for check/uncheck, quantity changes,
  *       add/remove during active shopping.
  *
- *       Push is gated: COMPLETED lists are immutable. SHOPPING lists are
- *       locked to their assignedTo shopper — only that user can push.
+ *       Push is gated: COMPLETED lists are immutable.
  *       PLANNING mode list item mutations go through REST, not push.
  */
 
-import { BadRequestException, ForbiddenException, Logger } from '@nestjs/common';
+import { BadRequestException, ForbiddenException } from '@nestjs/common';
 import { Prisma } from '../../generated/prisma/client';
 import { SyncDeps } from '../sync-deps';
-import { checkShoppingLock } from '../../shared/shopping-lock';
 import { pullByAccess } from '../sync-helpers';
 
-const logger = new Logger('ListItemSync');
 import {
   PullResponse,
   PushRow,
@@ -46,7 +43,6 @@ export async function pushListItems(
   deps: SyncDeps,
   rows: PushRow[],
   userId: string,
-  shoppingLockId: string,
 ): Promise<PushResponse> {
   const conflicts: SyncDocument[] = [];
 
@@ -60,9 +56,14 @@ export async function pushListItems(
       throw new BadRequestException(`Missing listId or itemId in document ${id}`);
     }
 
+    // Existing rows are always authorized and lifecycle-gated by their
+    // canonical parent, never by a client-supplied listId.
+    const current = await deps.prisma.listItem.findUnique({ where: { id } });
+    const canonicalListId = current?.listId ?? listId;
+
     const list = await deps.prisma.list.findFirst({
-      where: { id: listId, deleted: false },
-      select: { storeId: true, assignedTo: true, status: true },
+      where: { id: canonicalListId, deleted: false },
+      select: { storeId: true, status: true },
     });
 
     if (!list) {
@@ -81,25 +82,15 @@ export async function pushListItems(
       throw err;
     }
 
-    // Enforce shopping lock: completed lists are immutable;
-    // SHOPPING lists locked by another user are read-only.
-    const lockResult = checkShoppingLock(list, shoppingLockId)
-    if (!lockResult.allowed) {
-      // Narrowed: lockResult is { allowed: false; reason: ... }
-      const { reason } = lockResult as { allowed: false; reason: 'COMPLETED' | 'LOCKED_BY_OTHER' | 'MISSING_LOCK' }
-      if (reason === 'COMPLETED' || reason === 'LOCKED_BY_OTHER') {
-        conflicts.push({ id, updatedAt: new Date().toISOString(), _deleted: true })
-        continue
-      }
-      if (reason === 'MISSING_LOCK') {
-        // Server-side inconsistency — warn but allow the push to proceed.
-        logger.warn(
-          `pushListItems: list ${listId} is SHOPPING but has no assignedTo. Allowing push for userId=${userId}.`,
-        )
-      }
+    if (list.status === 'COMPLETED') {
+      conflicts.push({ id, updatedAt: new Date().toISOString(), _deleted: true });
+      continue;
     }
 
-    const current = await deps.prisma.listItem.findUnique({ where: { id } });
+    if (current && listId !== current.listId) {
+      conflicts.push(listItemToSyncDoc(current));
+      continue;
+    }
 
     if (current && assumedMasterState != null) {
       const assumedAt = new Date(assumedMasterState.updatedAt as string).getTime();

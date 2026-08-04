@@ -2,8 +2,7 @@
  * Integration tests for ListItem sync push handler.
  *
  * The push handler is local-first: clients can create, update, and soft-delete
- * list items. The server enforces shopping locks and prevents mutations on
- * COMPLETED lists.
+ * list items. The server prevents mutations on COMPLETED lists.
  *
  * Covered:
  *   1. Push creates a client-generated list item
@@ -11,8 +10,10 @@
  *   3. Push soft-deletes via _deleted: true (tombstone)
  *   4. Push soft-delete restores via pre-create check (same listId+itemId)
  *   5. Push rejects/conflicts when list is COMPLETED
- *   6. Push enforces shopping lock (LOCKED_BY_OTHER → conflict)
- *   7. Push allows when SHOPPING with no lock holder (MISSING_LOCK)
+ *   6. Collaborative push — two household members push list-item updates to a
+ *      SHOPPING list (no lock, no conflict)
+ *   7. Same-row stale push returns the canonical server row via
+ *      assumedMasterState conflict resolution
  *   8. Push allows when list is PLANNING (no lock required)
  *   9. AssumedMasterState conflict when server timestamp differs
  */
@@ -21,10 +22,13 @@ import { INestApplication } from '@nestjs/common';
 import {
   createTestApp,
   agent,
+  agentAs,
   db,
   seedBaseFixtures,
+  seedSecondMember,
   clearDomainData,
   waitForAppReady,
+  TEST_USER_ID_2,
 } from '../helpers';
 
 let app: INestApplication;
@@ -46,6 +50,7 @@ beforeEach(async () => {
   await clearDomainData(db(app));
   const fixtures = await seedBaseFixtures(db(app));
   householdId = fixtures.householdId;
+  await seedSecondMember(db(app));
 
   // Create store
   const storeRes = await agent(app)
@@ -406,25 +411,40 @@ describe('ListItem push — COMPLETED list lock', () => {
 });
 
 // ---------------------------------------------------------------------------
-// 6. Push enforces shopping lock (LOCKED_BY_OTHER → conflict)
+// Canonical parent authorization and lifecycle gates
 // ---------------------------------------------------------------------------
 
-describe('ListItem push — LOCKED_BY_OTHER', () => {
-  it('returns tombstone conflict when another user holds the shopping lock', async () => {
-    const listId = await createPlanningList();
+describe('ListItem push — canonical parent', () => {
+  it('returns the full canonical row and leaves it under its canonical active list when the client supplies another accessible listId', async () => {
+    const canonicalListId = await createPlanningList();
+    // The REST endpoint may reuse the active list, so create a distinct but
+    // equally accessible parent directly.
+    const clientList = await db(app).list.create({
+      data: { name: 'Second Active List', storeId },
+    });
+    const target = await db(app).listItem.create({
+      data: {
+        id: 'active-parent-mismatch-target',
+        listId: canonicalListId,
+        itemId: catalogItemId,
+        isChecked: false,
+        quantity: 2,
+        unit: 'box',
+        purchasedQuantity: 1,
+      },
+    });
 
-    // Create a listItem
-    const itemId = 'client-li-locked';
-    await agent(app)
+    const pushRes = await agent(app)
       .post('/sync/listItem/push')
       .send([
         {
           newDocumentState: {
-            id: itemId,
-            listId,
+            id: target.id,
+            listId: clientList.id,
             itemId: catalogItemId,
-            isChecked: false,
-            quantity: 1,
+            isChecked: true,
+            quantity: 99,
+            unit: 'spoofed',
             updatedAt: new Date().toISOString(),
           },
           assumedMasterState: null,
@@ -432,26 +452,181 @@ describe('ListItem push — LOCKED_BY_OTHER', () => {
       ])
       .expect(200);
 
-    // Start shopping (test user becomes lock holder)
-    await agent(app).post(`/lists/${listId}/start-shopping`).expect(201);
+    expect(pushRes.body).toEqual([
+      {
+        id: target.id,
+        listId: target.listId,
+        itemId: target.itemId,
+        isChecked: target.isChecked,
+        quantity: target.quantity,
+        createdAt: target.createdAt.toISOString(),
+        unit: target.unit,
+        purchasedQuantity: target.purchasedQuantity,
+        updatedAt: target.updatedAt.toISOString(),
+        _deleted: target.deleted,
+      },
+    ]);
 
-    // Manually reassign lock to another user to simulate LOCKED_BY_OTHER
+    const unchanged = await db(app).listItem.findUnique({ where: { id: target.id } });
+    expect(unchanged).toMatchObject({
+      listId: canonicalListId,
+      itemId: catalogItemId,
+      isChecked: false,
+      quantity: 2,
+      unit: 'box',
+      purchasedQuantity: 1,
+      deleted: false,
+    });
+  });
+
+  it('returns only a synthetic tombstone when the canonical parent is soft-deleted', async () => {
+    const activeListId = await createPlanningList();
+    const canonicalList = await db(app).list.create({
+      data: { name: 'Deleted Canonical List', storeId },
+    });
+    const target = await db(app).listItem.create({
+      data: {
+        id: 'deleted-parent-target',
+        listId: canonicalList.id,
+        itemId: catalogItemId,
+        isChecked: false,
+        quantity: 2,
+        unit: 'box',
+      },
+    });
     await db(app).list.update({
-      where: { id: listId },
-      data: { assignedTo: 'another-user-id' },
+      where: { id: canonicalList.id },
+      data: { deleted: true, deletedAt: new Date() },
     });
 
-    // Push should conflict
     const pushRes = await agent(app)
       .post('/sync/listItem/push')
       .send([
         {
           newDocumentState: {
-            id: itemId,
-            listId,
+            id: target.id,
+            listId: activeListId,
             itemId: catalogItemId,
             isChecked: true,
-            quantity: 2,
+            quantity: 99,
+            unit: 'spoofed',
+            updatedAt: new Date().toISOString(),
+          },
+          assumedMasterState: null,
+        },
+      ])
+      .expect(200);
+
+    expect(pushRes.body).toEqual([
+      { id: target.id, updatedAt: expect.any(String), _deleted: true },
+    ]);
+
+    const unchanged = await db(app).listItem.findUnique({ where: { id: target.id } });
+    expect(unchanged).toMatchObject({
+      listId: canonicalList.id,
+      itemId: catalogItemId,
+      isChecked: false,
+      quantity: 2,
+      unit: 'box',
+      deleted: false,
+    });
+  });
+
+  it('returns a synthetic tombstone and leaves the target unchanged when an accessible listId spoofs a cross-household row', async () => {
+    const accessibleListId = await createPlanningList();
+    const prisma = db(app);
+    const otherUser = await prisma.user.upsert({
+      where: { id: 'other-household-owner' },
+      update: {},
+      create: { id: 'other-household-owner', email: 'other-owner@grocerun.test', name: 'Other Owner' },
+    });
+    const otherHousehold = await prisma.household.create({
+      data: {
+        name: 'Other Household',
+        ownerId: otherUser.id,
+        users: { connect: { id: otherUser.id } },
+      },
+    });
+    const otherStore = await prisma.store.create({
+      data: { name: 'Other Store', householdId: otherHousehold.id },
+    });
+    const otherItem = await prisma.item.create({
+      data: { name: 'Other Item', storeId: otherStore.id },
+    });
+    const target = await prisma.listItem.create({
+      data: {
+        id: 'cross-household-target',
+        list: { create: { name: 'Other List', storeId: otherStore.id } },
+        item: { connect: { id: otherItem.id } },
+        isChecked: false,
+        quantity: 2,
+        unit: 'box',
+      },
+    });
+
+    const pushRes = await agent(app)
+      .post('/sync/listItem/push')
+      .send([
+        {
+          newDocumentState: {
+            id: target.id,
+            listId: accessibleListId,
+            itemId: otherItem.id,
+            isChecked: true,
+            quantity: 99,
+            unit: 'spoofed',
+            updatedAt: new Date().toISOString(),
+          },
+          assumedMasterState: null,
+        },
+      ])
+      .expect(200);
+
+    expect(pushRes.body).toHaveLength(1);
+    expect(pushRes.body[0]).toEqual({
+      id: target.id,
+      updatedAt: expect.any(String),
+      _deleted: true,
+    });
+
+    const unchanged = await prisma.listItem.findUnique({ where: { id: target.id } });
+    expect(unchanged).toMatchObject({
+      listId: target.listId,
+      itemId: target.itemId,
+      isChecked: false,
+      quantity: 2,
+      unit: 'box',
+      deleted: false,
+    });
+  });
+
+  it('returns a tombstone conflict and leaves the target unchanged when an active listId spoofs a completed row', async () => {
+    const activeListId = await createPlanningList();
+    const completedList = await db(app).list.create({
+      data: { name: 'Completed List', storeId, status: 'COMPLETED' },
+    });
+    const target = await db(app).listItem.create({
+      data: {
+        id: 'completed-parent-target',
+        listId: completedList.id,
+        itemId: catalogItemId,
+        isChecked: false,
+        quantity: 2,
+        unit: 'box',
+      },
+    });
+
+    const pushRes = await agent(app)
+      .post('/sync/listItem/push')
+      .send([
+        {
+          newDocumentState: {
+            id: target.id,
+            listId: activeListId,
+            itemId: catalogItemId,
+            isChecked: true,
+            quantity: 99,
+            unit: 'spoofed',
             updatedAt: new Date().toISOString(),
           },
           assumedMasterState: null,
@@ -461,19 +636,29 @@ describe('ListItem push — LOCKED_BY_OTHER', () => {
 
     expect(pushRes.body).toHaveLength(1);
     expect(pushRes.body[0]._deleted).toBe(true);
+
+    const unchanged = await db(app).listItem.findUnique({ where: { id: target.id } });
+    expect(unchanged).toMatchObject({
+      listId: completedList.id,
+      itemId: catalogItemId,
+      isChecked: false,
+      quantity: 2,
+      unit: 'box',
+      deleted: false,
+    });
   });
 });
 
 // ---------------------------------------------------------------------------
-// 7. Push allows when SHOPPING with no lock holder (MISSING_LOCK)
+// 6. Collaborative push — two household members push to a SHOPPING list
 // ---------------------------------------------------------------------------
 
-describe('ListItem push — MISSING_LOCK allows push', () => {
-  it('allows push to a SHOPPING list with no lock holder', async () => {
+describe('ListItem push — collaborative shopping', () => {
+  it('allows two household members to push list-item updates to a SHOPPING list', async () => {
     const listId = await createPlanningList();
 
-    // Create a listItem
-    const itemId = 'client-li-missing-lock';
+    // Member A creates the listItem (PLANNING)
+    const itemId = 'client-li-collab';
     await agent(app)
       .post('/sync/listItem/push')
       .send([
@@ -491,14 +676,11 @@ describe('ListItem push — MISSING_LOCK allows push', () => {
       ])
       .expect(200);
 
-    // Force list to SHOPPING without assignedTo (bypass REST guard)
-    await db(app).list.update({
-      where: { id: listId },
-      data: { status: 'SHOPPING', assignedTo: null },
-    });
+    // Member A starts shopping
+    await agent(app).post(`/lists/${listId}/start-shopping`).expect(201);
 
-    // Push should succeed (MISSING_LOCK is allowed)
-    const pushRes = await agent(app)
+    // Member B pushes an update to the same listItem — succeeds, no conflict
+    const pushRes = await agentAs(app, { userId: TEST_USER_ID_2, email: 'test2@grocerun.test' })
       .post('/sync/listItem/push')
       .send([
         {
@@ -507,7 +689,7 @@ describe('ListItem push — MISSING_LOCK allows push', () => {
             listId,
             itemId: catalogItemId,
             isChecked: true,
-            quantity: 3,
+            quantity: 5,
             updatedAt: new Date().toISOString(),
           },
           assumedMasterState: null,
@@ -517,10 +699,142 @@ describe('ListItem push — MISSING_LOCK allows push', () => {
 
     expect(pushRes.body).toEqual([]);
 
-    // Verify update was applied
     const li = await db(app).listItem.findUnique({ where: { id: itemId } });
     expect(li!.isChecked).toBe(true);
-    expect(li!.quantity).toBe(3);
+    expect(li!.quantity).toBe(5);
+  });
+
+  it('allows member A to push a subsequent update after member B modifies the row', async () => {
+    const listId = await createPlanningList();
+
+    const itemId = 'client-li-collab-round2';
+    await agent(app)
+      .post('/sync/listItem/push')
+      .send([
+        {
+          newDocumentState: {
+            id: itemId,
+            listId,
+            itemId: catalogItemId,
+            isChecked: false,
+            quantity: 2,
+            updatedAt: new Date().toISOString(),
+          },
+          assumedMasterState: null,
+        },
+      ])
+      .expect(200);
+
+    await agent(app).post(`/lists/${listId}/start-shopping`).expect(201);
+
+    // B updates first
+    await agentAs(app, { userId: TEST_USER_ID_2, email: 'test2@grocerun.test' })
+      .post('/sync/listItem/push')
+      .send([
+        {
+          newDocumentState: {
+            id: itemId,
+            listId,
+            itemId: catalogItemId,
+            isChecked: true,
+            quantity: 8,
+            updatedAt: new Date().toISOString(),
+          },
+          assumedMasterState: null,
+        },
+      ])
+      .expect(200);
+
+    // A updates with awareness of B's state — fetch, then push with matching assumedMasterState
+    const current = await db(app).listItem.findUnique({ where: { id: itemId } });
+    const pushRes = await agent(app)
+      .post('/sync/listItem/push')
+      .send([
+        {
+          newDocumentState: {
+            id: itemId,
+            listId,
+            itemId: catalogItemId,
+            isChecked: true,
+            quantity: 10,
+            updatedAt: new Date().toISOString(),
+          },
+          assumedMasterState: { id: itemId, updatedAt: current!.updatedAt.toISOString() },
+        },
+      ])
+      .expect(200);
+
+    expect(pushRes.body).toEqual([]);
+
+    const li = await db(app).listItem.findUnique({ where: { id: itemId } });
+    expect(li!.quantity).toBe(10);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 7. Same-row stale push returns canonical server row
+// ---------------------------------------------------------------------------
+
+describe('ListItem push — same-row stale push returns canonical', () => {
+  it('returns the canonical server row when a stale push misses the assumedMasterState timestamp', async () => {
+    const listId = await createPlanningList();
+
+    const itemId = 'client-li-stale-canonical';
+    await agent(app)
+      .post('/sync/listItem/push')
+      .send([
+        {
+          newDocumentState: {
+            id: itemId,
+            listId,
+            itemId: catalogItemId,
+            isChecked: false,
+            quantity: 1,
+            unit: 'box',
+            purchasedQuantity: 2,
+            updatedAt: new Date().toISOString(),
+          },
+          assumedMasterState: null,
+        },
+      ])
+      .expect(200);
+
+    // Member B pushes with a stale assumedMasterState.updatedAt.
+    const pushRes = await agentAs(app, { userId: TEST_USER_ID_2, email: 'test2@grocerun.test' })
+      .post('/sync/listItem/push')
+      .send([
+        {
+          newDocumentState: {
+            id: itemId,
+            listId,
+            itemId: catalogItemId,
+            isChecked: true,
+            quantity: 99,
+            updatedAt: new Date().toISOString(),
+          },
+          assumedMasterState: {
+            id: itemId,
+            updatedAt: '2000-01-01T00:00:00.000Z',
+          },
+        },
+      ])
+      .expect(200);
+
+    expect(pushRes.body).toHaveLength(1);
+    const conflict = pushRes.body[0];
+    const li = await db(app).listItem.findUnique({ where: { id: itemId } });
+    expect(conflict).toEqual({
+      id: li!.id,
+      listId: li!.listId,
+      itemId: li!.itemId,
+      isChecked: li!.isChecked,
+      quantity: li!.quantity,
+      createdAt: li!.createdAt.toISOString(),
+      unit: li!.unit,
+      purchasedQuantity: li!.purchasedQuantity,
+      updatedAt: li!.updatedAt.toISOString(),
+      _deleted: li!.deleted,
+    });
   });
 });
 

@@ -107,7 +107,6 @@ model List {
   storeId    String
   store      Store      @relation(fields: [storeId], references: [id], onDelete: Cascade)
   status     ListStatus @default(PLANNING)
-  assignedTo String?
   createdAt  DateTime   @default(now())
   updatedAt  DateTime   @updatedAt
   deleted    Boolean    @default(false)
