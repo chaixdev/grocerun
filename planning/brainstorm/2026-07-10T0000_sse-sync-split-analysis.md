@@ -113,15 +113,15 @@ On `resyncAll()`, all 6 pull streams emit `RESYNC` simultaneously. RxDB fires 6 
 
 **What**: Keep 6 collections as-is. Fix the two transport-layer problems:
 1. **Scope SSE routing**: Change `sharedPullStreams` from `Set<Subject>` to `Map<string, Subject>`. Parse `event.data.collections` in the `SYNC_CHANGED` handler and only emit `RESYNC` to matching streams.
-2. **Skip self-notify**: Server excludes the originating user from `notifyChanged` for push-triggered SSE (their local state is already correct from the optimistic write).
+2. **Superseded — skip self-notify**: The initial proposal excluded the originating user. The implemented protocol deliberately notifies every connection for that user so other tabs/devices converge and the originating client pulls any canonical server-side fields.
 
 **Trade-offs:**
-- **Pro**: Minimal change, immediate impact. A listItem toggle goes from 1 push + 6 pulls = 7 requests to 1 push + 0 pulls (self) or 1 push + 1 pull (other clients).
+- **Pro**: Minimal change, immediate impact. A listItem toggle goes from 1 push + 6 pulls = 7 requests to 1 push + 1 collection-scoped pull per connected client.
 - **Pro**: No collection structure changes, no checkpoint coupling, no RxDB abstraction breakage.
 - **Pro**: The server already sends `{ collections: ['listItem'] }` — the client just needs to read it.
 - **Con**: Doesn't reduce initial-load round-trips (still 6 parallel requests on cold start).
 - **Con**: Still 6 independent replications with 6 checkpoints to manage.
-- **Effort**: Low. ~50 lines of client code (Map instead of Set, parse event data). ~10 lines of server code (exclude pusher from notifyChanged).
+- **Effort**: Low. Collection routing plus full fan-out to same-user connections.
 
 **Verdict**: This is the clear winner. It addresses the actual measured problem (overfetch) without touching the collection architecture.
 
@@ -146,7 +146,7 @@ On `resyncAll()`, all 6 pull streams emit `RESYNC` simultaneously. RxDB fires 6 
 #### Concrete action items (ordered by impact/effort ratio)
 
 1. **Fix SSE routing** — Change `sharedPullStreams` from `Set<Subject>` to `Map<string, Subject>`. Parse `event.data.collections` in `SYNC_CHANGED` handler. Only emit `RESYNC` to matching streams. (~50 lines, `database.ts`)
-2. **Skip self-notify on push** — Thread pusher's `userId` to `SseBroadcastService.notifyChanged` and exclude it. (~10 lines, `sync.service.ts` + `sse-broadcast.service.ts`)
+2. **Superseded — skip self-notify on push** — Rejected after implementation review. User-level exclusion would suppress other tabs/devices and can miss server-canonical fields; retain collection-scoped fan-out instead.
 3. **Memoize access queries** — Cache `getAccessibleStoreIdsForSync` / `getAccessibleHouseholdIdsForSync` per-request (or with a 5-second TTL) so 5 collections don't each make the same Prisma query. (~15 lines, `sync.service.ts`)
 4. **Update the protocol doc** — The doc claims collection-scoped SSE routing, but the code doesn't implement it. Either implement it (step 1) or fix the doc. Currently the doc is misleading.
 
@@ -185,7 +185,7 @@ But there's a simpler approach the oracle didn't consider:
 
 **Embed sections as an array on the store RxDB document.** No separate sections collection at all.
 
-```
+```typescript
 Store document = {
   id, name, householdId, updatedAt,
   sections: [{ id, name, sortOrder, deleted }]

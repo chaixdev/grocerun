@@ -371,7 +371,7 @@ function startPullReplication<DocType, Checkpoint extends { id: string; updatedA
   enablePush?: boolean
 }) {
   const { collection, basePath, replicationIdentifier, pullStream$, enablePush = false } = args
-  const collectionName = basePath.split('/').pop() ?? basePath
+  const collectionName = getSyncCollectionName(basePath)
 
   registerPullStream(collectionName, pullStream$)
 
@@ -488,18 +488,40 @@ function getSyncStreamUrl(): string {
  *
  * Reconnects automatically after 5 s if the connection drops.
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any -- RxDB pull stream generics are untyped
-const sharedPullStreams = new Map<string, Subject<RxReplicationPullStreamItem<any, any>>>()
+export const SYNC_COLLECTION_NAMES = [
+  'section',
+  'item',
+  'list',
+  'listItem',
+  'store',
+  'household',
+] as const
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any -- RxDB pull stream generics are untyped
-const RESYNC_SIGNAL = 'RESYNC' as RxReplicationPullStreamItem<any, any>
+export type SyncCollectionName = (typeof SYNC_COLLECTION_NAMES)[number]
+
+const syncCollectionNameSet = new Set<string>(SYNC_COLLECTION_NAMES)
+
+type RegisteredPullStream = {
+  resync: () => void
+}
+
+const sharedPullStreams = new Map<SyncCollectionName, RegisteredPullStream>()
+
+function getSyncCollectionName(basePath: string): SyncCollectionName {
+  const collectionName = basePath.split('/').pop() ?? basePath
+  if (!syncCollectionNameSet.has(collectionName)) {
+    throw new Error(`Unknown sync collection: ${collectionName}`)
+  }
+  return collectionName as SyncCollectionName
+}
 
 export function registerPullStream<DocType, Checkpoint>(
-  collectionName: string,
+  collectionName: SyncCollectionName,
   subject: Subject<RxReplicationPullStreamItem<DocType, Checkpoint>>,
 ) {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- RxDB pull stream generics are untyped
-  sharedPullStreams.set(collectionName, subject as Subject<RxReplicationPullStreamItem<any, any>>)
+  sharedPullStreams.set(collectionName, {
+    resync: () => subject.next('RESYNC' as RxReplicationPullStreamItem<DocType, Checkpoint>),
+  })
   if (!visibilityListenerAdded) {
     visibilityListenerAdded = true
     document.addEventListener('visibilitychange', () => {
@@ -507,9 +529,7 @@ export function registerPullStream<DocType, Checkpoint>(
         // Tab regained visibility: reopen SSE if it was closed, and
         // trigger an immediate resync to catch up on missed changes.
         emitDiagnostic({ type: 'resync', source: 'visibility', at: Date.now() })
-        for (const subject of sharedPullStreams.values()) {
-          subject.next(RESYNC_SIGNAL)
-        }
+        resyncAllPullStreams()
         if (!sharedSyncStreamOpened) {
           sharedSyncStreamOpened = true
           void openSharedSyncStream(getSyncStreamUrl())
@@ -537,8 +557,12 @@ export function registerPullStream<DocType, Checkpoint>(
 
 function resyncAll() {
   emitDiagnostic({ type: 'resync', source: 'periodic', at: Date.now() })
-  for (const subject of sharedPullStreams.values()) {
-    subject.next(RESYNC_SIGNAL)
+  resyncAllPullStreams()
+}
+
+function resyncAllPullStreams() {
+  for (const stream of sharedPullStreams.values()) {
+    stream.resync()
   }
 }
 
@@ -560,31 +584,42 @@ function stopPeriodicResync() {
  * resynced; malformed or empty payloads fall back to broadcasting to all.
  */
 export function handleSyncChangedPayload(rawData: string) {
-  // Parse the collections array from the event payload.
-  // Only resync the collections the server indicates changed.
-  let collections: string[] | undefined
+  let collections: SyncCollectionName[] | null = null
   try {
-    const raw = JSON.parse(rawData)
-    if (raw && typeof raw === 'object' && Array.isArray(raw.collections)) {
-      collections = raw.collections.filter((c: unknown): c is string => typeof c === 'string')
-    }
-  } catch {
-    // Malformed payload — fall through to broadcast to all
-  }
-
-  if (collections && collections.length > 0) {
-    const collectionSet = new Set(collections)
-    for (const [name, subject] of sharedPullStreams) {
-      if (collectionSet.has(name)) {
-        subject.next(RESYNC_SIGNAL)
+    const raw: unknown = JSON.parse(rawData)
+    if (raw && typeof raw === 'object' && 'collections' in raw) {
+      const candidate = raw.collections
+      if (
+        Array.isArray(candidate)
+        && candidate.length > 0
+        && candidate.every((name): name is string => typeof name === 'string')
+        && candidate.every((name) => syncCollectionNameSet.has(name))
+      ) {
+        collections = [...new Set(candidate)] as SyncCollectionName[]
       }
     }
-  } else {
-    // Defensive fallback: if we can't parse collections, broadcast to all.
-    for (const subject of sharedPullStreams.values()) {
-      subject.next(RESYNC_SIGNAL)
-    }
+  } catch {
+    // The diagnostic and fallback below preserve convergence on bad payloads.
   }
+
+  const matchingStreams = collections
+    ? collections
+      .map((collectionName) => sharedPullStreams.get(collectionName))
+      .filter((stream): stream is RegisteredPullStream => stream !== undefined)
+    : []
+
+  if (matchingStreams.length > 0) {
+    for (const stream of matchingStreams) {
+      stream.resync()
+    }
+    return
+  }
+
+  // A malformed, unknown, empty, or currently unregistered collection must
+  // never leave a client stale. Report it through the existing SSE state and
+  // use the conservative all-stream resync fallback.
+  emitDiagnostic({ type: 'sse', state: 'error', at: Date.now() })
+  resyncAllPullStreams()
 }
 
 export async function openSharedSyncStream(url: string, forceRefresh = false) {
@@ -652,9 +687,7 @@ export async function openSharedSyncStream(url: string, forceRefresh = false) {
   src.addEventListener('RESYNC', () => {
     resetWatchdog()
     emitDiagnostic({ type: 'resync', source: 'sse', at: Date.now() })
-    for (const subject of sharedPullStreams.values()) {
-      subject.next(RESYNC_SIGNAL)
-    }
+    resyncAllPullStreams()
   })
 
   src.addEventListener('SYNC_CHANGED', (event) => {

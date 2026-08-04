@@ -22,13 +22,13 @@
 |------|-----------------|--------|
 | `prisma/schema.prisma` | 11 models, no Notification | Add `Notification` model |
 | `prisma/migrations/` | Existing migrations | New migration for Notification table |
-| `src/sync/sync.service.ts` | `SyncCollection` = 6 collections, `SUPPORTED_COLLECTIONS` array, switch dispatch | Add `'notification'` to type, array, switch, and `getHouseholdMemberIds` |
+| `src/sync/sync.service.ts` | `SyncCollection` is derived from the canonical collection list, pull/push switches dispatch existing collections | Add `'notification'` to the canonical list and pull/push switches; do not add unreachable notification handling to `getHouseholdMemberIds` |
 | `src/sync/sync.types.ts` | `SyncDocument`, `PullResponse`, `SyncCheckpoint` | No change (generic types work) |
 | `src/sync/sync-helpers.ts` | `pullByAccess()` generic pull handler | No change (reuse as-is) |
 | `src/sync/collections/` | 6 collection sync handlers (store-sync.ts, item-sync.ts, etc.) | Add `notification-sync.ts` |
 | `src/sync/sync-deps.ts` | Access helpers for stores/households | Add `getAccessibleNotificationHouseholdIds` or reuse `getAccessibleHouseholdIdsForSync` |
-| `src/shared/notification.service.ts` | Fire-and-forget SSE broadcast (byStore, byHousehold) | No change — stays as SSE sync helper |
-| `src/shared/shared.module.ts` | Exports NotificationService, PrismaService, etc. | Export new UserNotificationService |
+| `src/shared/sse-sync-broadcast.service.ts` | Fire-and-forget SSE broadcast helper (`SseSyncBroadcastService`) | No change — stays as the SSE sync helper |
+| `src/shared/shared.module.ts` | Exports `SseSyncBroadcastService`, PrismaService, etc. | Export new `UserNotificationService` |
 | `src/items/items.service.ts` | Calls `notify.byStore()` after mutations | Add `userNotify.createForHousehold()` calls |
 | `src/lists/lists.service.ts` | Calls `notify.byStore()` after mutations | Add `userNotify.createForHousehold()` calls |
 | `src/stores/stores.service.ts` | Calls `notify.byHousehold()` after mutations | Add `userNotify.createForHousehold()` calls |
@@ -43,7 +43,7 @@
 | `src/notifications/notifications.module.ts` | NestJS module |
 | `src/notifications/notifications.controller.ts` | REST API: list, mark read, mark all read |
 | `src/notifications/notifications.service.ts` | Query + mark-read logic |
-| `src/notifications/user-notification.service.ts` | Notification creation + SSE dispatch (dual-dispatch) |
+| `src/shared/user-notification.service.ts` | Notification creation + SSE dispatch (dual-dispatch) |
 | `src/notifications/notification-sync.ts` | Sync document converter |
 | `src/notifications/dto/` | NestJS DTOs (if needed beyond shared) |
 
@@ -88,7 +88,7 @@
 **Scope:** Everything in Option A PLUS a `UserNotificationService` that creates notification records and dispatches SSE, wired into existing mutation services.
 
 **Files (additional vs Option A):**
-- `apps/server/src/notifications/user-notification.service.ts` — `createForHousehold(householdId, type, actorId, entityType, entityId, message)` → creates N notification records (one per household member except actor) + calls `sseBroadcast.notifyChanged(memberIds, {collections: ['notification'], reason: 'notification_created'})`
+- `apps/server/src/shared/user-notification.service.ts` — `createForHousehold(householdId, type, actorId, entityType, entityId, message)` → creates N notification records (one per household member except actor) + calls `sseBroadcast.notifyChanged(memberIds, {collections: ['notification'], reason: 'notification_created'})`
 - `apps/server/src/items/items.service.ts` — Call `userNotify.createForHousehold()` on add/update/delete
 - `apps/server/src/lists/lists.service.ts` — Call on create/complete/delete
 - `apps/server/src/stores/stores.service.ts` — Call on add
@@ -132,7 +132,7 @@ this.notify.byStore(storeId, ['item'], 'item_added');
 
 Rationale:
 1. #11a is the data foundation — without notification creation, the entire pipeline is hollow.
-2. The `UserNotificationService` cleanly separates user-facing notifications from the existing SSE sync `NotificationService`.
+2. The `UserNotificationService` cleanly separates user-facing notifications from the existing SSE sync `SseSyncBroadcastService`.
 3. Changes to existing services are purely additive (new call after existing mutations).
 4. #11b can then focus purely on UI (bell, toast, hooks) without touching server code.
 5. Aligns with ADR-007: notifications are server-authoritative (transactional side effects, server confirmation required).
@@ -145,7 +145,7 @@ Rationale:
 - **Relevant rules:** `wiki/rules/rxdb.md` — explicit `startXReplication` + `resyncX` pattern, no factory abstraction. `wiki/rules/coding-standards.md` — Zod at API boundaries, constructor injection, no `any`.
 - **Relevant technical designs:** `wiki/technical-design/rxdb-sync-protocol.md` — new collection follows existing pull-only pattern (like store, section, list, household).
 - **Current project-status constraints:** Phase 4 active (RxDB local-first shopping). Notification sync extends the existing protocol, doesn't change it.
-- **Potential tension:** None. The notification collection is a natural addition to the existing sync protocol. The `UserNotificationService` is a new concern, not a modification of existing `NotificationService`.
+- **Potential tension:** None. The notification collection is a natural addition to the existing sync protocol. The `UserNotificationService` is a new concern, not a modification of existing `SseSyncBroadcastService`.
 - **User decision needed:** No.
 - **Conclusion:** Aligned.
 
@@ -160,9 +160,10 @@ Rationale:
 
 ### Server integration tests
 - **REST API:** `GET /notifications` returns only current user's notifications, filtered by household access. `PATCH /notifications/:id/read` marks as read. `PATCH /notifications/read-all` marks all as read.
+- **Boundary validation:** Define shared Zod schemas for pagination query parameters and notification route IDs; controllers use the project Zod validation pipe rather than manually parsing input.
 - **Notification creation:** After item creation via API, a notification record exists in DB for all household members except the actor.
 - **Sync pull:** `GET /sync/notification/pull` returns notifications filtered by user, respects checkpoint pagination.
-- **SSE dispatch:** After mutation, SSE event includes `['notification']` in collections.
+- **SSE dispatch:** After notification creation or a read-state mutation, SSE event includes `['notification']` in collections so all of the recipient's connected devices converge.
 
 ### Web component tests
 - **RxDB schema:** Notification collection creates, documents validate against schema, `updatedAt` index works.
