@@ -19,7 +19,7 @@
 import { useRxQuery } from "@/core/lib/useRxQuery"
 import { useMutation } from '@/core/lib/useMutation'
 import { api } from '@/core/lib/api'
-import { resyncSections } from '@/core/rxdb'
+import { resyncItems, resyncSections } from '@/core/rxdb'
 import { toast } from 'sonner'
 
 // ----- Types -----
@@ -104,6 +104,7 @@ export function useDeleteSection(_storeId: string) {
     mutationFn: (id: string) => api.delete(`/sections/${id}`),
     onSuccess: () => {
       resyncSections()
+      resyncItems()
       toast.success('Section deleted')
     },
     onError: () => {

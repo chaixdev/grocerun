@@ -1,7 +1,7 @@
 import { useMutation } from "@/core/lib/useMutation"
 import { useRxMutation } from "@/core/lib/useRxMutation"
 import { api } from "@/core/lib/api"
-import { resyncListItems, resyncLists } from "@/core/rxdb"
+import { resyncItems, resyncListItems, resyncLists } from "@/core/rxdb"
 import { getRxDb } from "@/core/rxdb"
 import type { ListDocType } from "@/core/rxdb"
 import { networkAwareErrorToast } from "@/core/lib/error-toast"
@@ -142,6 +142,7 @@ export function useCompleteList() {
     onSuccess: () => {
       resyncLists()
       resyncListItems()
+      resyncItems()
     },
     onError: (error) => {
       networkAwareErrorToast(error, "Failed to complete trip")

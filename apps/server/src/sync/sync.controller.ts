@@ -76,7 +76,6 @@ export class SyncController {
       this.sseBroadcast.notifyChanged(
         memberIds.length > 0 ? memberIds : [user.userId!],
         { collections: [collection], reason: `${collection}.push` },
-        user.userId!,
       );
     }
 
@@ -128,9 +127,10 @@ export class SyncController {
     // Register this connection for broadcast notifications.
     const unregister = this.sseBroadcast.register(userId, res);
 
-    // Heartbeat every 15s to keep the connection alive through proxies/load balancers
+    // Named heartbeat lets the client reset its inactivity watchdog while also
+    // keeping the connection alive through proxies/load balancers.
     const heartbeat = setInterval(() => {
-      res.write(': heartbeat\n\n');
+      res.write('event: HEARTBEAT\ndata: {}\n\n');
     }, 15000);
 
     // Clean up when client disconnects

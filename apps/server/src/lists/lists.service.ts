@@ -5,6 +5,7 @@ import { SseSyncBroadcastService } from '../shared/sse-sync-broadcast.service';
 import { CreateListDto } from './dto/create-list.dto';
 import { AddItemDto } from './dto/add-item.dto';
 import { ToggleItemDto, UpdateQuantityDto } from './dto/manage-items.dto';
+import { SYNC_CHANGE } from '../shared/sync-change';
 
 export interface ListItemWithItem {
   id: string;
@@ -65,7 +66,7 @@ export class ListsService {
       },
     });
 
-    this.sseSyncBroadcast.byStore(dto.storeId, ['list', 'listItem'], 'list-mutation');
+    this.sseSyncBroadcast.byStore(dto.storeId, SYNC_CHANGE.list, 'list-mutation');
 
     return list;
   }
@@ -234,7 +235,7 @@ export class ListsService {
       });
     });
 
-    this.sseSyncBroadcast.byStore(list.storeId, ['list', 'listItem'], 'list-mutation');
+    this.sseSyncBroadcast.byStore(list.storeId, SYNC_CHANGE.listItemWithItem, 'list-mutation');
     return listItem;
   }
 
@@ -278,7 +279,7 @@ export class ListsService {
       }
     });
 
-    this.sseSyncBroadcast.byStore(listItem.list.storeId, ['list', 'listItem'], 'list-mutation');
+    this.sseSyncBroadcast.byStore(listItem.list.storeId, SYNC_CHANGE.listItem, 'list-mutation');
 
     return { success: true };
   }
@@ -310,7 +311,7 @@ export class ListsService {
       }
     });
 
-    this.sseSyncBroadcast.byStore(listItem.list.storeId, ['list', 'listItem'], 'list-mutation');
+    this.sseSyncBroadcast.byStore(listItem.list.storeId, SYNC_CHANGE.listItem, 'list-mutation');
 
     return { success: true };
   }
@@ -337,7 +338,7 @@ export class ListsService {
       data: { deleted: true, deletedAt: new Date() }
     });
 
-    this.sseSyncBroadcast.byStore(listItem.list.storeId, ['list', 'listItem'], 'list-mutation');
+    this.sseSyncBroadcast.byStore(listItem.list.storeId, SYNC_CHANGE.listItem, 'list-mutation');
 
     return { success: true };
   }
@@ -384,7 +385,7 @@ export class ListsService {
       }
     });
 
-    this.sseSyncBroadcast.byStore(list.storeId, ['list', 'listItem'], 'list-mutation');
+    this.sseSyncBroadcast.byStore(list.storeId, SYNC_CHANGE.completedList, 'list-mutation');
 
     return { success: true };
   }
@@ -412,7 +413,7 @@ export class ListsService {
       data: { status: 'SHOPPING', assignedTo: assignedToId }
     });
 
-    this.sseSyncBroadcast.byStore(list.storeId, ['list', 'listItem'], 'list-mutation');
+    this.sseSyncBroadcast.byStore(list.storeId, SYNC_CHANGE.list, 'list-mutation');
 
     return { success: true };
   }
@@ -439,7 +440,7 @@ export class ListsService {
       data: { status: 'PLANNING', assignedTo: null }
     });
 
-    this.sseSyncBroadcast.byStore(list.storeId, ['list', 'listItem'], 'list-mutation');
+    this.sseSyncBroadcast.byStore(list.storeId, SYNC_CHANGE.list, 'list-mutation');
 
     return { success: true };
   }}

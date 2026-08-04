@@ -3,6 +3,7 @@ import { PrismaService } from '../prisma.service';
 import { SseSyncBroadcastService } from '../shared/sse-sync-broadcast.service';
 import { randomInt } from 'crypto';
 import { CreateInvitationDto, JoinHouseholdDto, RevokeInvitationDto } from './dto/invitation.dto';
+import { SYNC_CHANGE } from '../shared/sync-change';
 
 // Use a readable alphabet for tokens (no confusing chars like 0/O, 1/l)
 const TOKEN_ALPHABET = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
@@ -111,7 +112,7 @@ export class InvitationsService {
       })
     ]);
 
-    this.sseSyncBroadcast.byHousehold(invitation.householdId, ['household'], 'invitation-mutation');
+    this.sseSyncBroadcast.byHousehold(invitation.householdId, SYNC_CHANGE.householdCascade, 'invitation-mutation');
 
     return { householdName: invitation.household.name };
   }

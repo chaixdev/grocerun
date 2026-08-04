@@ -12,6 +12,7 @@ import { pullStores } from './collections/store-sync';
 import { pullHouseholds } from './collections/household-sync';
 import { SyncDeps } from './sync-deps';
 import { TOMBSTONE_WINDOW_MS } from './sync-helpers';
+import { SYNC_COLLECTIONS, SyncCollection } from '../shared/sync-change';
 import {
   PullResponse,
   PushRow,
@@ -19,39 +20,42 @@ import {
   SyncCheckpoint,
 } from './sync.types';
 
-export type SyncCollection = 'section' | 'item' | 'list' | 'listItem' | 'store' | 'household';
-
-const SUPPORTED_COLLECTIONS: readonly SyncCollection[] = ['section', 'item', 'list', 'listItem', 'store', 'household'];
+export type { SyncCollection } from '../shared/sync-change';
 
 const DEFAULT_BATCH_SIZE = 100;
 const MAX_BATCH_SIZE = 500;
 
 @Injectable()
 export class SyncService {
-  /** Per-request memo cache for access queries, cleared at the start of each pull/push. */
-  private accessCache = new Map<string, Promise<string[]>>();
-
   constructor(private prisma: PrismaService) {}
 
-  private get deps(): SyncDeps {
+  /**
+   * Creates dependencies for one pull or push operation.
+   *
+   * SyncService is a singleton, so a field-level cache would let concurrent
+   * requests clear or reuse one another's promises. Keeping this cache in the
+   * operation closure preserves memoization without crossing request bounds.
+   */
+  private createDeps(): SyncDeps {
+    const accessCache = new Map<string, Promise<string[]>>();
+
+    const getCachedAccess = (key: string, load: () => Promise<string[]>) => {
+      const cached = accessCache.get(key);
+      if (cached) return cached;
+
+      const value = load();
+      accessCache.set(key, value);
+      return value;
+    };
+
     return {
       prisma: this.prisma,
       getAccessibleStoreIds: (userId) => this.getAccessibleStoreIds(userId),
       getAccessibleHouseholdIds: (userId) => this.getAccessibleHouseholdIds(userId),
-      getAccessibleStoreIdsForSync: (userId) => {
-        const key = `storeIdsForSync:${userId}`;
-        if (!this.accessCache.has(key)) {
-          this.accessCache.set(key, this.getAccessibleStoreIdsForSync(userId));
-        }
-        return this.accessCache.get(key)!;
-      },
-      getAccessibleHouseholdIdsForSync: (userId) => {
-        const key = `householdIdsForSync:${userId}`;
-        if (!this.accessCache.has(key)) {
-          this.accessCache.set(key, this.getAccessibleHouseholdIdsForSync(userId));
-        }
-        return this.accessCache.get(key)!;
-      },
+      getAccessibleStoreIdsForSync: (userId) =>
+        getCachedAccess(`storeIdsForSync:${userId}`, () => this.getAccessibleStoreIdsForSync(userId)),
+      getAccessibleHouseholdIdsForSync: (userId) =>
+        getCachedAccess(`householdIdsForSync:${userId}`, () => this.getAccessibleHouseholdIdsForSync(userId)),
       verifyStoreAccess: (storeId, userId) => this.verifyStoreAccess(storeId, userId),
       verifyHouseholdAccess: (householdId, userId) => this.verifyHouseholdAccess(householdId, userId),
     };
@@ -67,23 +71,23 @@ export class SyncService {
     batchSize: number,
     userId: string,
   ): Promise<PullResponse> {
-    this.accessCache.clear();
     this.assertCollection(collection);
+    const deps = this.createDeps();
     const limit = Math.min(batchSize || DEFAULT_BATCH_SIZE, MAX_BATCH_SIZE);
 
     switch (collection) {
       case 'section':
-        return pullSections(this.deps, checkpoint, limit, userId);
+        return pullSections(deps, checkpoint, limit, userId);
       case 'item':
-        return pullItems(this.deps, checkpoint, limit, userId);
+        return pullItems(deps, checkpoint, limit, userId);
       case 'list':
-        return pullLists(this.deps, checkpoint, limit, userId);
+        return pullLists(deps, checkpoint, limit, userId);
       case 'listItem':
-        return pullListItems(this.deps, checkpoint, limit, userId);
+        return pullListItems(deps, checkpoint, limit, userId);
       case 'store':
-        return pullStores(this.deps, checkpoint, limit, userId);
+        return pullStores(deps, checkpoint, limit, userId);
       case 'household':
-        return pullHouseholds(this.deps, checkpoint, limit, userId);
+        return pullHouseholds(deps, checkpoint, limit, userId);
     }
   }
 
@@ -97,8 +101,8 @@ export class SyncService {
     userId: string,
     shoppingLockId?: string,
   ): Promise<PushResponse> {
-    this.accessCache.clear();
     this.assertCollection(collection);
+    const deps = this.createDeps();
 
     if (!Array.isArray(rows) || rows.length === 0) {
       return [];
@@ -107,9 +111,9 @@ export class SyncService {
     switch (collection) {
       // ── Local-first collections (active shopping) ──────────────────
       case 'item':
-        return pushItems(this.deps, rows, userId);
+        return pushItems(deps, rows, userId);
       case 'listItem':
-        return pushListItems(this.deps, rows, userId, shoppingLockId ?? userId);
+        return pushListItems(deps, rows, userId, shoppingLockId ?? userId);
 
       // ── Server-authoritative collections (no local-first writes) ───
       // All mutations for section, list, store, and household go through
@@ -268,7 +272,7 @@ export class SyncService {
   }
 
   private assertCollection(collection: string): asserts collection is SyncCollection {
-    if (!SUPPORTED_COLLECTIONS.includes(collection as SyncCollection)) {
+    if (!SYNC_COLLECTIONS.includes(collection as SyncCollection)) {
       throw new NotFoundException(`Unknown sync collection: ${collection}`);
     }
   }

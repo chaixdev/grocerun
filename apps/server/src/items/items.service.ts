@@ -6,6 +6,7 @@ import { PrismaService } from '../prisma.service';
 import { AccessService } from '../shared/access.service';
 import { SseSyncBroadcastService } from '../shared/sse-sync-broadcast.service';
 import { UpdateItemDto } from './dto/update-item.dto';
+import { SYNC_CHANGE } from '../shared/sync-change';
 
 type SearchItemsParams = z.infer<typeof SearchItemsSchema>;
 
@@ -45,7 +46,7 @@ export class ItemsService {
 
     // 3. Notify other household members via SSE (fire-and-forget —
     //    failure must never block the REST response).
-    this.sseSyncBroadcast.byStore(item.storeId, ['item'], 'item-updated');
+    this.sseSyncBroadcast.byStore(item.storeId, SYNC_CHANGE.item, 'item-updated');
 
     return { status: 'UPDATED' };
   }

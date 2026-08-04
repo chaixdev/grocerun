@@ -4,6 +4,7 @@ import { AccessService } from '../shared/access.service';
 import { SseSyncBroadcastService } from '../shared/sse-sync-broadcast.service';
 import { CreateStoreDto, UpdateStoreDto } from './dto/store.dto';
 import { cascadeSoftDeleteStore } from '../shared/cascade-soft-delete';
+import { SYNC_CHANGE } from '../shared/sync-change';
 
 @Injectable()
 export class StoresService {
@@ -63,7 +64,7 @@ export class StoresService {
       },
     });
 
-    this.sseSyncBroadcast.byHousehold(dto.householdId, ['store', 'section'], 'store-mutation');
+    this.sseSyncBroadcast.byHousehold(dto.householdId, SYNC_CHANGE.store, 'store-mutation');
 
     return store;
   }
@@ -81,7 +82,7 @@ export class StoresService {
     });
 
     const store = await this.prisma.store.findUnique({ where: { id: storeId }, select: { householdId: true } });
-    if (store) this.sseSyncBroadcast.byHousehold(store.householdId, ['store', 'section'], 'store-mutation');
+    if (store) this.sseSyncBroadcast.byHousehold(store.householdId, SYNC_CHANGE.store, 'store-mutation');
 
     return { success: true };
   }
@@ -96,7 +97,7 @@ export class StoresService {
     });
 
     const store = await this.prisma.store.findUnique({ where: { id: storeId }, select: { householdId: true } });
-    if (store) this.sseSyncBroadcast.byHousehold(store.householdId, ['store', 'section'], 'store-mutation');
+    if (store) this.sseSyncBroadcast.byHousehold(store.householdId, SYNC_CHANGE.storeCascade, 'store-mutation');
 
     return { success: true };
   }
