@@ -8,7 +8,7 @@
 
 ## Background
 
-The household activity feed epic (#11) needs a data foundation: persisted user-facing notifications that sync to client devices. Currently, the only notification mechanism is a fire-and-forget SSE broadcast (`NotificationService`) that tells clients to re-pull sync collections — there are no persisted notification records, no notification API, and no notification sync collection.
+The household activity feed epic (#11) needs a data foundation: persisted user-facing notifications that sync to client devices. Currently, the only notification mechanism is the fire-and-forget SSE helper (`SseSyncBroadcastService`) that tells clients to re-pull sync collections — there are no persisted notification records, no notification API, and no notification sync collection.
 
 This ticket creates the full server-side data pipeline: Prisma model, REST API, sync integration, and notification creation in existing mutation services. #11b will build the client-side bell UI and React hooks on top of this.
 
@@ -27,24 +27,24 @@ A household member performs an action (adds an item, completes a list, joins the
 4. **Sync pull collection works** — `GET /sync/notification/pull` returns notifications for the current user, checkpoint-paginated, respecting the tombstone window.
 5. **RxDB notification collection exists** — schema, doc type, pull-only replication wired in `database.ts`, `RXDB_NAME` bumped.
 6. **SSE routing is collection-scoped** — `sharedPullStreams` changed from `Set<Subject>` to `Map<string, Subject>`, `SYNC_CHANGED` events parsed for `collections` array, RESYNC only emitted to matching streams. (Prerequisite for efficient notification dispatch.)
-7. **Self-notify skipped on push** — pusher's userId excluded from `SseBroadcastService.notifyChanged` so optimistic local writes don't trigger redundant re-pulls.
+7. **Push convergence is collection-scoped** — accepted pushes notify every affected household connection, including the pusher's other tabs/devices, so canonical server-side state converges without re-pulling unrelated collections.
 8. **Access queries memoized** — `getAccessibleStoreIdsForSync`/`getAccessibleHouseholdIdsForSync` cached per-request so 5 collections don't each make the same Prisma query.
 9. **Notifications are created on key mutations** (staged — prove pattern first, then expand):
    - Stage 1 (prove pattern): Store added
    - Stage 2 (expand): Section added, List created, List completed, Invitation accepted (member joined)
 10. **SSE dispatch** — notification creation triggers `SYNC_CHANGED` with `['notification']` collection so connected clients re-pull.
-11. **Existing `NotificationService` renamed** — SSE sync broadcast helper renamed to `SseSyncBroadcastService` to disambiguate from `UserNotificationService`. New `UserNotificationService` handles user-facing notifications.
+11. **Existing SSE helper is named `SseSyncBroadcastService`** — the user-facing `UserNotificationService` remains distinct and handles persisted notifications.
 12. **All tests pass** — unit, server integration, web component. No regressions in existing tests.
 
 ## Scope
 
 ### In scope
-- **SSE transport fixes** (prerequisite): collection-scoped SSE routing, skip self-notify on push, memoize access queries
+- **SSE transport fixes** (prerequisite, complete): collection-scoped SSE routing with canonical-name validation, full same-user fan-out, and operation-local access memoization
 - Prisma `Notification` model + migration (touches 3 models: Notification, User, Household)
 - Shared Zod DTOs for notifications
 - NestJS `NotificationsModule`: controller (REST read/mark-read) + `NotificationsService`
 - `UserNotificationService` in `SharedModule` (global): creates notification records + dispatches SSE
-- Rename existing `NotificationService` → `SseSyncBroadcastService`
+- Use the existing `SseSyncBroadcastService` name for sync-only broadcast concerns
 - Sync integration: `'notification'` pull-only collection
 - RxDB notification schema + pull replication wiring
 - Notification creation calls (staged): prove with 1 service, expand to 4 total
@@ -83,8 +83,8 @@ A household member performs an action (adds an item, completes a list, joins the
 | Server migration | `apps/server/prisma/migrations/` | New migration |
 | Server notifications | `apps/server/src/notifications/` (new) | New module (REST API only) |
 | Server sync | `apps/server/src/sync/sync.service.ts`, `apps/server/src/sync/collections/notification-sync.ts` (new) | Additive + push() exhaustiveness |
-| Server shared | `apps/server/src/shared/shared.module.ts`, `apps/server/src/shared/notification.service.ts` | Rename + export new service |
-| Server SSE | `apps/server/src/sync/sse-broadcast.service.ts` | Skip self-notify on push |
+| Server shared | `apps/server/src/shared/shared.module.ts`, `apps/server/src/shared/sse-sync-broadcast.service.ts` | Export new `UserNotificationService`; retain existing SSE helper |
+| Server SSE | `apps/server/src/sync/sse-broadcast.service.ts` | Reuse collection-scoped all-connection fan-out for notification dispatch |
 | Server services | `stores.service.ts`, `sections.service.ts`, `lists.service.ts`, `invitations.service.ts` | Additive (new call after mutations) |
 | Shared DTOs | `apps/_shared/dtos/src/index.ts` | Additive |
 | Web RxDB | `apps/web/src/core/rxdb/schema.ts`, `apps/web/src/core/rxdb/database.ts` | Additive + RXDB_NAME bump + SSE routing fix |
@@ -100,20 +100,18 @@ A household member performs an action (adds an item, completes a list, joins the
     - Update `registerPullStream` to accept collection name + subject
     - ~50 lines
 
-0b. **Skip self-notify on push** (`apps/server/src/sync/sse-broadcast.service.ts`, `apps/server/src/sync/sync.service.ts`):
-    - Thread pusher's `userId` to `SseBroadcastService.notifyChanged`
-    - Exclude pusher from the SSE recipient list (their local state is already correct from optimistic write)
-    - ~10 lines
+0b. **Preserve push convergence** (`apps/server/src/sync/sse-broadcast.service.ts`, `apps/server/src/sync/sync.controller.ts`):
+    - Keep the implemented all-connection fan-out, including the pusher's other tabs/devices
+    - Keep `SYNC_CHANGED.collections` scoped so only the changed collection pulls
 
 0c. **Memoize access queries** (`apps/server/src/sync/sync.service.ts`):
     - Cache `getAccessibleStoreIdsForSync` / `getAccessibleHouseholdIdsForSync` per-request (or 5-second TTL)
     - Eliminates 5 redundant Prisma queries during `resyncAll()`
     - ~15 lines
 
-0d. **Rename `NotificationService` → `SseSyncBroadcastService`** (`apps/server/src/shared/`):
-    - Rename file, class, and all 6 import sites (items, lists, stores, sections, households, invitations services)
-    - Prevents permanent confusion with `UserNotificationService`
-    - ~9 files touched, mechanical rename
+0d. **Use existing `SseSyncBroadcastService`** (`apps/server/src/shared/`):
+    - The rename is already complete; do not repeat it
+    - Add only the distinct `UserNotificationService` for persisted user-facing notifications
 
 ### Phase 1: Data Model + DTOs
 
@@ -228,6 +226,8 @@ type        String
         entityId: n.entityId,
         message: n.message,
         readAt: n.readAt?.toISOString() ?? null,
+        category: n.category ?? null,
+        dismissedAt: n.dismissedAt?.toISOString() ?? null,
       };
     }
 
@@ -269,6 +269,8 @@ buildBaseFilter: async (d, u) => {
       entityId: string | null;
       message: string;
       readAt: string | null;
+      category: string | null;
+      dismissedAt: string | null;
     }
 
     export const notificationSchema: RxJsonSchema<NotificationDocType> = {
@@ -287,6 +289,8 @@ buildBaseFilter: async (d, u) => {
         entityId: { type: ['string', 'null'], maxLength: 30 },
         message: { type: 'string' },
         readAt: { type: ['string', 'null'], format: 'date-time' },
+        category: { type: ['string', 'null'] },
+        dismissedAt: { type: ['string', 'null'], format: 'date-time' },
       },
       required: ['id', 'updatedAt', 'householdId', 'userId', 'type', 'actorId', 'actorName', 'entityType', 'message'],
       indexes: ['updatedAt'],
@@ -301,7 +305,7 @@ buildBaseFilter: async (d, u) => {
     - Add `export function resyncNotification()` — emits into pull stream
     - Add `function startNotificationReplication(collection)` — calls `startPullReplication({ collection, basePath: '/api/v1/sync/notification', replicationIdentifier: 'grocerun-notification-sync-v1', pullStream$: notificationPullStream$, enablePush: false })`
     - Call `startNotificationReplication(notificationCollection)` in `initDb()`
-    - Register pull stream via `registerPullStream(notificationPullStream$)`
+    - Register pull stream via `registerPullStream('notification', notificationPullStream$)` after adding `notification` to the canonical sync collection name list
 
 ### Phase 5: Notification Creation in Existing Services (Staged)
 
@@ -359,18 +363,18 @@ buildBaseFilter: async (d, u) => {
 ### Unit tests
 - **`UserNotificationService`** — `createForHousehold()`: creates N records for N-1 members (excludes actor), dispatches SSE with correct recipient IDs, handles missing household/user gracefully, fire-and-forget error handling.
 - **`NotificationsService`** — `list()`: correct Prisma query, pagination. `markRead()`: ownership check, sets `readAt`. `markAllRead()`: updates only current user's unread.
-- **`notificationToSyncDoc()`** — Correct field mapping, ISO-8601 conversion, null handling for `entityId` and `readAt`.
+- **`notificationToSyncDoc()`** — Correct field mapping, ISO-8601 conversion, null handling for `entityId`, `readAt`, `category`, and `dismissedAt`.
 
 ### Server integration tests
 - `GET /notifications` — returns only current user's notifications, sorted newest-first, respects pagination.
-- `PATCH /notifications/:id/read` — marks as read, 403 if not owner.
-- `PATCH /notifications/read-all` — marks all unread as read.
+- `PATCH /notifications/:id/read` — marks as read, 403 if not owner, and broadcasts `SYNC_CHANGED` with `['notification']` to the notification owner's connected devices.
+- `PATCH /notifications/read-all` — marks all unread as read and broadcasts `SYNC_CHANGED` with `['notification']` when rows changed.
 - `GET /sync/notification/pull` — returns notifications for current user, checkpoint pagination works, tombstone window respected.
 - **Tombstone delivery test** — create notification, soft-delete it, pull, verify `_deleted: true` in result. (Would catch the `deleted: false` in buildBaseFilter bug.)
 - After `POST /stores` (create store), a notification record exists in DB for all household members except the actor.
 - After mutation, SSE event includes `['notification']` in collections array.
 - **SSE routing test** — `SYNC_CHANGED` with `['notification']` only triggers notification pull, not other collections.
-- **Self-notify skip test** — push mutation does not send SSE to the pusher.
+- **Same-user convergence test** — a notification read on one device dispatches `['notification']` so another connected device for the same user re-pulls.
 
 ### Web component tests
 - Notification RxDB collection creates and validates documents against schema.
@@ -410,7 +414,7 @@ buildBaseFilter: async (d, u) => {
 
 7. **Household deletion cascade doesn't soft-delete notifications.** `cascadeSoftDeleteHousehold` soft-deletes Store→Section→Item→List→ListItem→Household but not Notification. Orphaned notifications remain queryable by `userId` for up to 30 days (tombstone window). Probably fine — members see notifications about a now-deleted household. Acknowledged, not blocking.
 
-8. **`SseBroadcastService` is provided in both `SharedModule` and `SyncModule`.** Pre-existing duplicate. Not introduced by this plan. `UserNotificationService` in `SharedModule` gets the global instance. Worth cleaning up as a follow-up.
+8. **Resolved: `SseBroadcastService` has one global provider.** The duplicate `SyncModule` provider was removed; `UserNotificationService` will use the shared application-wide connection registry.
 
 ## Implementation Notes
 
@@ -432,5 +436,4 @@ buildBaseFilter: async (d, u) => {
 - Notification cleanup/TTL policy — future
 - Activity feed UI (full feed view, not just bell) — future, part of #11 epic
 - Collection consolidation: fold sections into stores (see `planning/brainstorm/2026-07-10T0000_sse-sync-split-analysis.md`) — separate refactor ticket
-- Clean up `SseBroadcastService` duplicate provider in `SharedModule` + `SyncModule` — pre-existing smell
-- Update `wiki/technical-design/rxdb-sync-protocol.md` to fix misleading SSE routing claim (doc says collection-scoped, code didn't implement it — now fixed in Phase 0)
+- Update `wiki/technical-design/rxdb-sync-protocol.md` when the notification collection is implemented to add it to the collection inventory

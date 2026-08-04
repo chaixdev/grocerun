@@ -2,9 +2,12 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { Subject } from 'rxjs';
 import type { RxReplicationPullStreamItem } from 'rxdb';
 import { handleSyncChangedPayload, openSharedSyncStream, registerPullStream } from '../database';
+import { onDiagnostic } from '../../diagnostics/event-bus';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type StreamItem = RxReplicationPullStreamItem<any, any>;
+type StreamItem = RxReplicationPullStreamItem<
+  { id: string; updatedAt: string },
+  { id: string; updatedAt: string }
+>;
 
 function makeSubject(): Subject<StreamItem> {
   const subject = new Subject<StreamItem>();
@@ -65,12 +68,43 @@ describe('handleSyncChangedPayload', () => {
     expect(storeSubject.next).not.toHaveBeenCalled();
   });
 
-  it('broadcasts to all pull streams on malformed, empty or missing collections', () => {
+  it('broadcasts to all pull streams and emits an SSE error on malformed, empty or missing collections', () => {
+    const diagnostics: Array<{ type: string; state?: string }> = []
+    const unsubscribe = onDiagnostic((event) => diagnostics.push(event))
+
     handleSyncChangedPayload('not-json');
     handleSyncChangedPayload('{"collections":[]}');
     handleSyncChangedPayload('{"reason":"mutation"}');
     expect(listSubject.next).toHaveBeenCalledTimes(3);
     expect(storeSubject.next).toHaveBeenCalledTimes(3);
+    expect(diagnostics).toHaveLength(3)
+    expect(diagnostics).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ type: 'sse', state: 'error' }),
+        expect.objectContaining({ type: 'sse', state: 'error' }),
+        expect.objectContaining({ type: 'sse', state: 'error' }),
+      ]),
+    )
+    unsubscribe()
+  });
+
+  it('broadcasts to all streams when a collection is unknown or has no registered stream', () => {
+    const diagnostics: Array<{ type: string; state?: string }> = []
+    const unsubscribe = onDiagnostic((event) => diagnostics.push(event))
+
+    handleSyncChangedPayload('{"collections":["unknown"]}');
+    handleSyncChangedPayload('{"collections":["section"]}');
+
+    expect(listSubject.next).toHaveBeenCalledTimes(2);
+    expect(storeSubject.next).toHaveBeenCalledTimes(2);
+    expect(diagnostics).toHaveLength(2)
+    expect(diagnostics).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ type: 'sse', state: 'error' }),
+        expect.objectContaining({ type: 'sse', state: 'error' }),
+      ]),
+    )
+    unsubscribe()
   });
 
   it('re-registering a stream replaces the prior registration without affecting others', () => {
