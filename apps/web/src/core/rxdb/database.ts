@@ -12,6 +12,7 @@
 
 import { createRxDatabase, RxDatabase, RxCollection, addRxPlugin, RxReplicationPullStreamItem, RxStorage, removeRxDatabase, RxReplicationWriteToMasterRow, WithDeleted } from 'rxdb'
 import { RxDBDevModePlugin } from 'rxdb/plugins/dev-mode'
+import { RxDBMigrationPlugin } from 'rxdb/plugins/migration-schema'
 import { wrappedValidateZSchemaStorage } from 'rxdb/plugins/validate-z-schema'
 import { getRxStorageDexie } from 'rxdb/plugins/storage-dexie'
 import { replicateRxCollection, RxReplicationState } from 'rxdb/plugins/replication'
@@ -94,6 +95,7 @@ function decodeJwtSub(token: string | null): string | null {
 if (import.meta.env.DEV) {
   addRxPlugin(RxDBDevModePlugin)
 }
+addRxPlugin(RxDBMigrationPlugin)
 
 /**
  * In dev-mode RxDB requires a schema validator wrapping the storage.
@@ -185,6 +187,13 @@ async function initDatabase(): Promise<GrocerunDatabase> {
     },
     lists: {
       schema: listSchema,
+      migrationStrategies: {
+        1: (oldDoc: ListDocType & { assignedTo?: string }) => {
+          const doc = { ...oldDoc }
+          delete doc.assignedTo
+          return doc
+        },
+      },
     },
     listItems: {
       schema: listItemSchema,

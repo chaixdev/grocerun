@@ -10,7 +10,6 @@ describe('ListItemRow', () => {
   const defaultProps = {
     listItem: defaultItem,
     isReadOnly: false,
-    isLocked: false,
     isHighlighted: false,
     isPlanningMode: true,
     onToggle: vi.fn(),
@@ -94,14 +93,6 @@ describe('ListItemRow', () => {
       expect(screen.getByLabelText('Show comment for Milk')).toBeInTheDocument();
     });
 
-    it('shows opacity and no click cursor when locked', () => {
-      render(
-        <ListItemRow {...defaultProps} isLocked={true} isPlanningMode={false} />,
-      );
-      const name = screen.getByTestId('item-name');
-      // Should still render, possibly disabled or read-only-styled
-      expect(name).toBeInTheDocument();
-    });
   });
 
   // -------------------------------------------------------------------------
@@ -196,27 +187,5 @@ describe('ListItemRow', () => {
       expect(screen.queryByText('Edit Item')).not.toBeInTheDocument();
     });
 
-    it('hides actions dropdown when locked', () => {
-      render(
-        <ListItemRow
-          {...defaultProps}
-          isLocked={true}
-          isPlanningMode={false}
-        />,
-      );
-      expect(screen.queryByText('Edit Item')).not.toBeInTheDocument();
-    });
-
-    it('renders stepper in locked state', () => {
-      render(
-        <ListItemRow
-          {...defaultProps}
-          isLocked={true}
-          isPlanningMode={false}
-        />,
-      );
-      // Row should still render in locked state
-      expect(screen.getByTestId('list-item-row-milk')).toBeInTheDocument();
-    });
   });
 });

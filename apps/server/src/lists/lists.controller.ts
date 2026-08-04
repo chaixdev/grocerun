@@ -48,7 +48,7 @@ export class ListsController {
     @Body() dto: AddItemDto,
     @CurrentUser() user: JwtPayload,
   ) {
-    return this.listsService.addItemToList(dto, user.userId!, user.sub);
+    return this.listsService.addItemToList(dto, user.userId!);
   }
 
   @Patch('items/toggle')
@@ -56,7 +56,7 @@ export class ListsController {
     @Body() dto: ToggleItemDto,
     @CurrentUser() user: JwtPayload,
   ) {
-    return this.listsService.toggleListItem(dto, user.userId!, user.sub);
+    return this.listsService.toggleListItem(dto, user.userId!);
   }
 
   @Patch('items/quantity')
@@ -64,7 +64,7 @@ export class ListsController {
     @Body() dto: UpdateQuantityDto,
     @CurrentUser() user: JwtPayload,
   ) {
-    return this.listsService.updateListItemQuantity(dto, user.userId!, user.sub);
+    return this.listsService.updateListItemQuantity(dto, user.userId!);
   }
 
   @Delete('items/:listItemId')
@@ -72,7 +72,7 @@ export class ListsController {
     @Param('listItemId') listItemId: string,
     @CurrentUser() user: JwtPayload,
   ) {
-    return this.listsService.removeItemFromList(listItemId, user.userId!, user.sub);
+    return this.listsService.removeItemFromList(listItemId, user.userId!);
   }
 
   @Post(':listId/complete')
@@ -80,7 +80,7 @@ export class ListsController {
     @Param('listId') listId: string,
     @CurrentUser() user: JwtPayload,
   ) {
-    return this.listsService.completeList(listId, user.userId!, user.sub);
+    return this.listsService.completeList(listId, user.userId!);
   }
 
   @Post(':listId/start-shopping')
@@ -88,7 +88,7 @@ export class ListsController {
     @Param('listId') listId: string,
     @CurrentUser() user: JwtPayload,
   ) {
-    return this.listsService.startShopping(listId, user.userId!, user.sub);
+    return this.listsService.startShopping(listId, user.userId!);
   }
 
   @Post(':listId/cancel-shopping')
@@ -96,6 +96,6 @@ export class ListsController {
     @Param('listId') listId: string,
     @CurrentUser() user: JwtPayload,
   ) {
-    return this.listsService.cancelShopping(listId, user.userId!, user.sub);
+    return this.listsService.cancelShopping(listId, user.userId!);
   }
 }

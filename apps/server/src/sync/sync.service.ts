@@ -99,7 +99,6 @@ export class SyncService {
     collection: SyncCollection,
     rows: PushRow[],
     userId: string,
-    shoppingLockId?: string,
   ): Promise<PushResponse> {
     this.assertCollection(collection);
     const deps = this.createDeps();
@@ -113,7 +112,7 @@ export class SyncService {
       case 'item':
         return pushItems(deps, rows, userId);
       case 'listItem':
-        return pushListItems(deps, rows, userId, shoppingLockId ?? userId);
+        return pushListItems(deps, rows, userId);
 
       // ── Server-authoritative collections (no local-first writes) ───
       // All mutations for section, list, store, and household go through

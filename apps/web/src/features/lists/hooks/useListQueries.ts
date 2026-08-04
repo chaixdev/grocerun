@@ -10,7 +10,6 @@ export interface List {
   createdAt: string
   _count: { items: number }
   status: string
-  assignedTo?: string | null
 }
 
 export interface ListDetailItem {
@@ -41,7 +40,6 @@ export interface ListDetail {
   id: string
   name: string
   status: string
-  assignedTo?: string | null
   updatedAt: string
   store: {
     id: string
@@ -73,7 +71,6 @@ export function useStoreLists(storeId: string) {
               name: list.name,
               createdAt: list.updatedAt,
               status: list.status,
-              assignedTo: list.assignedTo ?? null,
               _count: { items: itemCountByListId.get(list.id) ?? 0 },
             }))
             .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
@@ -163,7 +160,6 @@ export function useListDetail(listId: string) {
             id: currentList.id,
             name: currentList.name,
             status: currentList.status,
-            assignedTo: currentList.assignedTo ?? null,
             updatedAt: currentList.updatedAt,
             store: {
               id: currentList.storeId,

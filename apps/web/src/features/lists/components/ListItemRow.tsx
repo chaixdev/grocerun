@@ -37,7 +37,6 @@ interface ListItem {
 interface ListItemRowProps {
     listItem: ListItem
     isReadOnly: boolean
-    isLocked?: boolean
     isHighlighted: boolean
     isPlanningMode: boolean
     onToggle: (id: string, checked: boolean, purchasedQuantity?: number) => void
@@ -50,7 +49,6 @@ interface ListItemRowProps {
 export function ListItemRow({
     listItem,
     isReadOnly,
-    isLocked = false,
     isHighlighted,
     isPlanningMode,
     onToggle,
@@ -71,7 +69,7 @@ export function ListItemRow({
 
     // "Shopping Mode" for UI purposes implies not planning mode and not read only
     const isShoppingMode = !isPlanningMode && !isReadOnly
-    const isInteractionDisabled = isReadOnly || isLocked
+    const isInteractionDisabled = isReadOnly
     const noteText = listItem.item.note?.trim() ?? null
     const [isNoteOpen, setIsNoteOpen] = useState(false)
 
@@ -142,7 +140,7 @@ export function ListItemRow({
         <div
             ref={itemRef}
             data-testid={`list-item-row-${listItem.item.name.toLowerCase().replace(/\s+/g, '-')}`}
-            className={`group relative z-0 flex items-center gap-3 p-3 border-b last:border-0 transition-all duration-200 ${isPlanningMode || isInteractionDisabled ? "" : "hover:bg-muted/30 cursor-pointer"} ${optimisticChecked ? "opacity-50" : ""} ${isHighlighted ? "bg-primary/10" : ""} ${isLocked ? "opacity-70" : ""}`}
+            className={`group relative z-0 flex items-center gap-3 p-3 border-b last:border-0 transition-all duration-200 ${isPlanningMode || isInteractionDisabled ? "" : "hover:bg-muted/30 cursor-pointer"} ${optimisticChecked ? "opacity-50" : ""} ${isHighlighted ? "bg-primary/10" : ""}`}
         >
             {!isInteractionDisabled && !isPlanningMode && (
                 <button

@@ -65,7 +65,6 @@ export class SyncController {
       collection as SyncCollection,
       rows,
       user.userId!,
-      user.sub,
     );
 
     if (rows.length > 0) {

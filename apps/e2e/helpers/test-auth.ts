@@ -5,14 +5,36 @@
  * (NODE_ENV=test + TEST_SECRET signing) and seeds test fixtures via API.
  */
 import * as jwt from 'jsonwebtoken';
-import { execSync } from 'child_process';
+import { execFileSync } from 'child_process';
 import * as path from 'path';
 
 const TEST_SECRET = 'grocerun-test-secret-do-not-use-in-production';
-const TEST_USER_ID = 'test-playwright-user';
-const TEST_USER_EMAIL = 'test@playwright.dev';
+const TEST_DATABASE_URL = 'file:./test.db';
+
+interface PlaywrightTestUser {
+  userId: string;
+  email: string;
+  name: string;
+}
+
+const PRIMARY_TEST_USER: PlaywrightTestUser = {
+  userId: 'test-playwright-user',
+  email: 'test@playwright.dev',
+  name: 'Playwright Test User',
+};
+
+const SECOND_TEST_USER: PlaywrightTestUser = {
+  userId: 'test-playwright-user-2',
+  email: 'test2@playwright.dev',
+  name: 'Playwright Test User 2',
+};
 
 const serverDir = path.resolve(__dirname, '../../server');
+
+export interface TestUserIdentity {
+  token: string;
+  userId: string;
+}
 
 export interface TestAuth {
   token: string;
@@ -20,34 +42,62 @@ export interface TestAuth {
   householdId: string;
   storeId: string;
   sectionId: string;
+  secondUser: TestUserIdentity;
 }
 
-export function makePlaywrightToken(): string {
+export function makePlaywrightToken(user: PlaywrightTestUser = PRIMARY_TEST_USER): string {
   return jwt.sign(
-    { sub: TEST_USER_ID, email: TEST_USER_EMAIL },
+    { sub: user.userId, email: user.email },
     TEST_SECRET,
     { expiresIn: '1h' },
   );
 }
 
-function upsertTestUser(): void {
-  // Use raw SQL via prisma db execute — avoids PrismaClient module resolution issues.
-  // Always use test.db (not server-test.db) — this is the Playwright database.
-  const dbUrl = 'file:./test.db';
-  const sql = `
-INSERT OR IGNORE INTO User (id, email, name)
-VALUES ('${TEST_USER_ID}', '${TEST_USER_EMAIL}', 'Playwright Test User');
-`;
+function errorMessage(error: unknown): string {
+  if (typeof error === 'object' && error !== null && 'stderr' in error) {
+    const stderr = (error as { stderr?: unknown }).stderr;
+    if (Buffer.isBuffer(stderr)) return stderr.toString();
+    if (typeof stderr === 'string') return stderr;
+  }
+  return error instanceof Error ? error.message : String(error);
+}
+
+function executeSql(sql: string, operation: string): void {
   try {
-    execSync(`echo "${sql}" | npx prisma db execute --stdin`, {
+    execFileSync('npx', ['prisma', 'db', 'execute', '--stdin'], {
       cwd: serverDir,
-      env: { ...process.env, DATABASE_URL: dbUrl },
+      env: { ...process.env, DATABASE_URL: TEST_DATABASE_URL },
+      input: sql,
       stdio: 'pipe',
     });
-  } catch (e: any) {
-    console.error('[seed] upsertTestUser FAILED:', e.stderr?.toString() || e.message);
-    throw e;
+  } catch (error: unknown) {
+    console.error(`[seed] ${operation} FAILED: ${errorMessage(error)}`);
+    throw error;
   }
+}
+
+function sqlString(value: string): string {
+  return `'${value.replace(/'/g, "''")}'`;
+}
+
+function upsertTestUsers(): void {
+  // Use raw SQL via prisma db execute — avoids PrismaClient module resolution issues.
+  // Always use test.db (not server-test.db) — this is the Playwright database.
+  const sql = `
+INSERT OR IGNORE INTO User (id, email, name)
+VALUES
+  (${sqlString(PRIMARY_TEST_USER.userId)}, ${sqlString(PRIMARY_TEST_USER.email)}, ${sqlString(PRIMARY_TEST_USER.name)}),
+  (${sqlString(SECOND_TEST_USER.userId)}, ${sqlString(SECOND_TEST_USER.email)}, ${sqlString(SECOND_TEST_USER.name)});
+`;
+  executeSql(sql, 'upsertTestUsers');
+}
+
+function addUserToHousehold(householdId: string, userId: string): void {
+  const sql = `
+INSERT OR IGNORE INTO "_HouseholdToUser" ("A", "B")
+VALUES (${sqlString(householdId)}, ${sqlString(userId)});
+`;
+  executeSql(sql, 'addUserToHousehold');
 }
 
 /**
@@ -55,27 +105,18 @@ VALUES ('${TEST_USER_ID}', '${TEST_USER_EMAIL}', 'Playwright Test User');
  * Idempotent — safe to call before each run.
  */
 function truncateAll(): void {
-  const dbUrl = 'file:./test.db';
   const tables = ['Section', 'Store', 'Household', 'User'];
-  try {
-    for (const table of tables) {
-      execSync(`echo "DELETE FROM ${table};" | npx prisma db execute --stdin`, {
-        cwd: serverDir,
-        env: { ...process.env, DATABASE_URL: dbUrl },
-        stdio: 'pipe',
-      });
-    }
-  } catch (e: any) {
-    console.error('[seed] Truncation FAILED:', e.stderr?.toString() || e.message);
-    throw e;
+  for (const table of tables) {
+    executeSql(`DELETE FROM ${table};`, 'truncation');
   }
 }
 
 export async function seedPlaywrightFixtures(baseURL: string): Promise<TestAuth> {
   truncateAll();
-  upsertTestUser();
+  upsertTestUsers();
 
   const token = makePlaywrightToken();
+  const secondToken = makePlaywrightToken(SECOND_TEST_USER);
   const authHeader = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
 
   // 1. Create household via API
@@ -91,6 +132,9 @@ export async function seedPlaywrightFixtures(baseURL: string): Promise<TestAuth>
   }
   const household: { id: string } = await hhRes.json();
   const householdId = household.id;
+
+  // Prisma's implicit User ↔ Household relation is stored in _HouseholdToUser.
+  addUserToHousehold(householdId, SECOND_TEST_USER.userId);
 
   // 2. Create store via API
   const storeRes = await fetch(`${baseURL}/api/v1/stores`, {
@@ -119,5 +163,12 @@ export async function seedPlaywrightFixtures(baseURL: string): Promise<TestAuth>
   }
   const section: { id: string } = await sectionRes.json();
 
-  return { token, userId: TEST_USER_ID, householdId, storeId, sectionId: section.id };
+  return {
+    token,
+    userId: PRIMARY_TEST_USER.userId,
+    householdId,
+    storeId,
+    sectionId: section.id,
+    secondUser: { token: secondToken, userId: SECOND_TEST_USER.userId },
+  };
 }

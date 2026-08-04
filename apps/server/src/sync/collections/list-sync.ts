@@ -36,7 +36,6 @@ function listToSyncDoc(row: {
   name: string;
   storeId: string;
   status: string;
-  assignedTo: string | null;
   updatedAt: Date;
   deleted: boolean;
 }): SyncDocument {
@@ -45,7 +44,6 @@ function listToSyncDoc(row: {
     name: row.name,
     storeId: row.storeId,
     status: row.status,
-    ...(row.assignedTo ? { assignedTo: row.assignedTo } : {}),
     updatedAt: row.updatedAt.toISOString(),
     _deleted: row.deleted,
   };
