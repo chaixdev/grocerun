@@ -3,6 +3,7 @@ import { PrismaService } from '../prisma.service';
 import { AccessService } from '../shared/access.service';
 import { SseSyncBroadcastService } from '../shared/sse-sync-broadcast.service';
 import { CreateSectionDto, UpdateSectionDto, ReorderSectionsDto } from './dto/section.dto';
+import { SYNC_CHANGE } from '../shared/sync-change';
 
 @Injectable()
 export class SectionsService {
@@ -56,7 +57,7 @@ export class SectionsService {
       },
     });
 
-    this.sseSyncBroadcast.byStore(dto.storeId, ['section'], 'section-mutation');
+    this.sseSyncBroadcast.byStore(dto.storeId, SYNC_CHANGE.section, 'section-mutation');
 
     return section;
   }
@@ -77,7 +78,7 @@ export class SectionsService {
       data: { name: dto.name },
     });
 
-    this.sseSyncBroadcast.byStore(section.storeId, ['section'], 'section-mutation');
+    this.sseSyncBroadcast.byStore(section.storeId, SYNC_CHANGE.section, 'section-mutation');
 
     return { success: true };
   }
@@ -108,7 +109,7 @@ export class SectionsService {
       });
     });
 
-    this.sseSyncBroadcast.byStore(section.storeId, ['section'], 'section-mutation');
+    this.sseSyncBroadcast.byStore(section.storeId, SYNC_CHANGE.sectionWithItemReassignment, 'section-mutation');
 
     return { success: true };
   }
@@ -138,7 +139,7 @@ export class SectionsService {
       )
     );
 
-    this.sseSyncBroadcast.byStore(storeId, ['section'], 'section-mutation');
+    this.sseSyncBroadcast.byStore(storeId, SYNC_CHANGE.section, 'section-mutation');
 
     return { success: true };
   }

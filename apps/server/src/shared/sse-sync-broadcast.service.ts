@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { SseBroadcastService } from '../sync/sse-broadcast.service';
+import { SyncCollection } from './sync-change';
 
 @Injectable()
 export class SseSyncBroadcastService {
@@ -15,7 +16,7 @@ export class SseSyncBroadcastService {
    * Notify all household members by looking up the store's household.
    * Fire-and-forget — failure must never block the mutation.
    */
-  byStore(storeId: string, collections: string[], reason: string) {
+  byStore(storeId: string, collections: readonly SyncCollection[], reason: string) {
     this.prisma.store
       .findUnique({
         where: { id: storeId },
@@ -42,7 +43,7 @@ export class SseSyncBroadcastService {
    * Notify all household members by household ID.
    * Fire-and-forget — failure must never block the mutation.
    */
-  byHousehold(householdId: string, collections: string[], reason: string) {
+  byHousehold(householdId: string, collections: readonly SyncCollection[], reason: string) {
     this.prisma.household
       .findUnique({
         where: { id: householdId },

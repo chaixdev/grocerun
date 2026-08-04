@@ -4,6 +4,7 @@ import { SseBroadcastService } from '../sync/sse-broadcast.service';
 import { SseSyncBroadcastService } from '../shared/sse-sync-broadcast.service';
 import { CreateHouseholdDto, UpdateHouseholdDto } from './dto/household.dto';
 import { cascadeSoftDeleteHousehold } from '../shared/cascade-soft-delete';
+import { SYNC_CHANGE } from '../shared/sync-change';
 
 @Injectable()
 export class HouseholdsService {
@@ -35,7 +36,7 @@ export class HouseholdsService {
       },
     });
 
-    this.sseSyncBroadcast.byHousehold(household.id, ['household', 'store'], 'household-mutation');
+    this.sseSyncBroadcast.byHousehold(household.id, SYNC_CHANGE.household, 'household-mutation');
 
     return household;
   }
@@ -62,7 +63,7 @@ export class HouseholdsService {
       }
     });
 
-    this.sseSyncBroadcast.byHousehold(householdId, ['household', 'store'], 'household-mutation');
+    this.sseSyncBroadcast.byHousehold(householdId, SYNC_CHANGE.household, 'household-mutation');
 
     return { success: true };
   }
@@ -91,7 +92,7 @@ export class HouseholdsService {
 
     this.sseBroadcast.notifyHouseholdRemoved([userId], householdId);
 
-    this.sseSyncBroadcast.byHousehold(householdId, ['household', 'store'], 'household-mutation');
+    this.sseSyncBroadcast.byHousehold(householdId, SYNC_CHANGE.household, 'household-mutation');
 
     return { success: true };
   }
@@ -124,7 +125,7 @@ export class HouseholdsService {
 
     this.sseBroadcast.notifyHouseholdRemoved([userId], householdId);
 
-    this.sseSyncBroadcast.byHousehold(householdId, ['household', 'store'], 'household-mutation');
+    this.sseSyncBroadcast.byHousehold(householdId, SYNC_CHANGE.householdCascade, 'household-mutation');
 
     return { success: true };
   }
@@ -165,7 +166,7 @@ export class HouseholdsService {
     // Notify the removed user so they can clean up their local state
     this.sseBroadcast.notifyHouseholdRemoved([memberUserId], householdId);
 
-    this.sseSyncBroadcast.byHousehold(householdId, ['household', 'store'], 'household-mutation');
+    this.sseSyncBroadcast.byHousehold(householdId, SYNC_CHANGE.household, 'household-mutation');
 
     return { success: true };
   }

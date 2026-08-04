@@ -1,7 +1,7 @@
 import { useRxQuery } from "@/core/lib/useRxQuery"
 import { useMutation } from "@/core/lib/useMutation"
 import { api } from "@/core/lib/api"
-import { resyncStores } from "@/core/rxdb"
+import { resyncItems, resyncListItems, resyncLists, resyncSections, resyncStores } from "@/core/rxdb"
 import { toast } from "sonner"
 import { z } from "zod"
 
@@ -74,6 +74,10 @@ export function useDeleteStore(storeId: string, options?: { onSuccess?: () => vo
     mutationFn: () => api.delete(`/stores/${storeId}`),
     onSuccess: () => {
       resyncStores()
+      resyncSections()
+      resyncItems()
+      resyncLists()
+      resyncListItems()
       toast.success("Store deleted")
       options?.onSuccess?.()
     },

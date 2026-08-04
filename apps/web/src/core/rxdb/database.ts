@@ -494,7 +494,7 @@ const sharedPullStreams = new Map<string, Subject<RxReplicationPullStreamItem<an
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- RxDB pull stream generics are untyped
 const RESYNC_SIGNAL = 'RESYNC' as RxReplicationPullStreamItem<any, any>
 
-function registerPullStream<DocType, Checkpoint>(
+export function registerPullStream<DocType, Checkpoint>(
   collectionName: string,
   subject: Subject<RxReplicationPullStreamItem<DocType, Checkpoint>>,
 ) {
@@ -554,7 +554,40 @@ function stopPeriodicResync() {
   }
 }
 
-async function openSharedSyncStream(url: string, forceRefresh = false) {
+/**
+ * Parses a SYNC_CHANGED SSE payload and routes RESYNC signals to the
+ * affected pull streams. Only the collections named in `collections` are
+ * resynced; malformed or empty payloads fall back to broadcasting to all.
+ */
+export function handleSyncChangedPayload(rawData: string) {
+  // Parse the collections array from the event payload.
+  // Only resync the collections the server indicates changed.
+  let collections: string[] | undefined
+  try {
+    const raw = JSON.parse(rawData)
+    if (raw && typeof raw === 'object' && Array.isArray(raw.collections)) {
+      collections = raw.collections.filter((c: unknown): c is string => typeof c === 'string')
+    }
+  } catch {
+    // Malformed payload — fall through to broadcast to all
+  }
+
+  if (collections && collections.length > 0) {
+    const collectionSet = new Set(collections)
+    for (const [name, subject] of sharedPullStreams) {
+      if (collectionSet.has(name)) {
+        subject.next(RESYNC_SIGNAL)
+      }
+    }
+  } else {
+    // Defensive fallback: if we can't parse collections, broadcast to all.
+    for (const subject of sharedPullStreams.values()) {
+      subject.next(RESYNC_SIGNAL)
+    }
+  }
+}
+
+export async function openSharedSyncStream(url: string, forceRefresh = false) {
   const token = forceRefresh ? await refreshAndGetToken() : await getAccessToken()
   // EventSource doesn't support custom headers — token is appended as a
   // query param. The server only accepts query-token auth on SSE endpoints.
@@ -612,6 +645,10 @@ async function openSharedSyncStream(url: string, forceRefresh = false) {
     resetWatchdog()
   })
 
+  src.addEventListener('HEARTBEAT', () => {
+    resetWatchdog()
+  })
+
   src.addEventListener('RESYNC', () => {
     resetWatchdog()
     emitDiagnostic({ type: 'resync', source: 'sse', at: Date.now() })
@@ -623,32 +660,7 @@ async function openSharedSyncStream(url: string, forceRefresh = false) {
   src.addEventListener('SYNC_CHANGED', (event) => {
     resetWatchdog()
     emitDiagnostic({ type: 'resync', source: 'sse', at: Date.now() })
-
-    // Parse the collections array from the event payload.
-    // Only resync the collections the server indicates changed.
-    let collections: string[] | undefined
-    try {
-      const raw = JSON.parse((event as MessageEvent).data)
-      if (raw && typeof raw === 'object' && Array.isArray(raw.collections)) {
-        collections = raw.collections.filter((c: unknown): c is string => typeof c === 'string')
-      }
-    } catch {
-      // Malformed payload — fall through to broadcast to all
-    }
-
-    if (collections && collections.length > 0) {
-      const collectionSet = new Set(collections)
-      for (const [name, subject] of sharedPullStreams) {
-        if (collectionSet.has(name)) {
-          subject.next(RESYNC_SIGNAL)
-        }
-      }
-    } else {
-      // Defensive fallback: if we can't parse collections, broadcast to all.
-      for (const subject of sharedPullStreams.values()) {
-        subject.next(RESYNC_SIGNAL)
-      }
-    }
+    handleSyncChangedPayload((event as MessageEvent).data)
   })
 
   src.addEventListener('HOUSEHOLD_REMOVED', (event) => {
