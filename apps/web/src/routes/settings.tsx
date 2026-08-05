@@ -1,6 +1,7 @@
-import { createFileRoute, lazyRouteComponent } from "@tanstack/react-router"
+import { createFileRoute, lazyRouteComponent, redirect } from "@tanstack/react-router"
 import { useAuth, requireAuth } from "@/core/auth"
 import { PageLoading } from "@/components/ui/page-loading"
+import { Button } from "@/components/ui/button"
 import { SettingsForm } from "@/components/settings-form"
 import { useSettingsHouseholds } from "@/features/households/hooks/useInvitations"
 import { useCurrentUser } from "@/hooks/useProfile"
@@ -15,14 +16,24 @@ export const Route = createFileRoute("/settings")({
 export function SettingsPage() {
     const { isAuthenticated } = useAuth()
     const { data: households, isLoading: householdsLoading } = useSettingsHouseholds()
-    const { data: user, isLoading: userLoading } = useCurrentUser()
-    const hasAuth = isAuthenticated
+    const { data: user, isLoading: userLoading, isError } = useCurrentUser()
 
-    if (!hasAuth || householdsLoading) return <PageLoading />
+    if (!isAuthenticated) throw redirect({ to: '/login' })
 
-    // EnforceLogin guarantees auth; user should be available after loading.
-    // If the API call hasn't resolved yet, show loading until it does.
-    if (userLoading || !user) return <PageLoading />
+    if (householdsLoading || userLoading) return <PageLoading />
+
+    if (isError || !user) {
+      return (
+        <div className="container max-w-2xl py-10 space-y-4">
+          <p className="text-destructive">
+            Failed to load user profile. Please try again.
+          </p>
+          <Button variant="outline" onClick={() => window.location.reload()}>
+            Retry
+          </Button>
+        </div>
+      )
+    }
 
     return (
         <div className="container max-w-2xl py-10 space-y-8">
