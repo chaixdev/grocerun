@@ -109,7 +109,9 @@ export async function getAccessToken(): Promise<string | null> {
       writeCachedAuth({ accessToken, user: oidc.getDecodedIdToken() })
       return accessToken
     }
-  } catch { /* fall through to cache */ }
+  } catch (err) {
+    console.warn('[grocerun:auth] getAccessToken failed, falling back to cache', err)
+  }
 
   return getCachedAccessToken()
 }
@@ -130,7 +132,9 @@ export async function refreshAccessToken(): Promise<string | null> {
       writeCachedAuth({ accessToken, user: oidc.getDecodedIdToken() })
       return accessToken
     }
-  } catch { /* fall through */ }
+  } catch (err) {
+    console.warn('[grocerun:auth] refreshAccessToken failed', err)
+  }
 
   return null
 }
@@ -176,7 +180,9 @@ export async function persistLiveSession(): Promise<void> {
 
     const accessToken = await oidc.getAccessToken()
     writeCachedAuth({ accessToken, user: oidc.getDecodedIdToken() })
-  } catch { /* noop */ }
+  } catch (err) {
+    console.warn('[grocerun:auth] persistLiveSession failed', err)
+  }
 }
 
 /**
