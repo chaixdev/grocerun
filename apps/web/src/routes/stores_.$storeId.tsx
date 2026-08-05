@@ -1,7 +1,7 @@
 import { useState, useCallback } from "react"
 import { createFileRoute, lazyRouteComponent } from "@tanstack/react-router"
 import { useParams, Link } from "@tanstack/react-router"
-import { enforceAppLogin } from "@/core/auth/guard"
+import { requireAuth } from "@/core/auth"
 import { SectionForm } from "@/features/stores/components/SectionForm"
 import { SectionList } from "@/features/stores/components/SectionList"
 import { useStore, useUpdateStore } from "@/features/stores/hooks/useStore"
@@ -13,7 +13,7 @@ import { ArrowLeft, Check, Pencil, X } from "lucide-react"
 import { PageLoading } from "@/components/ui/page-loading"
 
 export const Route = createFileRoute("/stores_/$storeId")({
-    beforeLoad: enforceAppLogin,
+    beforeLoad: requireAuth,
     component: lazyRouteComponent(() => import("./stores_.$storeId"), "StoreDetailsPage"),
 })
 

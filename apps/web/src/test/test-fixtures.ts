@@ -140,16 +140,6 @@ export function buildHousehold(overrides: Partial<TestHousehold> = {}): TestHous
 // ---------------------------------------------------------------------------
 
 /**
- * Creates a mock for `useOidc` returning a specific user.
- * Import in test files: `vi.mock("@/core/lib/oidc", () => ({ useOidc: fn }))`
- */
-export function mockUseOidc(sub = 'user-1') {
-  return vi.fn().mockReturnValue({
-    decodedIdToken: { sub },
-  });
-}
-
-/**
  * Creates a mock for `toast` from sonner.
  */
 export function mockToast() {

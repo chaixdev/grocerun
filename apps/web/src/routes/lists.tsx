@@ -1,6 +1,6 @@
 import { useState } from "react"
 import { createFileRoute, lazyRouteComponent } from "@tanstack/react-router"
-import { enforceAppLogin } from "@/core/auth/guard"
+import { requireAuth } from "@/core/auth"
 import { PageLoading } from "@/components/ui/page-loading"
 import { Button } from "@/components/ui/button"
 import { HouseholdListGroup } from "@/features/lists"
@@ -10,7 +10,7 @@ import { router } from "@/router"
 import { RefreshCw } from "lucide-react"
 
 export const Route = createFileRoute("/lists")({
-  beforeLoad: enforceAppLogin,
+  beforeLoad: requireAuth,
   component: lazyRouteComponent(() => import("./lists"), "ListsPage"),
 })
 

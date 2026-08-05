@@ -25,6 +25,7 @@ import { ShoppingCart, CheckCheck, X } from "lucide-react"
 import { ListItemRow } from "./ListItemRow"
 import { useScreenWakeLock } from "@/hooks/use-screen-wake-lock"
 import { QuantityStepper } from "./QuantityStepper"
+import { useAuth, getAccountKey } from "@/core/auth"
 import { EditItemDialog } from "./EditItemDialog"
 import {
     useToggleItem,
@@ -92,6 +93,8 @@ export function ListEditor({ list }: ListEditorProps) {
     const [isEditOpen, setIsEditOpen] = useState(false)
 
     // Screen Wake Lock for Shopping Mode
+    const { accountKey } = useAuth()
+    const authSubject = accountKey ?? getAccountKey()
     const isReadOnly = list.status === "COMPLETED"
     const isPlanningMode = list.status === "PLANNING"
     const isShoppingMode = list.status === "SHOPPING"

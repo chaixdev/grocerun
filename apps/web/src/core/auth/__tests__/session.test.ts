@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { hasAppAuth } from '../session'
+import { getAccessToken, isAuthenticated } from '../session'
 import { writeCachedAuth } from '../token-cache'
 import { getOidc } from '../oidc'
 
@@ -12,8 +12,12 @@ function jwt(payload: Record<string, unknown>): string {
   return `${encode({ alg: 'none' })}.${encode(payload)}.`
 }
 
-function oidcState(isUserLoggedIn: boolean): Awaited<ReturnType<typeof getOidc>> {
-  return { isUserLoggedIn } as unknown as Awaited<ReturnType<typeof getOidc>>
+function oidcLoggedIn(): Awaited<ReturnType<typeof getOidc>> {
+  return {
+    isUserLoggedIn: true,
+    getAccessToken: async () => 'live-token',
+    getDecodedIdToken: () => ({ sub: 'google-sub' }),
+  } as unknown as Awaited<ReturnType<typeof getOidc>>
 }
 
 describe('app auth session', () => {
@@ -22,18 +26,33 @@ describe('app auth session', () => {
     vi.mocked(getOidc).mockReset()
   })
 
-  it('accepts cached auth before waiting for OIDC initialization', async () => {
+  it('accepts cached auth before waiting for OIDC initialization', () => {
     const token = jwt({ exp: Math.floor(Date.now() / 1000) + 600 })
     writeCachedAuth({ accessToken: token, user: { sub: 'google-sub' } })
     vi.mocked(getOidc).mockImplementation(() => new Promise<Awaited<ReturnType<typeof getOidc>>>(() => {}))
 
-    await expect(hasAppAuth()).resolves.toBe(true)
+    expect(isAuthenticated()).toBe(true)
     expect(getOidc).not.toHaveBeenCalled()
   })
 
-  it('falls back to live OIDC when cached auth is unavailable', async () => {
-    vi.mocked(getOidc).mockResolvedValue(oidcState(true))
+  it('reports unauthenticated when neither cache nor test token exists', () => {
+    vi.mocked(getOidc).mockResolvedValue(oidcLoggedIn())
 
-    await expect(hasAppAuth()).resolves.toBe(true)
+    expect(isAuthenticated()).toBe(false)
+    expect(getOidc).not.toHaveBeenCalled()
+  })
+
+  it('falls back to live OIDC for token retrieval when cached auth is unavailable', async () => {
+    vi.mocked(getOidc).mockResolvedValue(oidcLoggedIn())
+
+    await expect(getAccessToken()).resolves.toBe('live-token')
+  })
+
+  it('returns cached access token when OIDC is not logged in', async () => {
+    const token = jwt({ exp: Math.floor(Date.now() / 1000) + 600 })
+    writeCachedAuth({ accessToken: token, user: { sub: 'google-sub' } })
+    vi.mocked(getOidc).mockResolvedValue({ isUserLoggedIn: false } as Awaited<ReturnType<typeof getOidc>>)
+
+    await expect(getAccessToken()).resolves.toBe(token)
   })
 })

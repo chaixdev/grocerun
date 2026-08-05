@@ -1,10 +1,9 @@
 import { createFileRoute, lazyRouteComponent, redirect } from '@tanstack/react-router'
-import { useOidc } from '@/core/auth/oidc'
-import { hasAppAuth } from '@/core/auth/session'
+import { useAuth, isAuthenticated } from '@/core/auth'
 
 export const Route = createFileRoute('/login')({
-  beforeLoad: async () => {
-    if (await hasAppAuth()) {
+  beforeLoad: () => {
+    if (isAuthenticated()) {
       throw redirect({ to: '/lists' })
     }
   },
@@ -12,12 +11,11 @@ export const Route = createFileRoute('/login')({
 })
 
 export function LoginPage() {
-  // beforeLoad already redirected logged-in users. Assertion gives TS the
-  // NotLoggedIn narrow type where `login` is callable (not `never`).
-  const oidc = useOidc({ assert: "user not logged in" })
+  // beforeLoad already redirected logged-in users.
+  const { login, initializationError } = useAuth()
 
   const handleLogin = () => {
-    oidc.login({ redirectUrl: '/lists' })
+    login()
   }
 
   return (
@@ -29,7 +27,7 @@ export function LoginPage() {
             Sign in to your account
           </p>
         </div>
-        {oidc.initializationError ? (
+        {initializationError ? (
           <div className="p-4 border rounded-lg bg-destructive/10 text-destructive text-sm">
             Authentication service is unavailable. Please try again later.
           </div>

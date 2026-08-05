@@ -33,8 +33,13 @@ function getTokenExpiresAt(token: string): number | null {
   return payload.exp * 1000
 }
 
-function isFresh(expiresAt: number): boolean {
+export function isTokenFresh(expiresAt: number): boolean {
   return expiresAt > Date.now() + AUTH_CACHE_EXPIRY_SKEW_MS
+}
+
+/** @deprecated Internal — use isTokenFresh(). Kept for internal callers during migration. */
+function isFresh(expiresAt: number): boolean {
+  return isTokenFresh(expiresAt)
 }
 
 export function clearCachedAuth(): void {

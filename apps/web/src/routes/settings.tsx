@@ -1,24 +1,22 @@
 import { createFileRoute, lazyRouteComponent } from "@tanstack/react-router"
-import { useOidc } from "@/core/auth/oidc"
-import { enforceAppLogin } from "@/core/auth/guard"
+import { useAuth, requireAuth } from "@/core/auth"
 import { PageLoading } from "@/components/ui/page-loading"
 import { SettingsForm } from "@/components/settings-form"
 import { useSettingsHouseholds } from "@/features/households/hooks/useInvitations"
 import { useCurrentUser } from "@/hooks/useProfile"
-import { getCachedAppUser } from "@/core/auth/session"
 
 const INVITATION_TIMEOUT_MINUTES = Number(import.meta.env.VITE_INVITATION_TIMEOUT_MINUTES) || 1440
 
 export const Route = createFileRoute("/settings")({
-  beforeLoad: enforceAppLogin,
+  beforeLoad: requireAuth,
   component: lazyRouteComponent(() => import("./settings"), "SettingsPage"),
 })
 
 export function SettingsPage() {
-    const oidc = useOidc()
+    const { isAuthenticated } = useAuth()
     const { data: households, isLoading: householdsLoading } = useSettingsHouseholds()
     const { data: user, isLoading: userLoading } = useCurrentUser()
-    const hasAuth = oidc.isUserLoggedIn || !!getCachedAppUser()
+    const hasAuth = isAuthenticated
 
     if (!hasAuth || householdsLoading) return <PageLoading />
 

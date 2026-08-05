@@ -2,9 +2,14 @@
  * OIDC client setup using oidc-spa.
  *
  * Provides Google OIDC authentication for the frontend, replacing next-auth.
- * Exports utilities for React components, route guards, and API token access.
+ * Exports the bootstrap + state-access utilities used by the app shell and the
+ * imperative session layer.
  *
  * See https://github.com/garronej/oidc-spa for full API documentation.
+ *
+ * `useOidc` is intentionally NOT part of the public auth facade (see
+ * `@/core/auth/index.ts`). Only `use-auth.ts` — the single React consumer of
+ * OIDC state — and legacy in-flight consumers import it directly.
  *
  * --- Test mode bypass ---
  * When a test JWT is present in sessionStorage under
@@ -21,7 +26,6 @@ export const {
     bootstrapOidc,
     useOidc,
     getOidc,
-    enforceLogin,
     OidcInitializationGate
 } = oidcSpa
     .withExpectedDecodedIdTokenShape({
