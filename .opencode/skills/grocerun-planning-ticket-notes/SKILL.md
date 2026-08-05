@@ -35,6 +35,33 @@ Use this skill to create or maintain implementation-ready planning tickets under
 
 ## Affected Areas
 
+For each affected area, note its **behavioral criticality** — not just file size
+or complexity, but how many runtime paths depend on it. A 50-line component that
+handles session restoration, OIDC gate, and user identity derivation is far more
+critical than a 200-line route file that only swaps a guard function name.
+
+| Area | Change | Behavioral Criticality |
+|------|--------|----------------------|
+| `auth/guard.ts` | Rename function | Low — trivial rename |
+| `__root.tsx` | Replace auth hook | High — owns session restoration, gate, identity |
+
+## Preserved Behaviors
+
+Before refactoring any module, catalog the resilience patterns, fallback paths,
+and edge-case handling that already exist and must survive the change. Ask:
+"when does this code fire?" and "what scenario does it handle that would break
+if I removed it?" Record each as a preservation requirement:
+
+- [ ] Cache fallback during session restoration window
+- [ ] Redirect-loop prevention on fresh login
+- [ ] Test-mode token bypass transparency
+- [ ] Logout clears all state (cache, RxDB, SSE)
+
+This section is **mandatory** for any ticket that touches session, auth, sync,
+routing, or data persistence — modules where behavioral complexity is
+concentrated in a few critical files. For surface-level UI changes, it can be
+omitted.
+
 ## Implementation Outline
 
 ## Test Strategy

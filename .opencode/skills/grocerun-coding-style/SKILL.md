@@ -42,6 +42,24 @@ From `wiki/rules/coding-standards.md`:
 8. Conventional commits (`feat:`, `fix:`, `refactor:`, etc.)
 9. Dead code must be deleted — no commented-out blocks "just in case"
 
+## Before Deleting or Replacing Code
+
+Before removing or rewriting a code block, identify what scenario it handled:
+
+1. **Read the surrounding context** — comments, variable names, adjacent code.
+2. **Ask "when does this fire?"** — under what conditions does this path execute?
+3. **Check if it handles an edge case** — error recovery, race conditions,
+   initialization windows, fallback paths.
+4. **Verify tests cover the scenario** — if not, add a test before removing.
+
+This applies especially to error handlers, cache fallbacks, session restoration,
+retry logic, and cleanup/teardown code. These patterns look redundant during
+normal operation but prevent failures during edge cases.
+
+A code comment like `// explicitly logged out` or `consumeAuthFallback` is a
+**signal** — it means the author encountered a specific failure mode. Don't
+delete it without understanding what failure mode it guards against.
+
 ## How to Use This Skill
 
 1. Load this skill at the start of any implementation or review task.

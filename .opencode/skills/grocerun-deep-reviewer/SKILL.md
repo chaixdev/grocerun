@@ -42,6 +42,16 @@ Execute the review in four phases. Do not skip or collapse phases.
    services, repositories, configs, tests. Note which concern tracks each file is most
    relevant to.
 
+7. **Behavioral regression check:** For each changed file that handles session,
+   auth, sync, routing, or data persistence, identify the **runtime paths** that
+   must still work after the change. The code quality review catches bugs in new
+   code — this check catches bugs from removed code. Ask:
+   - What resilience/fallback patterns existed in the old code?
+   - Are those patterns preserved in the new code?
+   - Do the tests cover these runtime paths, or only the happy path?
+   - Did any code block with a defensive comment (`// handles race with...`,
+     `// fallback when...`) get deleted?
+
 **Do not begin Phase 2 until all reads are complete.**
 
 ---
