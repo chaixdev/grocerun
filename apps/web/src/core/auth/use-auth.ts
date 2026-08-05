@@ -85,8 +85,13 @@ export function useAuth(): UseAuthState {
   const logout = (): void => {
     // Emits the 'logout' event + clears cached auth + sets the reseed block.
     sessionLogout()
-    // Then leave the OIDC provider (full-page navigation handled by oidc-spa).
-    void oidc.logout?.({ redirectTo: 'home' })
+    // Leave the OIDC provider. When not logged in (mock mode), fall back to
+    // navigating directly to /login.
+    if (oidc.isUserLoggedIn) {
+      void oidc.logout({ redirectTo: 'home' })
+    } else {
+      window.location.replace('/login')
+    }
   }
 
   return {
