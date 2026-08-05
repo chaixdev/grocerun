@@ -1,7 +1,7 @@
 import { useState } from "react"
 import { createFileRoute, lazyRouteComponent } from "@tanstack/react-router"
 import { z } from "zod"
-import { enforceAppLogin } from "@/core/auth/guard"
+import { requireAuth } from "@/core/auth"
 import { PageLoading } from "@/components/ui/page-loading"
 import { Button } from "@/components/ui/button"
 import { HouseholdStoreGroup } from "@/features/stores"
@@ -12,7 +12,7 @@ import { router } from "@/router"
 import { RefreshCw } from "lucide-react"
 
 export const Route = createFileRoute("/stores")({
-  beforeLoad: enforceAppLogin,
+  beforeLoad: requireAuth,
   validateSearch: z.object({ householdId: z.string().optional() }),
   component: lazyRouteComponent(() => import("./stores"), "StoresPage"),
 })

@@ -7,10 +7,8 @@ import { Toaster } from '@/components/ui/sonner'
 import { DiagnosticsGate } from '@/components/diagnostics-gate'
 import { PageLoading } from '@/components/ui/page-loading'
 import { ErrorComponent } from '@/components/error-boundary'
-import { bootstrapOidc, useOidc, OidcInitializationGate } from '@/core/auth/oidc'
+import { bootstrapOidc, OidcInitializationGate, useAuth } from '@/core/auth'
 import { resolveOidcConfig } from '@/core/auth/oidc-config'
-import { getCachedAppUser, persistLiveOidcSession } from '@/core/auth/session'
-import { consumeAuthFallbackFlag, markAuthFallbackAvailable } from '@/core/auth/token-cache'
 import { api } from '@/core/lib/api'
 
 const TEST_TOKEN_KEY = '__grocerun_test_token__'
@@ -33,7 +31,7 @@ const oidcConfig = window.__GROCERUN_CONFIG__ ?? {
   issuerUri: import.meta.env.VITE_OIDC_ISSUER_URI,
 };
 
-const { issuerUri: ISSUER_URI, isGoogle, bootstrapConfig } = resolveOidcConfig(oidcConfig, {});
+const { isGoogle, bootstrapConfig } = resolveOidcConfig(oidcConfig, {});
 
 if (oidcConfig.clientSecret && !isGoogle) {
   console.warn('[grocerun] clientSecret is set but issuer is not Google — secret will be ignored. Standard OIDC providers use PKCE without a client secret.')
@@ -108,18 +106,8 @@ function TestShell() {
   )
 }
 
-function getOidcSpaAuthState(): string | null {
-  try {
-    const configId = `${ISSUER_URI}:${oidcConfig.clientId}`
-    const raw = localStorage.getItem(`oidc-spa:auth-state:${configId}`)
-    return raw
-  } catch {
-    return null
-  }
-}
-
 function AuthenticatedShell() {
-  const oidc = useOidc()
+  const { isAuthenticated, user: authUser } = useAuth()
 
   // Fetch DB user profile for avatar/name — prefers DB values over OIDC
   // token claims so that profile edits (e.g. updated avatar URL) are
@@ -127,46 +115,23 @@ function AuthenticatedShell() {
   // or if the API call fails.
   const [dbUser, setDbUser] = useState<{ name: string | null; image: string | null } | undefined>()
   useEffect(() => {
-    if (!oidc.isUserLoggedIn) return
+    if (!isAuthenticated) return
     let cancelled = false
     api.get<{ name: string | null; image: string | null }>('/users/me')
       .then((u) => { if (!cancelled) setDbUser(u) })
       .catch((err) => { if (!cancelled) console.error('[grocerun] Failed to load DB user for app bar:', err) })
     return () => { cancelled = true }
-  }, [oidc.isUserLoggedIn])
+  }, [isAuthenticated])
 
-  // Persist backup flag when successfully logged in
-  useEffect(() => {
-    if (oidc.isUserLoggedIn) {
-      markAuthFallbackAvailable()
-      void persistLiveOidcSession()
-    }
-  }, [oidc.isUserLoggedIn])
+  // Session persistence + auth fallback flag are handled internally by
+  // useAuth() — no need for a separate effect here.
 
-  const cachedUser = !oidc.isUserLoggedIn ? getCachedAppUser() : null
-  const hasCachedUser = cachedUser !== null
-
-  useEffect(() => {
-    if (oidc.isUserLoggedIn || hasCachedUser) return
-    try {
-      const oidcState = getOidcSpaAuthState()
-      if (oidcState?.includes('explicitly logged out')) return
-      consumeAuthFallbackFlag()
-    } catch { /* storage unavailable */ }
-  }, [oidc.isUserLoggedIn, hasCachedUser])
-
-  const user = oidc.isUserLoggedIn
+  const user = isAuthenticated && authUser
     ? {
-        name: dbUser?.name || oidc.decodedIdToken.name,
-        email: oidc.decodedIdToken.email,
-        image: dbUser?.image || oidc.decodedIdToken.picture,
+        name: dbUser?.name || authUser.name,
+        email: authUser.email,
+        image: dbUser?.image || authUser.picture,
       }
-    : cachedUser
-      ? {
-          name: cachedUser.name,
-          email: cachedUser.email,
-          image: cachedUser.picture,
-        }
     : undefined
 
   return (

@@ -7,29 +7,13 @@
  * Mirrors the server-side API client pattern but runs in the browser.
  * See ADR 001 for the simple REST + Zod approach.
  *
- * Test token bypass: when a test JWT is present in sessionStorage under
- * the key `__grocerun_test_token__`, it is used for API authorization
- * instead of oidc-spa tokens.  This allows Playwright tests to inject
- * auth without mocking Google OIDC.
+ * Auth tokens (including the Playwright test-token bypass) are resolved by
+ * `@/core/auth/session` — see session.ts. This client never touches
+ * `__grocerun_test_token__` directly.
  */
 
 import { z } from 'zod'
-import { clearInvalidAppAuth, getAppAccessToken, refreshAppAccessToken } from '@/core/auth/session'
-
-const TEST_TOKEN_KEY = '__grocerun_test_token__'
-
-function getTestToken(): string | null {
-  if (typeof window === 'undefined') return null
-  try { return sessionStorage.getItem(TEST_TOKEN_KEY) } catch { return null }
-}
-
-/** Resolve an auth token — test token takes priority over oidc-spa tokens. */
-async function resolveAccessToken(): Promise<string | null> {
-  const testToken = getTestToken()
-  if (testToken) return testToken
-
-  return getAppAccessToken()
-}
+import { invalidateSession, getAccessToken, refreshAccessToken } from '@/core/auth/session'
 
 export class ApiError extends Error {
   constructor(
@@ -47,7 +31,7 @@ async function request<T>(
   options: RequestInit = {},
   schema?: z.ZodSchema<T>,
 ): Promise<T> {
-  const accessToken = await resolveAccessToken()
+  const accessToken = await getAccessToken()
 
   const res = await fetch(`/api/v1${endpoint}`, {
     ...options,
@@ -62,14 +46,9 @@ async function request<T>(
 
   // On 401, try refreshing tokens once and retry
   if (res.status === 401 && accessToken) {
-    let retryToken: string | null = getTestToken()
-
-    // Refresh OIDC token outside try/catch so TypeScript can narrow types
+    const retryToken = await refreshAccessToken()
     if (!retryToken) {
-      retryToken = await refreshAppAccessToken()
-    }
-    if (!retryToken) {
-      clearInvalidAppAuth()
+      invalidateSession()
       throw new ApiError('Session expired', 401)
     }
 
@@ -96,7 +75,7 @@ async function request<T>(
       return schema ? schema.parse(data) : data as T
     } catch (err) {
       if (err instanceof ApiError) throw err
-      if (!getTestToken()) clearInvalidAppAuth()
+      invalidateSession()
       throw err  // re-throw original to preserve actual error type/message
     }
   }

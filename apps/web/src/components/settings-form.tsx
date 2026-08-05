@@ -22,8 +22,7 @@ import {
     CollapsibleContent,
     CollapsibleTrigger,
 } from "@/components/ui/collapsible"
-import { useOidc } from "@/core/auth/oidc"
-import { clearAppAuth } from "@/core/auth/session"
+import { useAuth } from "@/core/auth"
 import { ChevronDown, ChevronRight, LogOut, RefreshCw } from "lucide-react"
 import { resetRxDb } from "@/core/rxdb"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -44,7 +43,7 @@ interface SettingsFormProps {
 }
 
 export function SettingsForm({ user, households, invitationTimeoutMinutes }: SettingsFormProps) {
-    const oidc = useOidc()
+    const { logout: authLogout } = useAuth()
     const [mounted, setMounted] = useState(false)
     const updateProfile = useUpdateProfile()
     const [profileOpen, setProfileOpen] = useState(false)
@@ -137,12 +136,7 @@ export function SettingsForm({ user, households, invitationTimeoutMinutes }: Set
                             <Button
                                 variant="outline"
                                 onClick={() => {
-                                    clearAppAuth()
-                                    if (oidc.isUserLoggedIn) {
-                                        oidc.logout({ redirectTo: "home" })
-                                    } else {
-                                        void router.navigate({ to: "/login" })
-                                    }
+                                    authLogout()
                                 }}
                                 className="w-full sm:w-auto"
                             >

@@ -1,11 +1,11 @@
 import { createFileRoute, lazyRouteComponent } from "@tanstack/react-router"
-import { enforceAppLogin } from "@/core/auth/guard"
+import { requireAuth } from "@/core/auth"
 import { PageLoading } from "@/components/ui/page-loading"
 import { HouseholdForm, HouseholdList } from "@/features/households"
 import { useHouseholds } from "@/features/households/hooks/useHouseholds"
 
 export const Route = createFileRoute("/households")({
-  beforeLoad: enforceAppLogin,
+  beforeLoad: requireAuth,
   component: lazyRouteComponent(() => import("./households"), "HouseholdsPage"),
 })
 

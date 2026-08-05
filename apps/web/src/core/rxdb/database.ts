@@ -17,7 +17,7 @@ import { wrappedValidateZSchemaStorage } from 'rxdb/plugins/validate-z-schema'
 import { getRxStorageDexie } from 'rxdb/plugins/storage-dexie'
 import { replicateRxCollection, RxReplicationState } from 'rxdb/plugins/replication'
 import { Subject } from 'rxjs'
-import { clearInvalidAppAuth, getAppAccessToken, refreshAppAccessToken } from '../auth/session'
+import { invalidateSession, getAccessToken, refreshAccessToken, getStreamUrl, onSessionChange } from '../auth/session'
 import { emitDiagnostic } from '../diagnostics/event-bus'
 import {
   sectionSchema,
@@ -35,31 +35,37 @@ import {
 } from './schema'
 
 // ---------------------------------------------------------------------------
-// OIDC token helpers
+// Session lifecycle (GROCERUN-69 auth consolidation)
 // ---------------------------------------------------------------------------
+// onSessionChange is a plain Set-based listener (not React), so a module-level
+// subscription is safe. 'account-changed' needs no handling here: use-auth.ts
+// triggers a full page reload on account change, which destroys the RxDB
+// instance naturally.
 
-const TEST_TOKEN_KEY = '__grocerun_test_token__'
-
-function getTestToken(): string | null {
-  if (typeof window === 'undefined') return null
-  try { return sessionStorage.getItem(TEST_TOKEN_KEY) } catch { return null }
+type ActiveReplication = {
+  awaitInSync: () => Promise<unknown>
+  cancel: () => Promise<void>
 }
 
-async function getAccessToken(): Promise<string | null> {
-  const testToken = getTestToken()
-  if (testToken) return testToken
+const activeReplications: ActiveReplication[] = []
 
-  return getAppAccessToken()
-}
+onSessionChange((event) => {
+  if (event.type === 'logout') {
+    // Best-effort push flush: let the in-flight replication cycle settle
+    // (pushing any pending writes), then cancel all replication states.
+    void (async () => {
+      await Promise.allSettled(activeReplications.map((r) => r.awaitInSync()))
+      cancelAllReplications()
+    })()
+  } else if (event.type === 'invalidated') {
+    // Session is dead — cancel immediately, no flush needed.
+    cancelAllReplications()
+  }
+})
 
-async function refreshAndGetToken(): Promise<string | null> {
-  const testToken = getTestToken()
-  if (testToken) return testToken
-
-  try {
-    return await refreshAppAccessToken()
-  } catch {
-    return null
+function cancelAllReplications(): void {
+  for (const state of activeReplications) {
+    state.cancel().catch(() => { /* best-effort teardown */ })
   }
 }
 
@@ -156,6 +162,7 @@ export async function resetRxDb(): Promise<void> {
   sharedSyncStreamOpened = false
   stopPeriodicResync()
   sharedPullStreams.clear()
+  activeReplications.length = 0
 
   if (dbPromise) {
     const db = await dbPromise.catch(() => null)
@@ -412,7 +419,7 @@ function startPullReplication<DocType, Checkpoint extends { id: string; updatedA
         // On 401, force-refresh the token and retry once so RxDB
         // doesn't loop with a stale cached token.
         if (res.status === 401) {
-          const freshToken = await refreshAndGetToken()
+          const freshToken = await refreshAccessToken()
           if (freshToken) {
             res = await fetch(`${basePath}/pull?${params}`, {
               cache: 'no-store',
@@ -422,7 +429,7 @@ function startPullReplication<DocType, Checkpoint extends { id: string; updatedA
         }
 
         if (!res.ok) {
-          if (res.status === 401) clearInvalidAppAuth()
+          if (res.status === 401) invalidateSession()
           emitDiagnostic({ type: 'pull', collection: collectionName, status: res.status, docCount: 0, checkpoint: null, durationMs: Date.now() - t0, error: `HTTP ${res.status}`, at: t0 })
           console.error(`[RxDB] pull failed: ${collectionName} HTTP ${res.status}`)
           throw new Error(`Sync pull failed: ${res.status}`)
@@ -452,7 +459,7 @@ function startPullReplication<DocType, Checkpoint extends { id: string; updatedA
 
               // On 401, force-refresh the token and retry once.
               if (res.status === 401) {
-                const freshToken = await refreshAndGetToken()
+                const freshToken = await refreshAccessToken()
                 if (freshToken) {
                   res = await fetch(`${basePath}/push`, {
                     method: 'POST',
@@ -466,7 +473,7 @@ function startPullReplication<DocType, Checkpoint extends { id: string; updatedA
               }
 
               if (!res.ok) {
-                if (res.status === 401) clearInvalidAppAuth()
+                if (res.status === 401) invalidateSession()
                 emitDiagnostic({ type: 'push', collection: collectionName, status: res.status, rowCount: rows.length, conflictCount: 0, durationMs: Date.now() - t0, error: `HTTP ${res.status}`, at: t0 })
                 throw new Error(`Sync push failed: ${res.status}`)
               }
@@ -484,11 +491,13 @@ function startPullReplication<DocType, Checkpoint extends { id: string; updatedA
     console.error(`[RxDB] replication error (${collectionName}):`, err)
   })
 
+  activeReplications.push(replicationState)
+
   return replicationState
 }
 
 function getSyncStreamUrl(): string {
-  return '/api/v1/sync/stream'
+  return getStreamUrl()
 }
 
 /**
@@ -632,7 +641,7 @@ export function handleSyncChangedPayload(rawData: string) {
 }
 
 export async function openSharedSyncStream(url: string, forceRefresh = false) {
-  const token = forceRefresh ? await refreshAndGetToken() : await getAccessToken()
+  const token = forceRefresh ? await refreshAccessToken() : await getAccessToken()
   // EventSource doesn't support custom headers — token is appended as a
   // query param. The server only accepts query-token auth on SSE endpoints.
   const params = new URLSearchParams()
