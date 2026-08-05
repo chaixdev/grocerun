@@ -35,4 +35,15 @@ describe('api auth handling', () => {
     await expect(api.get('/users/me')).rejects.toBeInstanceOf(ApiError)
     expect(invalidateSession).toHaveBeenCalled()
   })
+
+  it('invalidates session when refresh succeeds but retry also returns 401', async () => {
+    vi.mocked(getAccessToken).mockResolvedValue('stale-token')
+    vi.mocked(refreshAccessToken).mockResolvedValue('refreshed-token')
+    vi.mocked(fetch)
+      .mockResolvedValueOnce(new Response('{}', { status: 401 }))   // first request → 401
+      .mockResolvedValueOnce(new Response('{}', { status: 401 }))   // retry → also 401
+
+    await expect(api.get('/users/me')).rejects.toBeInstanceOf(ApiError)
+    expect(invalidateSession).toHaveBeenCalled()
+  })
 })

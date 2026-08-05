@@ -35,4 +35,11 @@ describe('requireAuth', () => {
 
     await expect(requireAuth()).rejects.toMatchObject({ options: { to: '/login' } })
   })
+
+  it('redirects to login when OIDC lookup itself fails', async () => {
+    vi.mocked(isAuthenticated).mockReturnValue(false)
+    vi.mocked(getOidc).mockRejectedValue(new Error('OIDC init failed'))
+
+    await expect(requireAuth()).rejects.toMatchObject({ options: { to: '/login' } })
+  })
 })

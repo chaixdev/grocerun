@@ -1,6 +1,5 @@
 import { createFileRoute, lazyRouteComponent, redirect } from '@tanstack/react-router'
-import { useAuth, isAuthenticated } from '@/core/auth'
-import { getOidc } from '@/core/auth/oidc'
+import { useAuth, isAuthenticated, getOidc } from '@/core/auth'
 
 export const Route = createFileRoute('/login')({
   beforeLoad: async () => {
