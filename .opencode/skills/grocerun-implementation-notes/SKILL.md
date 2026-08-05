@@ -33,3 +33,20 @@ Before significant code changes, review:
 - Do not let implementation drift silently from the ticket.
 - If a shortcut is taken, record it as a conscious deviation.
 - If a finding should become a rule/technical-design/ADR, mark it for documentation extraction.
+
+## Pre-Deletion Checklist
+
+Before removing any code that handles error paths, fallbacks, teardown,
+initialization, or session state, verify:
+
+1. Do you understand what runtime scenario triggered the code? (Read comments, git
+   blame, surrounding context.)
+2. Is that scenario still relevant after your change, or did the change eliminate
+   the need for it?
+3. Is there a test that would fail if the scenario recurs and the code is gone?
+   If not, add one — or preserve a minimal version of the code.
+
+Defensive code (empty catch blocks, fallback values, optional chaining guards,
+cleanup calls) exists for a reason. It may look redundant during normal
+operation but prevents failures during edge cases. Don't remove it without
+understanding the edge case it guards against.
