@@ -14,6 +14,7 @@
 
 export {
   isAuthenticated,
+  isTestMode,
   getAccessToken,
   refreshAccessToken,
   getAccountKey,

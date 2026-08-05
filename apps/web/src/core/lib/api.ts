@@ -62,6 +62,11 @@ async function request<T>(
         },
       })
 
+      if (retryRes.status === 401) {
+        invalidateSession()
+        throw new ApiError('Session expired', 401)
+      }
+
       if (!retryRes.ok) {
         const errorData = await retryRes.json().catch(() => ({}))
         throw new ApiError(
@@ -75,8 +80,8 @@ async function request<T>(
       return schema ? schema.parse(data) : data as T
     } catch (err) {
       if (err instanceof ApiError) throw err
-      invalidateSession()
-      throw err  // re-throw original to preserve actual error type/message
+      // Network error on retry — do NOT invalidate the session
+      throw err
     }
   }
 

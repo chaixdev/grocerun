@@ -31,10 +31,8 @@ export type AppAuthUser = {
 }
 
 export type SessionEvent =
-  | { type: 'login'; sub: string }
   | { type: 'logout' }
   | { type: 'invalidated' }
-  | { type: 'account-changed'; prevSub: string; nextSub: string }
 
 // ---------------------------------------------------------------------------
 // Event emitter (same Set-based pattern as core/diagnostics/event-bus.ts)
@@ -64,6 +62,11 @@ const TEST_TOKEN_KEY = '__grocerun_test_token__'
 function getTestToken(): string | null {
   if (typeof window === 'undefined') return null
   try { return sessionStorage.getItem(TEST_TOKEN_KEY) } catch { return null }
+}
+
+/** Exported for OIDC bootstrap layer — see __root.tsx. */
+export function isTestMode(): boolean {
+  return getTestToken() !== null
 }
 
 // ---------------------------------------------------------------------------
@@ -145,12 +148,11 @@ export function getAccountKey(): string | null {
   if (testToken) {
     try {
       const parts = testToken.split('.')
-      if (parts[1]) {
-        const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')))
-        if (typeof payload.sub === 'string') return payload.sub
-      }
-    } catch { /* fall through */ }
-    return null
+      if (parts.length !== 3 || !parts[1]) return null
+      const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')))
+      if (typeof payload.sub === 'string') return payload.sub
+      return null
+    } catch { return null }
   }
 
   const cachedUser = getCachedUser()

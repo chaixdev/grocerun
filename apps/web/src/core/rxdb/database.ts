@@ -17,7 +17,7 @@ import { wrappedValidateZSchemaStorage } from 'rxdb/plugins/validate-z-schema'
 import { getRxStorageDexie } from 'rxdb/plugins/storage-dexie'
 import { replicateRxCollection, RxReplicationState } from 'rxdb/plugins/replication'
 import { Subject } from 'rxjs'
-import { invalidateSession, getAccessToken, refreshAccessToken, getStreamUrl, onSessionChange } from '../auth/session'
+import { invalidateSession, getAccessToken, refreshAccessToken, getStreamUrl, onSessionChange } from '@/core/auth'
 import { emitDiagnostic } from '../diagnostics/event-bus'
 import {
   sectionSchema,
@@ -52,21 +52,32 @@ const activeReplications: ActiveReplication[] = []
 onSessionChange((event) => {
   if (event.type === 'logout') {
     // Best-effort push flush: let the in-flight replication cycle settle
-    // (pushing any pending writes), then cancel all replication states.
+    // (pushing any pending writes), then tear down SSE + replications.
     void (async () => {
       await Promise.allSettled(activeReplications.map((r) => r.awaitInSync()))
-      cancelAllReplications()
+      teardownSyncInfrastructure()
     })()
   } else if (event.type === 'invalidated') {
-    // Session is dead — cancel immediately, no flush needed.
-    cancelAllReplications()
+    // Session is dead — tear down immediately, no flush needed.
+    teardownSyncInfrastructure()
   }
 })
+
+function teardownSyncInfrastructure(): void {
+  if (sharedSyncEventSource) {
+    sharedSyncEventSource.close()
+    sharedSyncEventSource = null
+  }
+  sharedSyncStreamOpened = false
+  stopPeriodicResync()
+  cancelAllReplications()
+}
 
 function cancelAllReplications(): void {
   for (const state of activeReplications) {
     state.cancel().catch(() => { /* best-effort teardown */ })
   }
+  activeReplications.length = 0
 }
 
 // ---------------------------------------------------------------------------
@@ -155,14 +166,8 @@ export function getRxDb(): Promise<GrocerunDatabase> {
 }
 
 export async function resetRxDb(): Promise<void> {
-  if (sharedSyncEventSource) {
-    sharedSyncEventSource.close()
-  }
-  sharedSyncEventSource = null
-  sharedSyncStreamOpened = false
-  stopPeriodicResync()
+  teardownSyncInfrastructure()
   sharedPullStreams.clear()
-  activeReplications.length = 0
 
   if (dbPromise) {
     const db = await dbPromise.catch(() => null)

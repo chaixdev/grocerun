@@ -37,11 +37,6 @@ export function isTokenFresh(expiresAt: number): boolean {
   return expiresAt > Date.now() + AUTH_CACHE_EXPIRY_SKEW_MS
 }
 
-/** @deprecated Internal — use isTokenFresh(). Kept for internal callers during migration. */
-function isFresh(expiresAt: number): boolean {
-  return isTokenFresh(expiresAt)
-}
-
 export function clearCachedAuth(): void {
   try { localStorage.removeItem(AUTH_TOKEN_CACHE_KEY) } catch { /* noop */ }
 }
@@ -94,7 +89,7 @@ export function clearAuthLogoutMarker(): void {
 export function writeCachedAuth(params: { accessToken: string; user: CachedAuthUser }): void {
   if (hasRecentLogoutInProgress()) return
   const expiresAt = getTokenExpiresAt(params.accessToken)
-  if (!expiresAt || !isFresh(expiresAt)) {
+    if (!expiresAt || !isTokenFresh(expiresAt)) {
     clearCachedAuth()
     return
   }
@@ -123,7 +118,7 @@ export function readCachedAuth(): CachedAuth | null {
       clearCachedAuth()
       return null
     }
-    if (!isFresh(value.expiresAt)) {
+    if (!isTokenFresh(value.expiresAt)) {
       clearCachedAuth()
       return null
     }
