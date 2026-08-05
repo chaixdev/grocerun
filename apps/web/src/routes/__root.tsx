@@ -7,13 +7,12 @@ import { Toaster } from '@/components/ui/sonner'
 import { DiagnosticsGate } from '@/components/diagnostics-gate'
 import { PageLoading } from '@/components/ui/page-loading'
 import { ErrorComponent } from '@/components/error-boundary'
-import { bootstrapOidc, OidcInitializationGate, useAuth } from '@/core/auth'
+import { bootstrapOidc, OidcInitializationGate, useAuth, isTestMode as checkTestMode } from '@/core/auth'
 import { resolveOidcConfig } from '@/core/auth/oidc-config'
 import { api } from '@/core/lib/api'
 
-const TEST_TOKEN_KEY = '__grocerun_test_token__'
 const isTestMode = typeof window !== 'undefined'
-  && (() => { try { return sessionStorage.getItem(TEST_TOKEN_KEY) !== null } catch { return false } })()
+  && (() => { try { return checkTestMode() } catch { return false } })()
 
 declare global {
   interface Window {
