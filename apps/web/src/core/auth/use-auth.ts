@@ -15,9 +15,10 @@ import { useOidc } from '@/core/auth/oidc'
 import {
   logout as sessionLogout,
   persistLiveSession,
+  isAuthenticated as sessionIsAuthenticated,
   type AppAuthUser,
 } from '@/core/auth/session'
-import { markAuthFallbackAvailable } from '@/core/auth/token-cache'
+import { markAuthFallbackAvailable, getCachedUser } from '@/core/auth/token-cache'
 
 export type UseAuthState = {
   isAuthenticated: boolean
@@ -32,11 +33,11 @@ export type UseAuthState = {
 export function useAuth(): UseAuthState {
   const oidc = useOidc()
 
-  // isAuthenticated reports the LIVE OIDC login state. The session-layer
-  // `isAuthenticated()` (cache + test token) is the synchronous authority for
-  // guards and imperative code; the hook prefers the reactive OIDC value so UI
-  // never renders a stale frame between login and cache persistence.
-  const isAuthenticated = oidc.isUserLoggedIn
+  // isAuthenticated prefers live OIDC state but falls back to the session
+  // cache during restoration windows (e.g. oidc-spa "full page redirect"
+  // hasn't completed yet but localStorage still holds a fresh token).
+  const oidcAuthed = oidc.isUserLoggedIn === true
+  const isAuthenticated = oidcAuthed || sessionIsAuthenticated()
 
   // useOidc() throws while OIDC is still initialising — the
   // OidcInitializationGate renders its fallback during that window — so by the
@@ -44,7 +45,10 @@ export function useAuth(): UseAuthState {
   // case the upstream API ever surfaces an unsettled value.
   const isLoading = oidc.isUserLoggedIn === undefined
 
-  const user: AppAuthUser | null = oidc.isUserLoggedIn ? oidc.decodedIdToken : null
+  // user: prefer live OIDC claims, fall back to cached user during restoration.
+  const user: AppAuthUser | null = oidcAuthed
+    ? oidc.decodedIdToken
+    : getCachedUser() ?? null
   const accountKey = user?.sub ?? null
 
   // Persist the live session so the sync, cache-based session layer (guards,
