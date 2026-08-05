@@ -45,6 +45,18 @@ vi.mock('@/features/lists/hooks/useCompleteAndCreateList', () => ({
   }),
 }))
 
+vi.mock('@/core/auth/use-auth', () => ({
+  useAuth: () => ({
+    isAuthenticated: true,
+    isLoading: false,
+    initializationError: null,
+    user: { sub: 'user-1', name: 'Test', email: 'test@test.com' },
+    accountKey: 'user-1',
+    login: vi.fn(),
+    logout: vi.fn(),
+  }),
+}))
+
 const shoppingList: ListDetail = {
   id: 'list-1',
   name: 'Collaborative shopping',
