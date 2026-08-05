@@ -114,13 +114,16 @@ function AuthenticatedShell() {
   // or if the API call fails.
   const [dbUser, setDbUser] = useState<{ name: string | null; image: string | null } | undefined>()
   useEffect(() => {
-    if (!isAuthenticated) return
+    if (!isAuthenticated || !authUser) {
+      setDbUser(undefined)
+      return
+    }
     let cancelled = false
     api.get<{ name: string | null; image: string | null }>('/users/me')
       .then((u) => { if (!cancelled) setDbUser(u) })
       .catch((err) => { if (!cancelled) console.error('[grocerun] Failed to load DB user for app bar:', err) })
     return () => { cancelled = true }
-  }, [isAuthenticated])
+  }, [isAuthenticated, authUser])
 
   // Session persistence + auth fallback flag are handled internally by
   // useAuth() — no need for a separate effect here.
