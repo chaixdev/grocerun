@@ -1,11 +1,14 @@
 import { createFileRoute, lazyRouteComponent, redirect } from '@tanstack/react-router'
 import { useAuth, isAuthenticated } from '@/core/auth'
+import { getOidc } from '@/core/auth/oidc'
 
 export const Route = createFileRoute('/login')({
-  beforeLoad: () => {
-    if (isAuthenticated()) {
-      throw redirect({ to: '/lists' })
-    }
+  beforeLoad: async () => {
+    if (isAuthenticated()) throw redirect({ to: '/lists' })
+    try {
+      const oidc = await getOidc()
+      if (oidc.isUserLoggedIn) throw redirect({ to: '/lists' })
+    } catch { /* fall through — not logged in */ }
   },
   component: lazyRouteComponent(() => import('./login'), 'LoginPage'),
 })
